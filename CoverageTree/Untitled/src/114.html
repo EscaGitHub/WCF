@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Converters\InverseBoolToVisibilityConverter.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Data;
+using System.Windows;
+
+namespace Xceed.Wpf.AvalonDock.Converters
+{
+    [ValueConversion(typeof(bool), typeof(Visibility))] 
+    public class InverseBoolToVisibilityConverter : IValueConverter 
+    { 
+
+        #region IValueConverter Members 
+        /// &lt;summary&gt; 
+        /// Converts a value. 
+        /// &lt;/summary&gt; 
+        /// &lt;param name=&quot;value&quot;&gt;The value produced by the binding source.&lt;/param&gt; 
+        /// &lt;param name=&quot;targetType&quot;&gt;The type of the binding target property.&lt;/param&gt; 
+        /// &lt;param name=&quot;parameter&quot;&gt;The converter parameter to use.&lt;/param&gt; 
+        /// &lt;param name=&quot;culture&quot;&gt;The culture to use in the converter.&lt;/param&gt; 
+        /// &lt;returns&gt; 
+        /// A converted value. If the method returns null, the valid null value is used. 
+        /// &lt;/returns&gt; 
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) 
+        { 
+                if (value is bool &amp;&amp; targetType == typeof(Visibility)) 
+                { 
+                        bool val = !(bool)value; 
+                        if (val) 
+                                return Visibility.Visible; 
+                        else 
+                                if (parameter != null &amp;&amp; parameter is Visibility ) 
+                                        return parameter; 
+                                else 
+                                        return Visibility.Collapsed; 
+                } 
+                throw new ArgumentException(&quot;Invalid argument/return type. Expected argument: bool and return type: Visibility&quot;); 
+        } 
+
+        /// &lt;summary&gt; 
+        /// Converts a value. 
+        /// &lt;/summary&gt; 
+        /// &lt;param name=&quot;value&quot;&gt;The value that is produced by the binding target.&lt;/param&gt; 
+        /// &lt;param name=&quot;targetType&quot;&gt;The type to convert to.&lt;/param&gt; 
+        /// &lt;param name=&quot;parameter&quot;&gt;The converter parameter to use.&lt;/param&gt; 
+        /// &lt;param name=&quot;culture&quot;&gt;The culture to use in the converter.&lt;/param&gt; 
+        /// &lt;returns&gt; 
+        /// A converted value. If the method returns null, the valid null value is used. 
+        /// &lt;/returns&gt; 
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) 
+        { 
+                if (value is Visibility &amp;&amp; targetType == typeof(bool)) 
+                { 
+                        Visibility val = (Visibility)value; 
+                        if (val == Visibility.Visible) 
+                                return false; 
+                        else 
+                                return true; 
+                } 
+                throw new ArgumentException(&quot;Invalid argument/return type. Expected argument: Visibility and return type: bool&quot;); 
+        } 
+        #endregion 
+    } 
+
+
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[42,9,42,10,0],[43,17,43,71,0],[44,17,44,18,0],[45,25,45,49,0],[46,25,46,33,0],[47,33,47,59,0],[49,33,49,83,0],[50,41,50,58,0],[52,41,52,69,0],[54,17,54,130,0],[55,9,55,10,0],[68,9,68,10,0],[69,17,69,71,0],[70,17,70,18,0],[71,25,71,60,0],[72,25,72,55,0],[73,33,73,46,0],[75,33,75,45,0],[77,17,77,130,0],[78,9,78,10,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\LayoutGridControl.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Controls;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
+using Xceed.Wpf.AvalonDock.Layout;
+using System.Diagnostics;
+using System.Windows.Threading;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public abstract class LayoutGridControl&lt;T&gt; : Grid, ILayoutControl where T : class, ILayoutPanelElement
+    {
+        static LayoutGridControl()
+        {
+        }
+
+        internal LayoutGridControl(LayoutPositionableGroup&lt;T&gt; model, Orientation orientation)
+        {
+            if (model == null)
+                throw new ArgumentNullException(&quot;model&quot;);
+
+            _model = model;
+            _orientation = orientation;
+
+            FlowDirection = System.Windows.FlowDirection.LeftToRight;
+        }
+
+        LayoutPositionableGroup&lt;T&gt; _model;
+        public ILayoutElement Model
+        {
+            get { return _model; }
+        }
+
+        Orientation _orientation;
+
+        public Orientation Orientation
+        {
+            get { return (_model as ILayoutOrientableGroup).Orientation; }
+        }
+
+        bool _initialized;
+        ChildrenTreeChange? _asyncRefreshCalled;
+
+        bool AsyncRefreshCalled
+        {
+            get { return _asyncRefreshCalled != null; }
+        }
+
+        protected override void OnInitialized(EventArgs e)
+        {
+            base.OnInitialized(e);
+
+            _model.ChildrenTreeChanged += (s, args) =&gt;
+                {
+                    if (_asyncRefreshCalled.HasValue &amp;&amp;
+                        _asyncRefreshCalled.Value == args.Change)
+                        return;
+                    _asyncRefreshCalled = args.Change;
+                    Dispatcher.BeginInvoke(new Action(() =&gt;
+                        {
+                            _asyncRefreshCalled = null;
+                            UpdateChildren();
+                        }), DispatcherPriority.Normal, null);
+                };
+
+            this.LayoutUpdated += new EventHandler(OnLayoutUpdated);
+        }
+
+        void OnLayoutUpdated(object sender, EventArgs e)
+        {
+            var modelWithAtcualSize = _model as ILayoutPositionableElementWithActualSize;
+            modelWithAtcualSize.ActualWidth = ActualWidth;
+            modelWithAtcualSize.ActualHeight = ActualHeight;
+
+            if (!_initialized)
+            {
+                _initialized = true;
+                UpdateChildren();
+            }
+        }
+
+        void UpdateChildren()
+        {
+            var alreadyContainedChildren = Children.OfType&lt;ILayoutControl&gt;().ToArray();
+
+            DetachOldSplitters();
+            DetachPropertChangeHandler();
+
+            Children.Clear();
+            ColumnDefinitions.Clear();
+            RowDefinitions.Clear();
+
+            if (_model == null ||
+                _model.Root == null)
+                return;
+
+            var manager = _model.Root.Manager;
+            if (manager == null)
+                return;
+
+
+            foreach (ILayoutElement child in _model.Children)
+            {
+                var foundContainedChild = alreadyContainedChildren.FirstOrDefault(chVM =&gt; chVM.Model == child);
+                if (foundContainedChild != null)
+                    Children.Add(foundContainedChild as UIElement);
+                else
+                    Children.Add(manager.CreateUIElementForModel(child));
+            }
+
+            CreateSplitters();
+
+            UpdateRowColDefinitions();
+
+            AttachNewSplitters();
+            AttachPropertyChangeHandler();
+        }
+
+        private void AttachPropertyChangeHandler()
+        {
+            foreach (var child in InternalChildren.OfType&lt;ILayoutControl&gt;())
+            {
+                child.Model.PropertyChanged += new System.ComponentModel.PropertyChangedEventHandler(this.OnChildModelPropertyChanged);
+            }
+        }
+
+        private void DetachPropertChangeHandler()
+        {
+            foreach (var child in InternalChildren.OfType&lt;ILayoutControl&gt;())
+            {
+                child.Model.PropertyChanged -= new System.ComponentModel.PropertyChangedEventHandler(this.OnChildModelPropertyChanged);
+            }
+        }
+
+        void OnChildModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (AsyncRefreshCalled)
+                return;
+
+            if (_fixingChildrenDockLengths.CanEnter &amp;&amp; e.PropertyName == &quot;DockWidth&quot; &amp;&amp; Orientation == System.Windows.Controls.Orientation.Horizontal)
+            {
+                if (ColumnDefinitions.Count == InternalChildren.Count)
+                {
+                    var changedElement = sender as ILayoutPositionableElement;
+                    var childFromModel = InternalChildren.OfType&lt;ILayoutControl&gt;().First(ch =&gt; ch.Model == changedElement) as UIElement;
+                    int indexOfChild = InternalChildren.IndexOf(childFromModel);
+                    ColumnDefinitions[indexOfChild].Width = changedElement.DockWidth;
+                }
+            }
+            else if (_fixingChildrenDockLengths.CanEnter &amp;&amp; e.PropertyName == &quot;DockHeight&quot; &amp;&amp; Orientation == System.Windows.Controls.Orientation.Vertical)
+            {
+                if (RowDefinitions.Count == InternalChildren.Count)
+                {
+                    var changedElement = sender as ILayoutPositionableElement;
+                    var childFromModel = InternalChildren.OfType&lt;ILayoutControl&gt;().First(ch =&gt; ch.Model == changedElement) as UIElement;
+                    int indexOfChild = InternalChildren.IndexOf(childFromModel);
+                    RowDefinitions[indexOfChild].Height = changedElement.DockHeight;
+                }
+            }
+            else if (e.PropertyName == &quot;IsVisible&quot;)
+            {
+                UpdateRowColDefinitions();
+            }
+        }
+
+
+        void UpdateRowColDefinitions()
+        {
+            var root = _model.Root;
+            if (root == null)
+                return;
+            var manager = root.Manager;
+            if (manager == null)
+                return;
+
+            FixChildrenDockLengths();
+
+            //Debug.Assert(InternalChildren.Count == _model.ChildrenCount + (_model.ChildrenCount - 1));
+
+            #region Setup GridRows/Cols
+            RowDefinitions.Clear();
+            ColumnDefinitions.Clear();
+            if (Orientation == Orientation.Horizontal)
+            {
+                int iColumn = 0;
+                int iChild = 0;
+                for (int iChildModel = 0; iChildModel &lt; _model.Children.Count; iChildModel++, iColumn++, iChild++)
+                {
+                    var childModel = _model.Children[iChildModel] as ILayoutPositionableElement;
+                    ColumnDefinitions.Add(new ColumnDefinition()
+                    {
+                        Width = childModel.IsVisible ? childModel.DockWidth : new GridLength(0.0, GridUnitType.Pixel),
+                        MinWidth = childModel.IsVisible ? childModel.DockMinWidth : 0.0
+                    });
+                    Grid.SetColumn(InternalChildren[iChild], iColumn);
+
+                    //append column for splitter
+                    if (iChild &lt; InternalChildren.Count - 1)
+                    {
+                        iChild++;
+                        iColumn++;
+
+                        bool nextChildModelVisibleExist = false;
+                        for (int i = iChildModel + 1; i &lt; _model.Children.Count; i++)
+                        {
+                            var nextChildModel = _model.Children[i] as ILayoutPositionableElement;
+                            if (nextChildModel.IsVisible)
+                            {
+                                nextChildModelVisibleExist = true;
+                                break;
+                            }
+                        }
+
+                        ColumnDefinitions.Add(new ColumnDefinition()
+                        {
+                            Width = childModel.IsVisible &amp;&amp; nextChildModelVisibleExist ? new GridLength(manager.GridSplitterWidth) : new GridLength(0.0, GridUnitType.Pixel)
+                        });
+                        Grid.SetColumn(InternalChildren[iChild], iColumn);
+                    }
+                }
+            }
+            else //if (_model.Orientation == Orientation.Vertical)
+            {
+                int iRow = 0;
+                int iChild = 0;
+                for (int iChildModel = 0; iChildModel &lt; _model.Children.Count; iChildModel++, iRow++, iChild++)
+                {
+                    var childModel = _model.Children[iChildModel] as ILayoutPositionableElement;
+                    RowDefinitions.Add(new RowDefinition()
+                    {
+                        Height = childModel.IsVisible ? childModel.DockHeight : new GridLength(0.0, GridUnitType.Pixel),
+                        MinHeight = childModel.IsVisible ? childModel.DockMinHeight : 0.0
+                    });
+                    Grid.SetRow(InternalChildren[iChild], iRow);
+
+                    //if (RowDefinitions.Last().Height.Value == 0.0)
+                    //    System.Diagnostics.Debugger.Break();
+
+                    //append row for splitter (if necessary)
+                    if (iChild &lt; InternalChildren.Count - 1)
+                    {
+                        iChild++;
+                        iRow++;
+
+                        bool nextChildModelVisibleExist = false;
+                        for (int i = iChildModel + 1; i &lt; _model.Children.Count; i++)
+                        {
+                            var nextChildModel = _model.Children[i] as ILayoutPositionableElement;
+                            if (nextChildModel.IsVisible)
+                            {
+                                nextChildModelVisibleExist = true;
+                                break;
+                            }
+                        }
+
+                        RowDefinitions.Add(new RowDefinition()
+                        {
+                            Height = childModel.IsVisible &amp;&amp; nextChildModelVisibleExist ? new GridLength(manager.GridSplitterHeight) : new GridLength(0.0, GridUnitType.Pixel)
+                        });
+                        //if (RowDefinitions.Last().Height.Value == 0.0)
+                        //    System.Diagnostics.Debugger.Break();
+                        Grid.SetRow(InternalChildren[iChild], iRow);
+                    }
+                }
+            }
+
+            #endregion
+        }
+
+        ReentrantFlag _fixingChildrenDockLengths = new ReentrantFlag();
+        protected void FixChildrenDockLengths()
+        {
+            using (_fixingChildrenDockLengths.Enter())
+                OnFixChildrenDockLengths();
+        }
+
+        protected abstract void OnFixChildrenDockLengths();
+
+        #region Splitters
+
+        void CreateSplitters()
+        {
+            for (int iChild = 1; iChild &lt; Children.Count; iChild++)
+            {
+                var splitter = new LayoutGridResizerControl();
+                splitter.Cursor = this.Orientation == Orientation.Horizontal ? Cursors.SizeWE : Cursors.SizeNS;
+                Children.Insert(iChild, splitter);
+                iChild++;
+            }
+        }
+
+        void DetachOldSplitters()
+        {
+            foreach (var splitter in Children.OfType&lt;LayoutGridResizerControl&gt;())
+            {
+                splitter.DragStarted -= new System.Windows.Controls.Primitives.DragStartedEventHandler(OnSplitterDragStarted);
+                splitter.DragDelta -= new System.Windows.Controls.Primitives.DragDeltaEventHandler(OnSplitterDragDelta);
+                splitter.DragCompleted -= new System.Windows.Controls.Primitives.DragCompletedEventHandler(OnSplitterDragCompleted);
+            }
+        }
+
+        void AttachNewSplitters()
+        {
+            foreach (var splitter in Children.OfType&lt;LayoutGridResizerControl&gt;())
+            {
+                splitter.DragStarted += new System.Windows.Controls.Primitives.DragStartedEventHandler(OnSplitterDragStarted);
+                splitter.DragDelta += new System.Windows.Controls.Primitives.DragDeltaEventHandler(OnSplitterDragDelta);
+                splitter.DragCompleted += new System.Windows.Controls.Primitives.DragCompletedEventHandler(OnSplitterDragCompleted);
+            }
+        }
+
+        void OnSplitterDragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        {
+            var resizer = sender as LayoutGridResizerControl;
+            ShowResizerOverlayWindow(resizer);
+        }
+
+        void OnSplitterDragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            LayoutGridResizerControl splitter = sender as LayoutGridResizerControl;
+            var rootVisual = this.FindVisualTreeRoot() as Visual;
+
+            var trToWnd = TransformToAncestor(rootVisual);
+            Vector transformedDelta = trToWnd.Transform(new Point(e.HorizontalChange, e.VerticalChange)) -
+                trToWnd.Transform(new Point());
+
+            if (Orientation == System.Windows.Controls.Orientation.Horizontal)
+            {
+                Canvas.SetLeft(_resizerGhost, MathHelper.MinMax(_initialStartPoint.X + transformedDelta.X, 0.0, _resizerWindowHost.Width - _resizerGhost.Width));
+            }
+            else
+            {
+                Canvas.SetTop(_resizerGhost, MathHelper.MinMax(_initialStartPoint.Y + transformedDelta.Y, 0.0, _resizerWindowHost.Height - _resizerGhost.Height));
+            }
+        }
+
+        void OnSplitterDragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            LayoutGridResizerControl splitter = sender as LayoutGridResizerControl;
+            var rootVisual = this.FindVisualTreeRoot() as Visual;
+
+            var trToWnd = TransformToAncestor(rootVisual);
+            Vector transformedDelta = trToWnd.Transform(new Point(e.HorizontalChange, e.VerticalChange)) -
+                trToWnd.Transform(new Point());
+
+            double delta;
+            if (Orientation == System.Windows.Controls.Orientation.Horizontal)
+                delta = Canvas.GetLeft(_resizerGhost) - _initialStartPoint.X;
+            else
+                delta = Canvas.GetTop(_resizerGhost) - _initialStartPoint.Y;
+
+            int indexOfResizer = InternalChildren.IndexOf(splitter);
+
+            var prevChild = InternalChildren[indexOfResizer - 1] as FrameworkElement;
+            var nextChild = GetNextVisibleChild(indexOfResizer);
+
+            var prevChildActualSize = prevChild.TransformActualSizeToAncestor();
+            var nextChildActualSize = nextChild.TransformActualSizeToAncestor();
+
+            var prevChildModel = (ILayoutPositionableElement)(prevChild as ILayoutControl).Model;
+            var nextChildModel = (ILayoutPositionableElement)(nextChild as ILayoutControl).Model;
+
+            if (Orientation == System.Windows.Controls.Orientation.Horizontal)
+            {
+              //Trace.WriteLine(string.Format(&quot;PrevChild From {0}&quot;, prevChildModel.DockWidth));
+                if (prevChildModel.DockWidth.IsStar)
+                {
+                    prevChildModel.DockWidth = new GridLength(prevChildModel.DockWidth.Value * (prevChildActualSize.Width + delta) / prevChildActualSize.Width, GridUnitType.Star);
+                }
+                else
+                {
+                    prevChildModel.DockWidth = new GridLength(prevChildModel.DockWidth.Value + delta, GridUnitType.Pixel);
+                }
+                //Trace.WriteLine(string.Format(&quot;PrevChild To {0}&quot;, prevChildModel.DockWidth));
+
+                //Trace.WriteLine(string.Format(&quot;NextChild From {0}&quot;, nextChildModel.DockWidth));
+                if (nextChildModel.DockWidth.IsStar)
+                {
+                    nextChildModel.DockWidth = new GridLength(nextChildModel.DockWidth.Value * (nextChildActualSize.Width - delta) / nextChildActualSize.Width, GridUnitType.Star);
+                }
+                else
+                {
+                    nextChildModel.DockWidth = new GridLength(nextChildModel.DockWidth.Value - delta, GridUnitType.Pixel);
+                }
+              //Trace.WriteLine(string.Format(&quot;NextChild To {0}&quot;, nextChildModel.DockWidth));
+            }
+            else
+            {
+              //Trace.WriteLine(string.Format(&quot;PrevChild From {0}&quot;, prevChildModel.DockHeight));
+                if (prevChildModel.DockHeight.IsStar)
+                {
+                    prevChildModel.DockHeight = new GridLength(prevChildModel.DockHeight.Value * (prevChildActualSize.Height + delta) / prevChildActualSize.Height, GridUnitType.Star);
+                }
+                else
+                {
+                    prevChildModel.DockHeight = new GridLength(prevChildModel.DockHeight.Value + delta, GridUnitType.Pixel);
+                }
+                //Trace.WriteLine(string.Format(&quot;PrevChild To {0}&quot;, prevChildModel.DockHeight));
+
+                //Trace.WriteLine(string.Format(&quot;NextChild From {0}&quot;, nextChildModel.DockHeight));
+                if (nextChildModel.DockHeight.IsStar)
+                {
+                    nextChildModel.DockHeight = new GridLength(nextChildModel.DockHeight.Value * (nextChildActualSize.Height - delta) / nextChildActualSize.Height, GridUnitType.Star);
+                }
+                else
+                {
+                    nextChildModel.DockHeight = new GridLength(nextChildModel.DockHeight.Value - delta, GridUnitType.Pixel);
+                }
+              //Trace.WriteLine(string.Format(&quot;NextChild To {0}&quot;, nextChildModel.DockHeight));
+            }
+
+            HideResizerOverlayWindow();
+        }
+
+        Border _resizerGhost = null;
+        Window _resizerWindowHost = null;
+        Vector _initialStartPoint;
+
+        FrameworkElement GetNextVisibleChild(int index)
+        {
+            for (int i = index + 1; i &lt; InternalChildren.Count; i++)
+            {
+                if (InternalChildren[i] is LayoutGridResizerControl)
+                    continue;
+
+                if (Orientation == System.Windows.Controls.Orientation.Horizontal)
+                {
+                    if (ColumnDefinitions[i].Width.IsStar || ColumnDefinitions[i].Width.Value &gt; 0)
+                        return InternalChildren[i] as FrameworkElement;
+                }
+                else
+                {
+                    if (RowDefinitions[i].Height.IsStar || RowDefinitions[i].Height.Value &gt; 0)
+                        return InternalChildren[i] as FrameworkElement;
+                }
+            }
+
+            return null;
+        }
+
+        void ShowResizerOverlayWindow(LayoutGridResizerControl splitter)
+        {
+            _resizerGhost = new Border()
+            {
+                Background = splitter.BackgroundWhileDragging,
+                Opacity = splitter.OpacityWhileDragging
+            };
+
+            int indexOfResizer = InternalChildren.IndexOf(splitter);
+
+            var prevChild = InternalChildren[indexOfResizer - 1] as FrameworkElement;
+            var nextChild = GetNextVisibleChild(indexOfResizer);
+
+            var prevChildActualSize = prevChild.TransformActualSizeToAncestor();
+            var nextChildActualSize = nextChild.TransformActualSizeToAncestor();
+
+            var prevChildModel = (ILayoutPositionableElement)(prevChild as ILayoutControl).Model;
+            var nextChildModel = (ILayoutPositionableElement)(nextChild as ILayoutControl).Model;
+
+            Point ptTopLeftScreen = prevChild.PointToScreenDPIWithoutFlowDirection(new Point());
+
+            Size actualSize;
+
+            if (Orientation == System.Windows.Controls.Orientation.Horizontal)
+            {
+                actualSize = new Size(
+                    prevChildActualSize.Width - prevChildModel.DockMinWidth + splitter.ActualWidth + nextChildActualSize.Width - nextChildModel.DockMinWidth,
+                    nextChildActualSize.Height);
+
+                _resizerGhost.Width = splitter.ActualWidth;
+                _resizerGhost.Height = actualSize.Height;
+                ptTopLeftScreen.Offset(prevChildModel.DockMinWidth, 0.0);
+            }
+            else
+            {
+                actualSize = new Size(
+                    prevChildActualSize.Width,
+                    prevChildActualSize.Height - prevChildModel.DockMinHeight + splitter.ActualHeight + nextChildActualSize.Height - nextChildModel.DockMinHeight);
+
+                _resizerGhost.Height = splitter.ActualHeight;
+                _resizerGhost.Width = actualSize.Width;
+
+                ptTopLeftScreen.Offset(0.0, prevChildModel.DockMinHeight);
+            }
+
+            _initialStartPoint = splitter.PointToScreenDPIWithoutFlowDirection(new Point()) - ptTopLeftScreen;
+
+            if (Orientation == System.Windows.Controls.Orientation.Horizontal)
+            {
+                Canvas.SetLeft(_resizerGhost, _initialStartPoint.X);
+            }
+            else
+            {
+                Canvas.SetTop(_resizerGhost, _initialStartPoint.Y);
+            }
+
+            Canvas panelHostResizer = new Canvas()
+            {
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
+                VerticalAlignment = System.Windows.VerticalAlignment.Stretch
+            };
+
+            panelHostResizer.Children.Add(_resizerGhost);
+
+
+            _resizerWindowHost = new Window()
+            {
+                SizeToContent = System.Windows.SizeToContent.Manual,
+                ResizeMode = ResizeMode.NoResize,
+                WindowStyle = System.Windows.WindowStyle.None,
+                ShowInTaskbar = false,
+                AllowsTransparency = true,
+                Background = null,
+                Width = actualSize.Width,
+                Height = actualSize.Height,
+                Left = ptTopLeftScreen.X,
+                Top = ptTopLeftScreen.Y,
+                ShowActivated = false,
+                //Owner = Window.GetWindow(this),
+                Content = panelHostResizer
+            };
+            _resizerWindowHost.Loaded += (s, e) =&gt;
+                {
+                    _resizerWindowHost.SetParentToMainWindowOf(this);
+                };
+            _resizerWindowHost.Show();
+        }
+
+        void HideResizerOverlayWindow()
+        {
+            if (_resizerWindowHost != null)
+            {
+                _resizerWindowHost.Close();
+                _resizerWindowHost = null;
+            }
+        }
+
+        #endregion
+
+
+
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[34,9,34,10,0],[35,9,35,10,0],[37,9,37,94,0],[38,9,38,10,0],[39,13,39,31,0],[40,17,40,58,0],[42,13,42,28,0],[43,13,43,40,0],[45,13,45,70,0],[46,9,46,10,0],[51,17,51,18,0],[51,19,51,33,0],[51,34,51,35,0],[58,17,58,18,0],[58,19,58,73,0],[58,74,58,75,0],[66,17,66,18,0],[66,19,66,54,0],[66,55,66,56,0],[70,9,70,10,0],[71,13,71,35,0],[73,13,74,17,0],[74,17,74,18,0],[74,18,75,21,0],[75,21,76,66,0],[76,66,77,25,0],[77,25,77,32,0],[77,32,78,21,0],[78,21,78,55,0],[78,55,79,21,0],[79,21,80,25,0],[80,25,80,26,0],[80,26,81,29,0],[81,29,81,56,0],[81,56,82,29,0],[82,29,82,46,0],[82,46,83,25,0],[83,25,83,26,0],[83,26,83,62,0],[79,21,83,62,0],[83,62,84,17,0],[84,17,84,18,0],[84,18,84,19,0],[73,13,84,19,0],[86,13,86,69,0],[87,9,87,10,0],[90,9,90,10,0],[91,13,91,90,0],[92,13,92,59,0],[93,13,93,61,0],[95,13,95,31,0],[96,13,96,14,0],[97,17,97,37,0],[98,17,98,34,0],[99,13,99,14,0],[100,9,100,10,0],[103,9,103,10,0],[104,13,104,88,0],[106,13,106,34,0],[107,13,107,42,0],[109,13,109,30,0],[110,13,110,39,0],[111,13,111,36,0],[113,13,114,37,0],[115,17,115,24,0],[117,13,117,47,0],[118,13,118,33,0],[119,17,119,24,0],[122,13,122,20,0],[122,22,122,42,0],[122,43,122,45,0],[122,46,122,61,0],[123,13,123,14,0],[124,17,124,91,0],[124,91,124,110,0],[124,110,124,112,0],[124,17,124,112,0],[125,17,125,49,0],[126,21,126,68,0],[128,21,128,74,0],[129,13,129,14,0],[131,13,131,31,0],[133,13,133,39,0],[135,13,135,34,0],[136,13,136,43,0],[137,9,137,10,0],[140,9,140,10,0],[141,13,141,20,0],[141,22,141,31,0],[141,32,141,34,0],[141,35,141,76,0],[142,13,142,14,0],[143,17,143,136,0],[144,13,144,14,0],[145,9,145,10,0],[148,9,148,10,0],[149,13,149,20,0],[149,22,149,31,0],[149,32,149,34,0],[149,35,149,76,0],[150,13,150,14,0],[151,17,151,136,0],[152,13,152,14,0],[153,9,153,10,0],[156,9,156,10,0],[157,13,157,36,0],[158,17,158,24,0],[160,13,160,151,0],[161,13,161,14,0],[162,17,162,71,0],[163,17,163,18,0],[164,21,164,79,0],[165,21,165,96,0],[165,96,165,122,0],[165,122,165,137,0],[165,21,165,137,0],[166,21,166,81,0],[167,21,167,86,0],[168,17,168,18,0],[169,13,169,14,0],[170,18,170,155,0],[171,13,171,14,0],[172,17,172,68,0],[173,17,173,18,0],[174,21,174,79,0],[175,21,175,96,0],[175,96,175,122,0],[175,122,175,137,0],[175,21,175,137,0],[176,21,176,81,0],[177,21,177,85,0],[178,17,178,18,0],[179,13,179,14,0],[180,18,180,52,0],[181,13,181,14,0],[182,17,182,43,0],[183,13,183,14,0],[184,9,184,10,0],[188,9,188,10,0],[189,13,189,36,0],[190,13,190,30,0],[191,17,191,24,0],[192,13,192,40,0],[193,13,193,33,0],[194,17,194,24,0],[196,13,196,38,0],[201,13,201,36,0],[202,13,202,39,0],[203,13,203,55,0],[204,13,204,14,0],[205,17,205,33,0],[206,17,206,32,0],[207,22,207,41,0],[207,43,207,78,0],[207,80,207,93,0],[207,95,207,104,0],[207,106,207,114,0],[208,17,208,18,0],[209,21,209,97,0],[210,21,214,24,0],[215,21,215,71,0],[218,21,218,61,0],[219,21,219,22,0],[220,25,220,34,0],[221,25,221,35,0],[223,25,223,65,0],[224,30,224,53,0],[224,55,224,80,0],[224,82,224,85,0],[225,25,225,26,0],[226,29,226,99,0],[227,29,227,58,0],[228,29,228,30,0],[229,33,229,67,0],[230,33,230,39,0],[232,25,232,26,0],[234,25,237,28,0],[238,25,238,75,0],[239,21,239,22,0],[240,17,240,18,0],[241,13,241,14,0],[243,13,243,14,0],[244,17,244,30,0],[245,17,245,32,0],[246,22,246,41,0],[246,43,246,78,0],[246,80,246,93,0],[246,95,246,101,0],[246,103,246,111,0],[247,17,247,18,0],[248,21,248,97,0],[249,21,253,24,0],[254,21,254,65,0],[260,21,260,61,0],[261,21,261,22,0],[262,25,262,34,0],[263,25,263,32,0],[265,25,265,65,0],[266,30,266,53,0],[266,55,266,80,0],[266,82,266,85,0],[267,25,267,26,0],[268,29,268,99,0],[269,29,269,58,0],[270,29,270,30,0],[271,33,271,67,0],[272,33,272,39,0],[274,25,274,26,0],[276,25,279,28,0],[282,25,282,69,0],[283,21,283,22,0],[284,17,284,18,0],[285,13,285,14,0],[288,9,288,10,0],[290,9,290,72,0],[292,9,292,10,0],[293,13,293,55,0],[294,17,294,44,0],[295,9,295,10,0],[302,9,302,10,0],[303,18,303,32,0],[303,34,303,57,0],[303,59,303,67,0],[304,13,304,14,0],[305,17,305,63,0],[306,17,306,112,0],[307,17,307,51,0],[308,17,308,26,0],[309,13,309,14,0],[310,9,310,10,0],[313,9,313,10,0],[314,13,314,20,0],[314,22,314,34,0],[314,35,314,37,0],[314,38,314,81,0],[315,13,315,14,0],[316,17,316,127,0],[317,17,317,121,0],[318,17,318,133,0],[319,13,319,14,0],[320,9,320,10,0],[323,9,323,10,0],[324,13,324,20,0],[324,22,324,34,0],[324,35,324,37,0],[324,38,324,81,0],[325,13,325,14,0],[326,17,326,127,0],[327,17,327,121,0],[328,17,328,133,0],[329,13,329,14,0],[330,9,330,10,0],[333,9,333,10,0],[334,13,334,62,0],[335,13,335,47,0],[336,9,336,10,0],[339,9,339,10,0],[340,13,340,84,0],[341,13,341,66,0],[343,13,343,59,0],[344,13,345,48,0],[347,13,347,79,0],[348,13,348,14,0],[349,17,349,162,0],[350,13,350,14,0],[352,13,352,14,0],[353,17,353,163,0],[354,13,354,14,0],[355,9,355,10,0],[358,9,358,10,0],[359,13,359,84,0],[360,13,360,66,0],[362,13,362,59,0],[363,13,364,48,0],[367,13,367,79,0],[368,17,368,78,0],[370,17,370,77,0],[372,13,372,69,0],[374,13,374,86,0],[375,13,375,65,0],[377,13,377,81,0],[378,13,378,81,0],[380,13,380,98,0],[381,13,381,98,0],[383,13,383,79,0],[384,13,384,14,0],[386,17,386,53,0],[387,17,387,18,0],[388,21,388,180,0],[389,17,389,18,0],[391,17,391,18,0],[392,21,392,123,0],[393,17,393,18,0],[397,17,397,53,0],[398,17,398,18,0],[399,21,399,180,0],[400,17,400,18,0],[402,17,402,18,0],[403,21,403,123,0],[404,17,404,18,0],[406,13,406,14,0],[408,13,408,14,0],[410,17,410,54,0],[411,17,411,18,0],[412,21,412,184,0],[413,17,413,18,0],[415,17,415,18,0],[416,21,416,125,0],[417,17,417,18,0],[421,17,421,54,0],[422,17,422,18,0],[423,21,423,184,0],[424,17,424,18,0],[426,17,426,18,0],[427,21,427,125,0],[428,17,428,18,0],[430,13,430,14,0],[432,13,432,40,0],[433,9,433,10,0],[435,9,435,37,0],[436,9,436,42,0],[440,9,440,10,0],[441,18,441,35,0],[441,37,441,63,0],[441,65,441,68,0],[442,13,442,14,0],[443,17,443,69,0],[444,21,444,30,0],[446,17,446,83,0],[447,17,447,18,0],[448,21,448,99,0],[449,25,449,72,0],[450,17,450,18,0],[452,17,452,18,0],[453,21,453,95,0],[454,25,454,72,0],[455,17,455,18,0],[456,13,456,14,0],[458,13,458,25,0],[459,9,459,10,0],[462,9,462,10,0],[463,13,467,15,0],[469,13,469,69,0],[471,13,471,86,0],[472,13,472,65,0],[474,13,474,81,0],[475,13,475,81,0],[477,13,477,98,0],[478,13,478,98,0],[480,13,480,97,0],[484,13,484,79,0],[485,13,485,14,0],[486,17,488,49,0],[490,17,490,60,0],[491,17,491,58,0],[492,17,492,74,0],[493,13,493,14,0],[495,13,495,14,0],[496,17,498,164,0],[500,17,500,62,0],[501,17,501,56,0],[503,17,503,75,0],[504,13,504,14,0],[506,13,506,111,0],[508,13,508,79,0],[509,13,509,14,0],[510,17,510,69,0],[511,13,511,14,0],[513,13,513,14,0],[514,17,514,68,0],[515,13,515,14,0],[517,13,521,15,0],[523,13,523,58,0],[526,13,541,15,0],[542,13,543,17,0],[543,17,543,18,0],[543,18,544,21,0],[544,21,544,70,0],[544,70,545,17,0],[545,17,545,18,0],[545,18,545,19,0],[542,13,545,19,0],[546,13,546,39,0],[547,9,547,10,0],[550,9,550,10,0],[551,13,551,44,0],[552,13,552,14,0],[553,17,553,44,0],[554,17,554,43,0],[555,13,555,14,0],[556,9,556,10,0]]);
+    </script>
+  </body>
+</html>

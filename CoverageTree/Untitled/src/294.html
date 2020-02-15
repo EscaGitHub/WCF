@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\UICommandContainer.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using NLog;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.Data;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.Logic;
+using Swr.Configurator.View.Controls;
+using Swr.Configurator.View.DataViewModels;
+using Swr.Configurator.View.Logic;
+using SWR_Tools.Extention;
+using SwrUI;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Windows;
+using System.Windows.Interop;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Common.Data.Api;
+using Swr.Configurator.Logic.Card;
+using Swr.Configurator.View.Commands;
+using Swr.Configurator.View.Panels.ViewModels;
+using Swr.Configurator.WebApi;
+
+namespace Swr.Configurator.View
+{
+    public class UICommandContainer
+    {
+        private static UICommandContainer _instance;
+
+        private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
+        public ProductStructureContainer ComponentStructureContainer { get; private set; }
+        public ProductStructureContainer ProductStructureContainer { get; private set; }
+
+        public static UICommandContainer Instance()
+        {
+            return _instance ?? (_instance = new UICommandContainer());
+        }
+
+        private UICommandContainer()
+        {
+            CreateCommands();
+        }
+
+        public void UpdateProperties(ProductStructureContainer componentStructureContainer,
+            ProductStructureContainer productStructureContainer)
+        {
+            ComponentStructureContainer = componentStructureContainer;
+            ProductStructureContainer = productStructureContainer;
+        }
+
+        private void CreateCommands()
+        {
+            _createComponentCommand = new ConfiguratorRelayCommand(CreateComponent, CanCreateComponent,
+                ConfiguratonCommand.CreateComponentCommand, &quot;Создать компонент&quot;, &quot;Создать компонент&quot;, &quot;Control+N&quot;,
+                &quot;M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z&quot;,
+                CommandGroup.Specification);
+            _closeComponentCommand = new ConfiguratorRelayCommand(CloseComponent, CanCloseComponent,
+                ConfiguratonCommand.CloseComponentCommand, &quot;Закрыть компонент&quot;, &quot;Закрыть выделенный компонент&quot;,
+                &quot;Control+X&quot;,
+                &quot;M5.1250029,9.6129999 L3.925025,10.812999 6.7250223,13.612987 3.9249997,16.412975 5.1250029,17.612999 7.9250002,14.812986 10.725023,17.612999 11.925,16.413 9.1250029,13.612987 11.925,10.813024 10.724998,9.6130247 7.9250002,12.412988 5.1250029,9.6129999 z M9,1.5 L9,7 14.5,7 9,1.5 z M2,0 L10,0 16,6 16,18 C16,19.1875 15.289063,20 14,20 L2,20 C0.79685029,20 7.8451345E-17,19.28125 -4.6773385E-51,18 -4.6773385E-51,18 1.0140001E-16,2.5520834 -4.6773385E-51,2 -2.2379966E-16,0.78125 1.0103344,1.2119508E-16 2,0 z&quot;,
+                CommandGroup.Specification);
+
+            _openSpecificationCommand = new ConfiguratorRelayCommand(OpenSpecification, CanOpenSpecification,
+                ConfiguratonCommand.OpenSpecificationCommand, &quot;Просмотреть&quot;, &quot;Просмотреть&quot;, &quot;Control+S&quot;,
+                &quot;M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z&quot;,
+                CommandGroup.Specification);
+            SaveSpecificationCommand = new ConfiguratorRelayCommand(SaveSpecification, CanSaveSpecification,
+                ConfiguratonCommand.SaveSpecification, &quot;Сохранить&quot;, &quot;Сохранить&quot;, &quot;&quot;,
+                &quot;M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z&quot;,
+                CommandGroup.Specification);
+            CloseSpecificationCommand = new ConfiguratorRelayCommand(CloseSpecification, CanCloseSpecification,
+                ConfiguratonCommand.CloseSpecification, &quot;Закрыть&quot;, &quot;Закрыть&quot;, &quot;&quot;,
+                &quot;M5.1250029,9.6129999 L3.925025,10.812999 6.7250223,13.612987 3.9249997,16.412975 5.1250029,17.612999 7.9250002,14.812986 10.725023,17.612999 11.925,16.413 9.1250029,13.612987 11.925,10.813024 10.724998,9.6130247 7.9250002,12.412988 5.1250029,9.6129999 z M9,1.5 L9,7 14.5,7 9,1.5 z M2,0 L10,0 16,6 16,18 C16,19.1875 15.289063,20 14,20 L2,20 C0.79685029,20 7.8451345E-17,19.28125 -4.6773385E-51,18 -4.6773385E-51,18 1.0140001E-16,2.5520834 -4.6773385E-51,2 -2.2379966E-16,0.78125 1.0103344,1.2119508E-16 2,0 z&quot;,
+                CommandGroup.Specification);
+            DeleteComponentFromSpecificationCommand = new ConfiguratorRelayCommand(DeleteComponentFromSpecification, CanDeleteComponentFromSpecification, ConfiguratonCommand.DeleteComponentFromSpecificationCommand,
+                &quot;Удалить компонент&quot;, &quot;Удалить компонент&quot;, &quot;&quot;,
+                &quot;M5.1250029,9.6129999 L3.925025,10.812999 6.7250223,13.612987 3.9249997,16.412975 5.1250029,17.612999 7.9250002,14.812986 10.725023,17.612999 11.925,16.413 9.1250029,13.612987 11.925,10.813024 10.724998,9.6130247 7.9250002,12.412988 5.1250029,9.6129999 z M9,1.5 L9,7 14.5,7 9,1.5 z M2,0 L10,0 16,6 16,18 C16,19.1875 15.289063,20 14,20 L2,20 C0.79685029,20 7.8451345E-17,19.28125 -4.6773385E-51,18 -4.6773385E-51,18 1.0140001E-16,2.5520834 -4.6773385E-51,2 -2.2379966E-16,0.78125 1.0103344,1.2119508E-16 2,0 z&quot;,
+                CommandGroup.Specification);
+
+            _createStrucureCommand = new ConfiguratorRelayCommand(CreateStructure, CanCreateStructure,
+                ConfiguratonCommand.CreateStructureCommand, &quot;Создать&quot;, &quot;Создать структуру&quot;, &quot;&quot;,
+                &quot;M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z&quot;,
+                CommandGroup.Structure);
+            _openStructureCommand = new ConfiguratorRelayCommand(OpenStructure, CanOpenStructure,
+                ConfiguratonCommand.OpenStructureCommand, &quot;Открыть&quot;, &quot;Открыть структуру&quot;, &quot;&quot;,
+                &quot;M19,20H4C2.89,20 2,19.1 2,18V6C2,4.89 2.89,4 4,4H10L12,6H19A2,2 0 0,1 21,8H21L4,8V18L6.14,10H23.21L20.93,18.5C20.7,19.37 19.92,20 19,20Z&quot;,
+                CommandGroup.Structure);
+            _saveStructureCommand = new ConfiguratorRelayCommand(SaveStructure, CanSaveStructure,
+                ConfiguratonCommand.SaveStructureCommand, &quot;Сохранить&quot;, &quot;Сохранить структуру&quot;, &quot;&quot;,
+                &quot;M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z&quot;,
+                CommandGroup.Structure);
+            CloseStructureCommand = new ConfiguratorRelayCommand(CloseStructure, CanCloseStructure,
+                ConfiguratonCommand.CloseStructureCommand, &quot;Закрыть&quot;, &quot;Закрыть структуру&quot;, &quot;&quot;,
+                &quot;M5.1250029,9.6129999 L3.925025,10.812999 6.7250223,13.612987 3.9249997,16.412975 5.1250029,17.612999 7.9250002,14.812986 10.725023,17.612999 11.925,16.413 9.1250029,13.612987 11.925,10.813024 10.724998,9.6130247 7.9250002,12.412988 5.1250029,9.6129999 z M9,1.5 L9,7 14.5,7 9,1.5 z M2,0 L10,0 16,6 16,18 C16,19.1875 15.289063,20 14,20 L2,20 C0.79685029,20 7.8451345E-17,19.28125 -4.6773385E-51,18 -4.6773385E-51,18 1.0140001E-16,2.5520834 -4.6773385E-51,2 -2.2379966E-16,0.78125 1.0103344,1.2119508E-16 2,0 z&quot;,
+                CommandGroup.Structure);
+
+            _restoreCommand = new ConfiguratorRelayCommand(RestoreProduct, CanRestoreProduct, ConfiguratonCommand.RestoreCommand,
+                &quot;Восстановить&quot;, &quot;Восстановить выбранный компонент из удаленных&quot;, &quot;Control + Shift + R&quot;, &quot;M12,3A9,9 0 0,0 3,12H0L4,16L8,12H5A7,7 0 0,1 12,5A7,7 0 0,1 19,12A7,7 0 0,1 12,19C10.5,19 9.09,18.5 7.94,17.7L6.5,19.14C8.04,20.3 9.94,21 12,21A9,9 0 0,0 21,12A9,9 0 0,0 12,3M14,12A2,2 0 0,0 12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12Z&quot;, CommandGroup.Specification);
+
+            _showDeletedProductsCommand = new ConfiguratorRelayCommand(ShowDeletedProducts, CanShowDeletedProducts, ConfiguratonCommand.ShowDeletedProductsCommand,
+                &quot;Показать удалённые&quot;, &quot;Показать удалённые компоненты в спецификации&quot;, &quot;Control + Shift + Alt + D&quot;, &quot;M0,8 L19.09375,8 19.09375,10 0,10 z M17.351,4 L19.125,4 19.125,6 17.351,6 z M13.841,4 L15.596,4 15.596,6 13.841,6 z M10.331,4 L12.085999,4 12.085999,6 10.331,6 z M6.8189998,4 L8.5740004,4 8.5740004,6 6.8189998,6 z M3.309,4 L5.0640001,4 5.0640001,6 3.309,6 z M0,4 L1.5539999,4 1.5539999,6 0,6 z M0,0 L19.109375,0 19.109375,1.9999999 0,1.9999999 z&quot;, CommandGroup.Specification, 6, 2);
+
+        }
+
+        private bool CanRestoreProduct(object parameter)
+        {
+            //if (!LicenseController.IsLicenseReceived)
+            //    return false;
+
+            var uc = ConfiguratorMainWindowVM.Instance.LayoutController.Manager.ActiveContent as FrameworkElement;
+
+            if (uc == null)
+                return false;
+
+            var selector = uc.DataContext;
+
+            //if (selector is StructurePanelVM)
+            //{
+            //    if (parameter == null)
+            //        return false;
+
+            //    var productVM = parameter as ProductForStructurePanelVM;
+
+            //    if (productVM == null &amp;&amp; parameter is IEnumerable&lt;ProductVM&gt;)
+            //    {
+            //        if (ConfiguratorMainWindowVM.Instance.ProductStructureContainer.Products.Any(p =&gt; p.Type.Id == ComponentFabric.OrderType))
+            //        {
+            //            var products = (parameter as IEnumerable&lt;ProductVM&gt;).ToList();
+            //            if (products.Any(x =&gt; x.Product.Type.Id != ComponentFabric.OrderType &amp;&amp; x.Product.Type.Id != ComponentFabric.InclusionComponentType))
+            //                return false;
+            //        }
+            //        return true;
+            //    }
+
+            //    if (productVM == null || productVM.Product == null || productVM.Reference == null)
+            //        return false;
+
+            //    if (ConfiguratorMainWindowVM.Instance.ProductStructureContainer.Products.Any(p =&gt; p.Type.Id == ComponentFabric.OrderType))
+            //        if (productVM.Product.Type.Id != ComponentFabric.OrderType &amp;&amp; productVM.Product.Type.Id != ComponentFabric.InclusionComponentType)
+            //            return false;
+
+            //    return true;
+            //}
+
+            if (!(selector is SpecificationPageVM)) return false;
+
+            var controller = ConfiguratorMainWindowVM.Instance.SpecificationsController;
+            if (controller?.ActiveSpecification == null || controller.ActiveSpecification.CheckIfLocked(true) || controller.ActiveSpecification.ActiveTab == null)
+                return false;
+
+            var tab = controller.ActiveSpecification.ActiveTab;
+
+            return tab.SelectedProduct != null &amp;&amp; tab.SelectedProduct.IsDeleted;
+        }
+
+        private void RestoreProduct(object parameter)
+        {
+            var uc = ConfiguratorMainWindowVM.Instance.LayoutController.Manager.ActiveContent as FrameworkElement;
+
+            if (uc == null)
+                return;
+
+            var selector = uc.DataContext;
+
+            //if (selector is StructurePanelVM)
+            //{
+            //    var selectedProducts = parameter as IEnumerable&lt;ProductForStructurePanelVM&gt;;
+
+            //    if (selectedProducts != null)
+            //    {
+            //        foreach (var productVM in selectedProducts.ToArray())
+            //        {
+            //            if (productVM != null)
+            //            {
+            //                if (ConfiguratorMainWindowVM.Instance.ProductStructureContainer.Products.Any(p =&gt; p.Type.Id == ComponentFabric.OrderType))
+            //                {
+            //                    if (productVM.Product.Type.Id != ComponentFabric.OrderType &amp;&amp; productVM.Product.Type.Id != ComponentFabric.InclusionComponentType)
+            //                    {
+            //                        return;
+            //                    }
+            //                }
+
+            //                if (productVM.Reference == null)
+            //                {
+            //                    var command = new CloseStructureViewCommand(ConfiguratorMainWindowVM.Instance.CommandManager, ConfiguratorMainWindowVM.Instance.VaultWrapper,
+            //                        ConfiguratorMainWindowVM.Instance.PdmDBProvider, ConfiguratorMainWindowVM.Instance.SharedSettingsController.Settings,
+            //                        ConfiguratorMainWindowVM.Instance.Cache, ProductStructureContainer, new List&lt;IProduct&gt; { productVM.Product },
+            //                        ConfiguratorMainWindowVM.Instance.PdmVaultInfo);
+            //                    command.Execute();
+            //                }
+            //                else
+            //                {
+            //                    var command = new RestoreProductCommand(ConfiguratorMainWindowVM.Instance.SharedSettingsController.Settings, productVM.Reference.Parent, productVM.Product);
+            //                    ConfiguratorMainWindowVM.Instance.CommandManager.ExecuteCommand(command);
+            //                }
+            //            }
+            //        }
+            //    }
+            //    else
+            //    {
+            //        var productVM = parameter as ProductForStructurePanelVM;
+            //        if (productVM != null)
+            //        {
+            //            var command = new RestoreProductCommand(ConfiguratorMainWindowVM.Instance.SharedSettingsController.Settings, productVM.Reference.Parent, productVM.Product);
+            //            ConfiguratorMainWindowVM.Instance.CommandManager.ExecuteCommand(command);
+            //        }
+            //    }
+            //}
+            //else 
+            if (selector is SpecificationPageVM)
+            {
+                var tab = ConfiguratorMainWindowVM.Instance.SpecificationsController.ActiveSpecification.ActiveTab;
+                var item = tab.SelectedProduct;
+                if (item == null)
+                    return;
+
+                tab.RestoreCommand.Execute(null);
+            }
+        }
+
+        private void DeleteComponentFromSpecification(object parameter)
+        {
+            var uc = ConfiguratorMainWindowVM.Instance.LayoutController.Manager.ActiveContent as FrameworkElement;
+
+            if (uc == null) return;
+
+            var selector = uc.DataContext;
+
+            //if (selector is StructurePanelVM)
+            //{
+            //    var selectedProducts = parameter as IEnumerable&lt;ProductForStructurePanelVM&gt;;
+
+            //    if (selectedProducts != null)
+            //    {
+            //        foreach (var productVM in selectedProducts.ToArray())
+            //        {
+            //            if (productVM != null)
+            //            {
+            //                if (ConfiguratorMainWindowVM.Instance.ProductStructureContainer.Products.Any(p =&gt; p.Type.Id == ComponentFabric.OrderType))
+            //                {
+            //                    if (productVM.Product.Type.Id != ComponentFabric.OrderType &amp;&amp; productVM.Product.Type.Id != ComponentFabric.InclusionComponentType)
+            //                    {
+            //                        return;
+            //                    }
+            //                }
+
+            //                if (productVM.Reference == null)
+            //                {
+            //                    var command = new CloseStructureViewCommand(ConfiguratorMainWindowVM.Instance.CommandManager, ConfiguratorMainWindowVM.Instance.VaultWrapper,
+            //                        ConfiguratorMainWindowVM.Instance.PdmDBProvider, ConfiguratorMainWindowVM.Instance.SharedSettingsController.Settings,
+            //                        ConfiguratorMainWindowVM.Instance.Cache, ProductStructureContainer, new List&lt;IProduct&gt; { productVM.Product },
+            //                        ConfiguratorMainWindowVM.Instance.PdmVaultInfo);
+            //                    command.Execute();
+            //                }
+            //                else
+            //                {
+            //                    var command = new RemoveProductCommand(ConfiguratorMainWindowVM.Instance.SharedSettingsController.Settings, productVM.Reference.Parent, productVM.Product,
+            //                        ConfiguratorMainWindowVM.Instance.Cache, ProductStructureContainer);
+            //                    ConfiguratorMainWindowVM.Instance.CommandManager.ExecuteCommand(command);
+            //                }
+            //            }
+            //        }
+            //    }
+            //    else
+            //    {
+            //        var productVM = parameter as ProductForStructurePanelVM;
+            //        if (productVM != null)
+            //        {
+            //            var command = new RemoveProductCommand(ConfiguratorMainWindowVM.Instance.SharedSettingsController.Settings, productVM.Reference.Parent, productVM.Product,
+            //                ConfiguratorMainWindowVM.Instance.Cache, ProductStructureContainer);
+            //            ConfiguratorMainWindowVM.Instance.CommandManager.ExecuteCommand(command);
+            //        }
+            //    }
+            //}
+            //else 
+            if (selector is SpecificationPageVM)
+            {
+                var tab = ConfiguratorMainWindowVM.Instance.SpecificationsController.ActiveSpecification.ActiveTab;
+                var item = tab.SelectedProduct;
+                if (item == null)
+                    return;
+
+                tab.DeleteRowCommand.Execute(null);
+            }
+        }
+
+        private bool CanDeleteComponentFromSpecification(object parameter)
+        {
+            var uc = ConfiguratorMainWindowVM.Instance.LayoutController.Manager.ActiveContent as FrameworkElement;
+
+            if (uc == null) return false;
+
+            var selector = uc.DataContext;
+
+            //var canDelete = _currentUserRole.Permissions.HasFlag(PermissionEnum.CanDeleteComponent);
+            var canDelete = true;
+
+            var controller = ConfiguratorMainWindowVM.Instance.SpecificationsController;
+
+            if (controller.ActiveSpecification == null ||
+                controller.ActiveSpecification.CheckIfLocked(true) || controller.ActiveSpecification.ActiveTab == null)
+                return false;
+
+            var tab = controller.ActiveSpecification.ActiveTab;
+            if (!(selector is SpecificationPageVM))
+            {
+                return false;
+            }
+
+            var product = tab.SelectedProduct;
+
+            //return product != null &amp;&amp; !product.IsDeleted &amp;&amp; (canDelete || product.Reference.CreateByUser);
+            return product != null &amp;&amp; !product.IsDeleted &amp;&amp; (canDelete || product.Reference.CreateByUser);
+        }
+
+        private bool CanCloseSpecification(object obj)
+        {
+            return false;
+        }
+
+        private void CloseSpecification(object obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        private bool CanSaveSpecification(object obj)
+        {
+            var result = ConfiguratorMainWindowVM.Instance.SpecificationsController.ActiveSpecification != null &amp;&amp; !ConfiguratorMainWindowVM.Instance.SpecificationsController.ActiveSpecification.NoTabs;
+
+            //Debug.WriteLine(&quot;Закрытие СП: &quot; + result);
+
+            return result; //false;
+        }
+
+        private void SaveSpecification(object obj)
+        {
+            var product = ConfiguratorMainWindowVM.Instance.SpecificationsController.ActiveSpecification.Product;
+
+            //CheckErrors(product);
+
+            //var childErrors = product.References.Where(t =&gt; t.)
+            if (product.Errors.Count != 0 || product.References.Any(t =&gt; t.Errors.Count != 0))
+            {
+                var errorMessage = &quot;Ошибка сохранения спецификации.&quot;;
+                foreach (var productError in product.Errors)
+                {
+                    errorMessage += &quot;\n&quot; + $&quot;Для головного документа &#39;{productError}&#39;&quot;;
+                }
+
+                foreach (var productReference in product.References)
+                {
+                    if (productReference.Errors.Count &gt; 0)
+                        errorMessage += &quot;\n&quot; + $&quot;Для дочернего компонента &#39;{productReference.Child.Name}&#39; ошибки &quot; + string.Join(Environment.NewLine, productReference.Errors);
+                }
+                
+                SwrMessageBox.Show(ConfiguratorMainWindow.Instance, errorMessage, &quot;&quot;, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+                return;
+            }
+            // создаем головной компонент, если он новый
+            if (product.DbIdentificator == Guid.Empty)
+            {
+                ComponentApiCaller.Create(product);
+                foreach (var productProperty in product.Properties)
+                {
+                    productProperty.IsChanged = false;
+                }
+            }
+
+            //создаем новые дочерние компоненты
+            var newChildComponents = product.References.Where(t =&gt; t.Child.DbIdentificator == Guid.Empty)
+                .Select(t =&gt; t.Child).ToList();
+
+            var updatedChildComponents = product.References.Where(t =&gt; t.Child.DbIdentificator != Guid.Empty &amp;&amp; t.Child.Properties.Any(l =&gt; l.IsChanged)).Select(t =&gt; t.Child).ToList();
+            if (newChildComponents != null &amp;&amp; newChildComponents.Count != 0)
+            {
+                foreach (var newChildComponent in newChildComponents)
+                {
+                    ComponentApiCaller.Create(newChildComponent);
+
+                    foreach (var productProperty in newChildComponent.Properties)
+                    {
+                        productProperty.IsChanged = false;
+                    }
+
+                    newChildComponent.UpdateName();
+                }
+            }
+
+            // обновляем дочерние компоненты
+            
+            if (updatedChildComponents != null &amp;&amp; updatedChildComponents.Count != 0)
+            {
+                foreach (var updatedChildComponent in updatedChildComponents)
+                {
+                    ComponentApiCaller.Update(updatedChildComponent);
+                    foreach (var productProperty in updatedChildComponent.Properties)
+                    {
+                        productProperty.IsChanged = false;
+                    }
+
+                    updatedChildComponent.UpdateName();
+                }
+                
+            }
+
+            //сохраняем спецификацию
+
+            SpecificationApiCaller.Save(product);
+
+            foreach (var productReference in product.References)
+            {
+                foreach (var referenceProperty in productReference.Properties)
+                {
+                    referenceProperty.IsChanged = false;
+                }
+
+                productReference.IsChanged = false;
+            }
+
+            product.RemoveAllDeleted();
+
+            product.IsChanged = false;
+			CardController.RefreshCardItem();
+            SwrMessageBox.Show(ConfiguratorMainWindow.Instance, &quot;Сохранение прошло успешно&quot;, &quot;&quot;, SwrMessageBoxButton.OK, SwrMessageBoxImage.Information);
+        }
+
+        public void CheckErrors(IProduct product)
+        {
+            var references = product.References.Where(x =&gt; !x.IsDeleted).ToArray();
+
+            foreach (var reference in references)
+            {
+                reference.Errors.Clear();
+            }
+
+            var command = new CheckSpecificationViewCommand(ConfiguratorMainWindowVM.Instance.SettingsController.Settings, references, false, product);
+            command.Execute();
+        }
+
+
+        private bool CanOpenSpecification(object obj)
+        {
+            return ConfiguratorMainWindowVM.Instance.ComponentsVM != null &amp;&amp;
+                   ConfiguratorMainWindowVM.Instance.ComponentsVM.SelectedProducts.Count == 1;
+        }
+
+        private void OpenSpecification(object parameter)
+        {
+            try
+            {
+                var products = ConfiguratorMainWindowVM.Instance.ComponentsVM.SelectedProducts.Where(x =&gt; x != null);
+
+                var productVms = products as ProductVM[] ?? products.ToArray();
+                foreach (var productVM in productVms)
+                {
+                    ReadAndOpenSpecification(productVM);
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e);
+                SwrMessageBox.Show(ConfiguratorMainWindow.Instance, e.Message,
+                    ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+            }
+        }
+
+        private void ReadAndOpenSpecification(ProductVM product)
+        {
+            //if (product != null &amp;&amp; !product.Product.References.SafeAny())
+            //    ReadProductContent(product.Product);
+
+            ConfiguratorMainWindowVM.Instance.SpecificationsController.OpenSpecification(product);
+        }
+
+        #region Create ComponentObject
+
+        private ConfiguratorRelayCommand _createComponentCommand;
+
+        public ConfiguratorRelayCommand CreateComponentCommand
+        {
+            get { return _createComponentCommand; }
+        }
+
+        private void CreateComponent(object obj)
+        {
+            //TODO: Подключение:
+
+            var settings = ConfiguratorMainWindowVM.Instance.SettingsController.Settings;
+
+            var componentTypes = new List&lt;ComponentTypeObject&gt;();
+
+            componentTypes = settings.ComponentTypes;
+            //for (int i = 0; i &lt; 10; i++)
+            //{
+            //    componentTypes.Add(new ComponentTypeObject { Name = &quot;Сборочные единицы&quot; + i });
+            //}
+
+            var window = new SelectComponentTypeWindow(componentTypes) {Owner = ConfiguratorMainWindow.Instance.Window};
+
+            window.ShowDialog();
+
+            if (window.DialogResult != true) return;
+
+            var componentType = window.ComponentType;
+
+			
+            var product = Product.GetOrCreate(Guid.Empty, componentType.ID);
+            ComponentStructureContainer.AddProduct(product, false);
+        }
+
+        private bool CanCreateComponent(object param)
+        {
+            return true;
+        }
+
+        #endregion Create ComponentObject
+
+        #region Close ComponentObject
+
+        private ConfiguratorRelayCommand _closeComponentCommand;
+        private ConfiguratorRelayCommand _openSpecificationCommand;
+
+        public ConfiguratorRelayCommand CloseComponentCommand
+        {
+            get { return _closeComponentCommand; }
+        }
+
+        public ConfiguratorRelayCommand OpenSpecificationCommand
+        {
+            get { return _openSpecificationCommand; }
+        }
+
+        public ConfiguratorRelayCommand SaveSpecificationCommand { get; private set; }
+
+        public ConfiguratorRelayCommand CloseSpecificationCommand { get; private set; }
+
+        public ConfiguratorRelayCommand DeleteComponentFromSpecificationCommand { get; private set; }
+
+        private ConfiguratorRelayCommand _restoreCommand;
+
+        public ConfiguratorRelayCommand RestoreCommand
+        {
+            get { return _restoreCommand; }
+        }
+
+        private void CloseComponent(object param)
+        {
+            var products = ConfiguratorMainWindowVM.Instance.ComponentsVM.SelectedProducts.Where(t =&gt; t != null)
+                .Select(l =&gt; l.Product).ToList();
+            var productContainerProducts =
+                ConfiguratorMainWindowVM.Instance.ComponentsStructureContainer.Products.ToList();
+
+            var headProducts = products.Where(t =&gt; productContainerProducts.Contains(t)).ToList();
+			//var updatedProducts = headProducts.Where(t =&gt; t.Properties.Any(l =&gt; l.IsChanged)).ToList();
+			//if (updatedProducts.Count != 0)
+			//{
+			//    if (SwrMessageBox.Show(&quot;Сохранить внесенные изменения?&quot;, &quot;&quot;, SwrMessageBoxButton.YesNo,
+			//            SwrMessageBoxImage.Question) == SwrDialogResult.Yes)
+			//    {
+			//        foreach (var updatedProduct in updatedProducts)
+			//        {
+			//            bool success = true;
+			//            if (updatedProduct.IsNew)
+			//            {
+			//                ConfiguratorMainWindowVM.Instance.CardController.SaveUpdatedValues();
+			//                success = ComponentApiCaller.Create(updatedProduct);
+			//            }
+			//            else
+			//            {
+			//                if (updatedProduct.Properties.Where(t =&gt; t.IsChanged).Any())
+			//                {
+			//                    //var changedAttributes = updatedProduct.Component.ComponentAttributes
+			//                    //    .Where(t =&gt; t.IsChanged).ToList();
+			//                    ConfiguratorMainWindowVM.Instance.CardController.SaveUpdatedValues();
+			//                    success = ComponentApiCaller.Update(updatedProduct);
+			//                }
+			//            }
+			//        }
+			//    }
+
+			//}
+			ComponentStructureContainer.CloseProduct(headProducts);
+            ProductStructureContainer.CloseProduct(headProducts);
+		}
+
+        private bool CanCloseComponent(object param)
+        {
+            if (ConfiguratorMainWindowVM.Instance.ComponentsVM == null) return false;
+
+            if (ConfiguratorMainWindowVM.Instance.ComponentsStructureContainer == null) return false;
+
+            if (!ConfiguratorMainWindowVM.Instance.ComponentsStructureContainer.Products.SafeAny()) return false;
+
+            return true;
+        }
+
+        #endregion Close ComponentObject
+
+        #region StructureCommand
+
+        private ConfiguratorRelayCommand _createStrucureCommand;
+
+        public ConfiguratorRelayCommand CreateStructureCommand
+        {
+            get { return _createStrucureCommand; }
+        }
+
+        private bool CanCreateStructure(object obj)
+        {
+            return false;
+        }
+
+        private void CreateStructure(object parameter)
+        {
+        }
+
+        private ConfiguratorRelayCommand _openStructureCommand;
+
+        public ConfiguratorRelayCommand OpenStructureCommand
+        {
+            get { return _openStructureCommand; }
+        }
+
+        private bool CanOpenStructure(object obj)
+        {
+            return ConfiguratorMainWindow.Instance.ViewModel.ComponentsVM != null &amp;&amp;
+                   ConfiguratorMainWindow.Instance.ViewModel.ComponentsVM.SelectedProducts.Count == 1 &amp;&amp;
+				   ConfiguratorMainWindow.Instance.ViewModel.ComponentsVM.SelectedProducts[0].Product.Type != null &amp;&amp;
+                   ConfiguratorMainWindow.Instance.ViewModel.ComponentsVM.SelectedProducts[0].Product.Type.SpecificationTypeNames.Count != 0;
+        }
+
+        private void OpenStructure(object parameter)
+        {
+            var product = ConfiguratorMainWindow.Instance.ViewModel.ComponentsVM.SelectedProducts.First().Product;
+            if (ProductStructureContainer.Products.Any())
+            {
+                var interopHelper = new WindowInteropHelper(ConfiguratorMainWindow.Instance);
+
+                var result = SwrMessageBox.Show(interopHelper.Handle, &quot;Закрыть текущую структуру?&quot;,
+                    StringContainer.ProductName,
+                    SwrMessageBoxButton.YesNo);
+
+                if (result == SwrDialogResult.Yes)
+                {
+                    CloseStructure(null);
+                }
+                else
+                {
+                    return;
+                }
+            }
+
+            if (!product.HasRealChilds())
+            {
+                var components = StructureApiCaller.Get(product.DbIdentificator);
+
+                LoadNewChild(components, product);
+            }
+            else
+            {
+                // для существующих дочерних компонентов добавляем Dummy компонент, если установлен флаг HasChildren
+                foreach (var productReference in product.References)
+                {
+                    var child = productReference.Child;
+                    if (child.Type.SpecificationTypeNames.Count != 0) child.AddReference(DummyProduct.GetOrCreate(Guid.NewGuid()));
+                }
+            }
+
+            ProductStructureContainer.AddProduct(product, false);
+        }
+
+        private static void LoadNewChild(List&lt;SpecificationComponentApi&gt; components, IProduct product)
+        {
+            foreach (var componentApiExist in components)
+            {
+                IProduct childProduct;
+
+                if (AllProductsLinkContainer.Instance.HasProductByGuid(componentApiExist.ID))
+                    childProduct = AllProductsLinkContainer.Instance.GetProductByGuid(componentApiExist.ID);
+
+                else
+                {
+                    var type =
+                        ConfiguratorMainWindowVM.Instance.SettingsController.Settings.ComponentTypes
+                            .FirstOrDefault(
+                                t =&gt; t.Name == componentApiExist.TypeName);
+                    if (type == null)
+                    {
+                        SwrMessageBox.Show(ConfiguratorMainWindow.Instance,
+                            $&quot;В настройках не найден тип компонента &#39;{componentApiExist.TypeName}&#39;&quot;,
+                            ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK,
+                            SwrMessageBoxImage.Error);
+                        return;
+                    }
+
+                    childProduct = Product.GetOrCreate(componentApiExist.ID, type.ID);
+                }
+
+
+                childProduct.DbIdentificator = componentApiExist.ID;
+
+                var propDic = new Dictionary&lt;string, string&gt;();
+                foreach (var childComponentAttribute in componentApiExist.ComponentAttributes)
+                {
+                    childProduct.SetProperty(childComponentAttribute.Name, childComponentAttribute.Value);
+                }
+
+                if (componentApiExist.HasChildren)
+                {
+                    childProduct.AddReference(DummyProduct.GetOrCreate(Guid.NewGuid()));
+                }
+
+                childProduct.UpdateName();
+                foreach (var childRelationAttribute in componentApiExist.RelationAttributes)
+                {
+                    propDic.Add(childRelationAttribute.Name, childRelationAttribute.Value);
+                }
+
+                propDic.Add(&quot;Тип спецификации&quot;, componentApiExist.SpecificationTypeName);
+
+                //productVm.Product.AddReference(childProduct, propDic);
+
+                if (product.References.All(t =&gt; t.Child.DbIdentificator != childProduct.DbIdentificator))
+                {
+                    //var propDic = new Dictionary&lt;string, string&gt;();
+                    //propDic.Add(&quot;Тип спецификации&quot;, componentApiExist.Item2);
+                    product.AddReference(childProduct, propDic);
+                }
+            }
+        }
+
+
+        private ConfiguratorRelayCommand _saveStructureCommand;
+
+        public ConfiguratorRelayCommand SaveStructureCommand
+        {
+            get { return _saveStructureCommand; }
+        }
+
+        private bool CanSaveStructure(object obj)
+        {
+            return false;
+        }
+
+        private void SaveStructure(object parameter)
+        {
+        }
+
+        public ConfiguratorRelayCommand CloseStructureCommand { get; private set; }
+
+        private bool CanCloseStructure(object obj)
+        {
+            return ConfiguratorMainWindow.Instance.ViewModel.StructureVM != null &amp;&amp;
+                   (ConfiguratorMainWindow.Instance.ViewModel.StructureVM.SelectedProducts.Count == 1 &amp;&amp;
+                    SelectedProductIsTopLevel());
+        }
+
+        private bool SelectedProductIsTopLevel()
+        {
+            return ConfiguratorMainWindow.Instance.ViewModel.StructureVM.Products.Contains(ConfiguratorMainWindow
+                .Instance.ViewModel.StructureVM.SelectedProducts.First());
+        }
+
+        private void CloseStructure(object parameter)
+        {
+            var product = ConfiguratorMainWindowVM.Instance.StructureVM.Products.First().Product;
+			ProductStructureContainer.CloseProduct(new List&lt;IProduct&gt; {product});
+        }
+
+        #endregion StructureCommand
+
+        #region ShowDeletedProductsCommand
+
+        private ConfiguratorRelayCommand _showDeletedProductsCommand;
+
+        public ConfiguratorRelayCommand ShowDeletedProductsCommand
+        {
+            get { return _showDeletedProductsCommand; }
+        }
+
+        public CardController CardController { get; set; }
+
+        private void ShowDeletedProducts(object parameter)
+        {
+            var sc = ConfiguratorMainWindowVM.Instance.SpecificationsController;
+            sc.IsDeletedProductsVisible = !sc.IsDeletedProductsVisible;
+
+            foreach (var page in sc.SpecificationPages)
+            {
+                page.ChangeDeletedRowsVisibility(sc.IsDeletedProductsVisible);
+            }
+        }
+
+        private bool CanShowDeletedProducts(object parameter)
+        {
+            var notNull = ConfiguratorMainWindowVM.Instance.SpecificationsController.ActiveSpecification != null;
+            if (!notNull)
+                return false;
+
+            var sc = ConfiguratorMainWindowVM.Instance.SpecificationsController;
+            sc.IsDeletedProductsVisible = !sc.IsDeletedProductsVisible;
+
+            foreach (var page in sc.SpecificationPages)
+            {
+                if (page.Tabs.SafeAny(x =&gt; x.IsCollectionBusy))
+                    return false;
+            }
+
+            return true;
+        }
+
+        #endregion
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[30,9,30,78,0],[32,72,32,76,0],[32,77,32,89,0],[33,70,33,74,0],[33,75,33,87,0],[36,9,36,10,0],[37,13,37,72,0],[38,9,38,10,0],[40,9,40,37,0],[41,9,41,10,0],[42,13,42,30,0],[43,9,43,10,0],[47,9,47,10,0],[48,13,48,71,0],[49,13,49,67,0],[50,9,50,10,0],[53,9,53,10,0],[54,13,57,45,0],[58,13,62,45,0],[64,13,67,45,0],[68,13,71,45,0],[72,13,75,45,0],[76,13,79,45,0],[81,13,84,41,0],[85,13,88,41,0],[89,13,92,41,0],[93,13,96,41,0],[98,13,99,382,0],[101,13,102,499,0],[104,9,104,10,0],[107,9,107,10,0],[111,13,111,115,0],[113,13,113,28,0],[114,17,114,30,0],[116,13,116,43,0],[146,13,146,52,0],[146,53,146,66,0],[148,13,148,89,0],[149,13,149,163,0],[150,17,150,30,0],[152,13,152,64,0],[154,13,154,81,0],[155,9,155,10,0],[158,9,158,10,0],[159,13,159,115,0],[161,13,161,28,0],[162,17,162,24,0],[164,13,164,43,0],[211,13,211,49,0],[212,13,212,14,0],[213,17,213,116,0],[214,17,214,48,0],[215,17,215,34,0],[216,21,216,28,0],[218,17,218,50,0],[219,13,219,14,0],[220,9,220,10,0],[223,9,223,10,0],[224,13,224,115,0],[226,13,226,28,0],[226,29,226,36,0],[228,13,228,43,0],[277,13,277,49,0],[278,13,278,14,0],[279,17,279,116,0],[280,17,280,48,0],[281,17,281,34,0],[282,21,282,28,0],[284,17,284,52,0],[285,13,285,14,0],[286,9,286,10,0],[289,9,289,10,0],[290,13,290,115,0],[292,13,292,28,0],[292,29,292,42,0],[294,13,294,43,0],[297,13,297,34,0],[299,13,299,89,0],[301,13,302,120,0],[303,17,303,30,0],[305,13,305,64,0],[306,13,306,52,0],[307,13,307,14,0],[308,17,308,30,0],[311,13,311,47,0],[314,13,314,107,0],[315,9,315,10,0],[318,9,318,10,0],[319,13,319,26,0],[320,9,320,10,0],[323,9,323,10,0],[324,13,324,49,0],[328,9,328,10,0],[329,13,329,203,0],[333,13,333,27,0],[334,9,334,10,0],[337,9,337,10,0],[338,13,338,114,0],[343,13,343,74,0],[343,74,343,93,0],[343,93,343,95,0],[343,13,343,95,0],[344,13,344,14,0],[345,17,345,70,0],[346,17,346,24,0],[346,26,346,42,0],[346,43,346,45,0],[346,46,346,60,0],[347,17,347,18,0],[348,21,348,88,0],[349,17,349,18,0],[351,17,351,24,0],[351,26,351,46,0],[351,47,351,49,0],[351,50,351,68,0],[352,17,352,18,0],[353,21,353,59,0],[354,25,354,176,0],[355,17,355,18,0],[357,17,357,137,0],[358,17,358,24,0],[361,13,361,55,0],[362,13,362,14,0],[363,17,363,52,0],[364,17,364,24,0],[364,26,364,45,0],[364,46,364,48,0],[364,49,364,67,0],[365,17,365,18,0],[366,21,366,55,0],[367,17,367,18,0],[368,13,368,14,0],[371,13,371,68,0],[371,68,371,105,0],[371,105,372,30,0],[372,30,372,37,0],[372,37,372,48,0],[371,13,372,48,0],[374,13,374,72,0],[374,72,374,141,0],[374,141,374,152,0],[374,152,374,153,0],[374,72,374,153,0],[374,153,374,167,0],[374,167,374,174,0],[374,174,374,185,0],[374,13,374,185,0],[375,13,375,77,0],[376,13,376,14,0],[377,17,377,24,0],[377,26,377,47,0],[377,48,377,50,0],[377,51,377,69,0],[378,17,378,18,0],[379,21,379,66,0],[381,21,381,28,0],[381,30,381,49,0],[381,50,381,52,0],[381,53,381,81,0],[382,21,382,22,0],[383,25,383,59,0],[384,21,384,22,0],[386,21,386,52,0],[387,17,387,18,0],[388,13,388,14,0],[392,13,392,85,0],[393,13,393,14,0],[394,17,394,24,0],[394,26,394,51,0],[394,52,394,54,0],[394,55,394,77,0],[395,17,395,18,0],[396,21,396,70,0],[397,21,397,28,0],[397,30,397,49,0],[397,50,397,52,0],[397,53,397,85,0],[398,21,398,22,0],[399,25,399,59,0],[400,21,400,22,0],[402,21,402,56,0],[403,17,403,18,0],[405,13,405,14,0],[409,13,409,50,0],[411,13,411,20,0],[411,22,411,42,0],[411,43,411,45,0],[411,46,411,64,0],[412,13,412,14,0],[413,17,413,24,0],[413,26,413,47,0],[413,48,413,50,0],[413,51,413,78,0],[414,17,414,18,0],[415,21,415,57,0],[416,17,416,18,0],[418,17,418,52,0],[419,13,419,14,0],[421,13,421,40,0],[423,13,423,39,0],[424,4,424,37,0],[425,13,425,154,0],[426,9,426,10,0],[429,9,429,10,0],[430,13,430,60,0],[430,60,430,72,0],[430,72,430,84,0],[430,13,430,84,0],[432,13,432,20,0],[432,22,432,35,0],[432,36,432,38,0],[432,39,432,49,0],[433,13,433,14,0],[434,17,434,42,0],[435,13,435,14,0],[437,13,437,152,0],[438,13,438,31,0],[439,9,439,10,0],[443,9,443,10,0],[444,13,445,95,0],[446,9,446,10,0],[449,9,449,10,0],[451,13,451,14,0],[452,17,452,107,0],[452,107,452,116,0],[452,116,452,118,0],[452,17,452,118,0],[454,17,454,80,0],[455,17,455,24,0],[455,26,455,39,0],[455,40,455,42,0],[455,43,455,53,0],[456,17,456,18,0],[457,21,457,57,0],[458,17,458,18,0],[459,13,459,14,0],[460,13,460,32,0],[461,13,461,14,0],[462,17,462,34,0],[463,17,464,118,0],[465,13,465,14,0],[466,9,466,10,0],[469,9,469,10,0],[473,13,473,99,0],[474,9,474,10,0],[482,17,482,18,0],[482,19,482,50,0],[482,51,482,52,0],[486,9,486,10,0],[489,13,489,90,0],[491,13,491,66,0],[493,13,493,54,0],[499,13,499,121,0],[501,13,501,33,0],[503,13,503,45,0],[503,46,503,53,0],[505,13,505,54,0],[508,13,508,77,0],[509,13,509,68,0],[510,9,510,10,0],[513,9,513,10,0],[514,13,514,25,0],[515,9,515,10,0],[526,17,526,18,0],[526,19,526,49,0],[526,50,526,51,0],[531,17,531,18,0],[531,19,531,52,0],[531,53,531,54,0],[534,68,534,72,0],[534,73,534,85,0],[536,69,536,73,0],[536,74,536,86,0],[538,83,538,87,0],[538,88,538,100,0],[544,17,544,18,0],[544,19,544,42,0],[544,43,544,44,0],[548,9,548,10,0],[549,13,549,103,0],[549,103,549,112,0],[549,112,550,30,0],[550,30,550,39,0],[550,39,550,50,0],[549,13,550,50,0],[551,13,552,98,0],[554,13,554,52,0],[554,52,554,88,0],[554,88,554,99,0],[554,13,554,99,0],[583,4,583,59,0],[584,13,584,66,0],[585,3,585,4,0],[588,9,588,10,0],[589,13,589,72,0],[589,73,589,86,0],[591,13,591,88,0],[591,89,591,102,0],[593,13,593,100,0],[593,101,593,114,0],[595,13,595,25,0],[596,9,596,10,0],[606,17,606,18,0],[606,19,606,49,0],[606,50,606,51,0],[610,9,610,10,0],[611,13,611,26,0],[612,9,612,10,0],[615,9,615,10,0],[616,9,616,10,0],[622,17,622,18,0],[622,19,622,48,0],[622,49,622,50,0],[626,9,626,10,0],[627,13,630,142,0],[631,9,631,10,0],[634,9,634,10,0],[635,13,635,115,0],[636,13,636,58,0],[637,13,637,14,0],[638,17,638,94,0],[640,17,642,48,0],[644,17,644,51,0],[645,17,645,18,0],[646,21,646,42,0],[647,17,647,18,0],[649,17,649,18,0],[650,21,650,28,0],[652,13,652,14,0],[654,13,654,42,0],[655,13,655,14,0],[656,17,656,82,0],[658,17,658,51,0],[659,13,659,14,0],[661,13,661,14,0],[663,17,663,24,0],[663,26,663,46,0],[663,47,663,49,0],[663,50,663,68,0],[664,17,664,18,0],[665,21,665,56,0],[666,21,666,70,0],[666,71,666,132,0],[667,17,667,18,0],[668,13,668,14,0],[670,13,670,66,0],[671,9,671,10,0],[674,9,674,10,0],[675,13,675,20,0],[675,22,675,43,0],[675,44,675,46,0],[675,47,675,57,0],[676,13,676,14,0],[679,17,679,94,0],[680,21,680,109,0],[683,17,683,18,0],[684,21,687,38,0],[687,38,687,74,0],[687,74,687,76,0],[684,21,687,76,0],[688,21,688,38,0],[689,21,689,22,0],[690,25,693,55,0],[694,25,694,32,0],[697,21,697,87,0],[698,17,698,18,0],[701,17,701,69,0],[703,17,703,64,0],[704,17,704,24,0],[704,26,704,53,0],[704,54,704,56,0],[704,57,704,94,0],[705,17,705,18,0],[706,21,706,107,0],[707,17,707,18,0],[709,17,709,51,0],[710,17,710,18,0],[711,21,711,89,0],[712,17,712,18,0],[714,17,714,43,0],[715,17,715,24,0],[715,26,715,52,0],[715,53,715,55,0],[715,56,715,92,0],[716,17,716,18,0],[717,21,717,92,0],[718,17,718,18,0],[720,17,720,90,0],[724,17,724,49,0],[724,49,724,104,0],[724,104,724,106,0],[724,17,724,106,0],[725,17,725,18,0],[728,21,728,65,0],[729,17,729,18,0],[730,13,730,14,0],[731,9,731,10,0],[738,17,738,18,0],[738,19,738,48,0],[738,49,738,50,0],[742,9,742,10,0],[743,13,743,26,0],[744,9,744,10,0],[747,9,747,10,0],[748,9,748,10,0],[750,65,750,69,0],[750,70,750,82,0],[753,9,753,10,0],[754,13,756,50,0],[757,9,757,10,0],[760,9,760,10,0],[761,13,762,75,0],[763,9,763,10,0],[766,9,766,10,0],[767,13,767,98,0],[768,4,768,73,0],[769,9,769,10,0],[779,17,779,18,0],[779,19,779,54,0],[779,55,779,56,0],[782,48,782,52,0],[782,53,782,57,0],[785,9,785,10,0],[786,13,786,81,0],[787,13,787,72,0],[789,13,789,20,0],[789,22,789,30,0],[789,31,789,33,0],[789,34,789,55,0],[790,13,790,14,0],[791,17,791,79,0],[792,13,792,14,0],[793,9,793,10,0],[796,9,796,10,0],[797,13,797,114,0],[798,13,798,26,0],[799,17,799,30,0],[801,13,801,81,0],[802,13,802,72,0],[804,13,804,20,0],[804,22,804,30,0],[804,31,804,33,0],[804,34,804,55,0],[805,13,805,14,0],[806,17,806,44,0],[806,44,806,62,0],[806,62,806,64,0],[806,17,806,64,0],[807,21,807,34,0],[808,13,808,14,0],[810,13,810,25,0],[811,9,811,10,0]]);
+    </script>
+  </body>
+</html>

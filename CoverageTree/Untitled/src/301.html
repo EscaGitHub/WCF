@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\PageHeader.xaml.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+
+namespace Swr.Configurator.View
+{
+    /// &lt;summary&gt;
+    /// Interaction logic for PageHeader.xaml
+    /// &lt;/summary&gt;
+    public partial class PageHeader : UserControl
+    {
+        public PageHeader()
+        {
+            InitializeComponent();
+        }
+
+        public static readonly DependencyProperty HeaderProperty = DependencyProperty.Register(
+            &quot;Header&quot;, typeof(string), typeof(PageHeader), new PropertyMetadata(default(string)));
+
+        public string Header
+        {
+            get { return (string)GetValue(HeaderProperty); }
+            set { SetValue(HeaderProperty, value); }
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[23,9,23,28,0],[24,9,24,10,0],[25,13,25,35,0],[26,9,26,10,0],[28,9,29,98,0],[33,17,33,18,0],[33,19,33,59,0],[33,60,33,61,0],[34,17,34,18,0],[34,19,34,51,0],[34,52,34,53,0]]);
+    </script>
+  </body>
+</html>

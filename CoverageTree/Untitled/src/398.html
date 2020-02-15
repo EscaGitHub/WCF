@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\WebApiControllers\SettingsControllerTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.Resources;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.Common.Serialization;
+using SWR.ConfiguratorApi.Controllers;
+using SWR.ConfiguratorApi.Data;
+using SWR.ConfiguratorApi.Logic;
+using SWR.ConfiguratorApi.Logic.Settings;
+using Xunit;
+
+namespace Swr.Configurator.Test.WebApiControllers
+{
+    public class SettingsControllerTest : IDisposable
+    {
+        private SettingsController _controller;
+
+        public SettingsControllerTest()
+        {
+            SetTestSettingsConnection();
+
+            var settings = new SettingsService();
+
+            _controller = new SettingsController(settings)
+            {
+                ControllerContext = new ControllerContext {HttpContext = HttpContextMock.Get()}
+            };
+        }
+
+        private void SetTestSettingsConnection()
+        {
+            var settings = new DBSettings
+            {
+                DatabaseName = &quot;swr_configurator&quot;, Host = &quot;192.168.0.109&quot;, UserName = &quot;postgres&quot;, Password = &quot;newtime&quot;,
+                Port = 5432
+            };
+
+            DbSettingsSingleton.Instance.SetValues(settings);
+        }
+
+        [Fact]
+        public void SaveNotUniqueCommonAttributes()
+        {
+            var settingsManager = new SettingsManager();
+            //var settings = new Common.Settings.Settings();
+
+            var setting = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+            var attributeObject = new AttributeObject();
+            attributeObject.Name = &quot;Тестовый атрибут&quot;;
+            attributeObject.DataType = AttributeDataType.Double;
+
+            setting.Attributes.Add(attributeObject);
+
+
+            var xmlSettings = setting.Serialize();
+            var result = settingsManager.SaveSettings(xmlSettings);
+            Assert.True(result);
+            //_controller.SaveSettings(xmlSettings);
+            setting = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+            //settings = new Common.Settings.Settings();
+
+            attributeObject = new AttributeObject();
+            attributeObject.Name = &quot;Тестовый атрибут&quot;;
+            attributeObject.DataType = AttributeDataType.String;
+
+            setting.Attributes.Add(attributeObject);
+
+            xmlSettings = setting.Serialize();
+            result = settingsManager.SaveSettings(xmlSettings);
+            Assert.False(result);
+            Assert.NotNull(settingsManager.Errors);
+            Assert.Equal(2, settingsManager.Errors.Count);
+            //Assert.Equal();
+            //_controller.SaveSettings(xmlSettings);
+            setting = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+            var foundAttribute = setting.Attributes.FirstOrDefault(t =&gt; t.Name == &quot;Тестовый атрибут&quot;);
+            Assert.NotNull(foundAttribute);
+
+            setting.Attributes.Remove(foundAttribute);
+            xmlSettings = setting.Serialize();
+            result = settingsManager.SaveSettings(xmlSettings);
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void AllowDeleteComponentTypeTest()
+        {
+            var settingsManager = new SettingsManager();
+
+            var result = settingsManager.IsAllowDeleteComponentType(new Guid(&quot;7e071f58-7a80-4cc3-8d9a-8482e4a1c63e&quot;));
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void AllowDeleteSpecificationTypeTest()
+        {
+            var settingsManager = new SettingsManager();
+
+            var result =
+                settingsManager.IsAllowDeleteSpecificationType(new Guid(&quot;f6c5b906-231c-4e9c-a0da-de5406ffe6b1&quot;));
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void AddComponentTypeTest()
+        {
+            var settingsManager = new SettingsManager();
+            //var settings = new Common.Settings.Settings();
+
+            var settings = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+
+            Assert.Equal(4, settings.ComponentTypes.Count);
+
+            var newComponentType = new ComponentTypeObject();
+            newComponentType.Name = &quot;Тестовый тип&quot;;
+            newComponentType.ID = Guid.Empty;
+            newComponentType.ComponentNameTemplate = &quot;%Обозначение%&quot;;
+            newComponentType.Attributes = new List&lt;AttributeForTypeObject&gt;();
+            settings.ComponentTypes.Add(newComponentType);
+
+            var xmlSettings = settings.Serialize();
+            var result = settingsManager.SaveSettings(xmlSettings);
+            Assert.True(result);
+
+            var setting = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+
+            Assert.Equal(5, setting.ComponentTypes.Count);
+
+            var foundType = setting.ComponentTypes.FirstOrDefault(t =&gt; t.Name == &quot;Тестовый тип&quot;);
+            Assert.NotNull(foundType);
+
+            setting.ComponentTypes.Remove(foundType);
+
+            xmlSettings = setting.Serialize();
+            result = settingsManager.SaveSettings(xmlSettings);
+            Assert.True(result);
+
+            setting = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+
+            Assert.Equal(4, setting.ComponentTypes.Count);
+        }
+
+        [Fact]
+        public void AddSpecificationTypeTest()
+        {
+            var settingsManager = new SettingsManager();
+            //var settings = new Common.Settings.Settings();
+
+            var settings = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+
+            Assert.Equal(4, settings.SpecificationTypes.Count);
+
+            var newSpecificationType = new SpecificationTypeObject();
+            newSpecificationType.Name = &quot;Тестовый тип&quot;;
+            newSpecificationType.ID = Guid.Empty;
+            newSpecificationType.NameTemplate = &quot;%Обозначение%&quot;;
+            newSpecificationType.Attributes = new List&lt;AttributeForTypeObject&gt;();
+            newSpecificationType.AllowComponentTypeNames.Add(&quot;Деталь&quot;);
+            settings.SpecificationTypes.Add(newSpecificationType);
+
+            var xmlSettings = settings.Serialize();
+            var result = settingsManager.SaveSettings(xmlSettings);
+            Assert.True(result);
+
+            var setting = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+
+            Assert.Equal(5, setting.SpecificationTypes.Count);
+
+            var foundType = setting.SpecificationTypes.FirstOrDefault(t =&gt; t.Name == &quot;Тестовый тип&quot;);
+            Assert.NotNull(foundType);
+
+            setting.SpecificationTypes.Remove(foundType);
+
+            xmlSettings = setting.Serialize();
+            result = settingsManager.SaveSettings(xmlSettings);
+            Assert.True(result);
+
+            setting = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+
+            Assert.Equal(4, setting.SpecificationTypes.Count);
+        }
+
+        [Fact]
+        public void AddSpecificationTypeWithAllowComponentType()
+        {
+            var settingsManager = new SettingsManager();
+
+            var settings = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+
+            Assert.Equal(4, settings.SpecificationTypes.Count);
+
+            var foundComponentType = settings.ComponentTypes.FirstOrDefault(t =&gt; t.Name == &quot;Деталь&quot;);
+
+            var newSpecificationType = new SpecificationTypeObject();
+            newSpecificationType.Name = &quot;Тестовый тип&quot;;
+            newSpecificationType.ID = Guid.Empty;
+            newSpecificationType.NameTemplate = &quot;%Обозначение%&quot;;
+            newSpecificationType.Attributes = new List&lt;AttributeForTypeObject&gt;();
+            if (foundComponentType != null)
+                newSpecificationType.AllowComponentTypeNames.Add(foundComponentType.Name);
+            settings.SpecificationTypes.Add(newSpecificationType);
+
+            var xmlSettings = settings.Serialize();
+            var result = settingsManager.SaveSettings(xmlSettings);
+            Assert.True(result);
+
+            var setting = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+
+            Assert.Equal(5, setting.SpecificationTypes.Count);
+
+            var foundType = setting.SpecificationTypes.FirstOrDefault(t =&gt; t.Name == &quot;Тестовый тип&quot;);
+            Assert.NotNull(foundType);
+            Assert.Equal(1, foundType.AllowComponentTypeNames.Count);
+            Assert.Equal(&quot;Деталь&quot;, foundType.AllowComponentTypeNames[0]);
+
+            setting.SpecificationTypes.Remove(foundType);
+
+            xmlSettings = setting.Serialize();
+            result = settingsManager.SaveSettings(xmlSettings);
+            Assert.True(result);
+
+            setting = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+
+            Assert.Equal(4, setting.SpecificationTypes.Count);
+        }
+
+        [Fact]
+        public void AddComponentTypeWithAllowSpecificationType()
+        {
+            var settingsManager = new SettingsManager();
+
+            var settings = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+
+            var foundComponentType = settings.ComponentTypes.FirstOrDefault(t =&gt; t.Name == &quot;Деталь&quot;);
+
+            var foundSpecificationType =
+                settings.SpecificationTypes.FirstOrDefault(t =&gt; t.Name == &quot;Стандартные изделия&quot;);
+
+            Assert.NotNull(foundComponentType);
+            Assert.NotNull(foundSpecificationType);
+            Assert.DoesNotContain(foundSpecificationType.Name, foundComponentType.SpecificationTypeNames);
+            foundComponentType.SpecificationTypeNames.Add(foundSpecificationType.Name);
+
+            var xmlSettings = settings.Serialize();
+            var result = settingsManager.SaveSettings(xmlSettings);
+            Assert.True(result);
+
+            settings = settingsManager.ReadSettings().Deserialize&lt;Common.Settings.Settings&gt;();
+
+            foundComponentType = settings.ComponentTypes.FirstOrDefault(t =&gt; t.Name == &quot;Деталь&quot;);
+
+            foundSpecificationType =
+                settings.SpecificationTypes.FirstOrDefault(t =&gt; t.Name == &quot;Стандартные изделия&quot;);
+
+            Assert.NotNull(foundComponentType);
+            Assert.NotNull(foundSpecificationType);
+            Assert.Contains(foundSpecificationType.Name, foundComponentType.SpecificationTypeNames);
+
+            foundComponentType.SpecificationTypeNames.Remove(foundSpecificationType.Name);
+
+            xmlSettings = settings.Serialize();
+            result = settingsManager.SaveSettings(xmlSettings);
+            Assert.True(result);
+
+            foundComponentType = settings.ComponentTypes.FirstOrDefault(t =&gt; t.Name == &quot;Деталь&quot;);
+
+            foundSpecificationType =
+                settings.SpecificationTypes.FirstOrDefault(t =&gt; t.Name == &quot;Стандартные изделия&quot;);
+
+            Assert.NotNull(foundComponentType);
+            Assert.NotNull(foundSpecificationType);
+            Assert.DoesNotContain(foundSpecificationType.Name, foundComponentType.SpecificationTypeNames);
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[22,9,22,40,1],[23,9,23,10,1],[24,13,24,41,1],[26,13,26,50,1],[28,13,31,15,1],[32,9,32,10,1],[35,9,35,10,1],[36,13,40,15,1],[42,13,42,62,1],[43,9,43,10,1],[47,9,47,10,1],[48,13,48,57,1],[51,13,51,98,1],[52,13,52,57,1],[53,13,53,55,1],[54,13,54,65,1],[56,13,56,53,1],[59,13,59,51,1],[60,13,60,68,1],[61,13,61,33,1],[63,13,63,94,1],[66,13,66,53,1],[67,13,67,55,1],[68,13,68,65,1],[70,13,70,53,1],[72,13,72,47,1],[73,13,73,64,1],[74,13,74,34,1],[75,13,75,52,1],[76,13,76,59,1],[79,13,79,94,1],[80,13,80,73,1],[80,73,80,101,1],[80,101,80,103,1],[80,13,80,103,1],[81,13,81,44,1],[83,13,83,55,1],[84,13,84,47,1],[85,13,85,64,1],[86,13,86,33,1],[87,9,87,10,1],[91,9,91,10,1],[92,13,92,57,1],[94,13,94,119,1],[96,13,96,34,1],[97,9,97,10,1],[101,9,101,10,1],[102,13,102,57,1],[104,13,105,114,1],[107,13,107,34,1],[108,9,108,10,1],[112,9,112,10,1],[113,13,113,57,1],[116,13,116,99,1],[118,13,118,60,1],[120,13,120,62,1],[121,13,121,52,1],[122,13,122,46,1],[123,13,123,70,1],[124,13,124,78,1],[125,13,125,59,1],[127,13,127,52,1],[128,13,128,68,1],[129,13,129,33,1],[131,13,131,98,1],[133,13,133,59,1],[135,13,135,72,1],[135,72,135,96,1],[135,96,135,98,1],[135,13,135,98,1],[136,13,136,39,1],[138,13,138,54,1],[140,13,140,47,1],[141,13,141,64,1],[142,13,142,33,1],[144,13,144,94,1],[146,13,146,59,1],[147,9,147,10,1],[151,9,151,10,1],[152,13,152,57,1],[155,13,155,99,1],[157,13,157,64,1],[159,13,159,70,1],[160,13,160,56,1],[161,13,161,50,1],[162,13,162,65,1],[163,13,163,82,1],[164,13,164,72,1],[165,13,165,67,1],[167,13,167,52,1],[168,13,168,68,1],[169,13,169,33,1],[171,13,171,98,1],[173,13,173,63,1],[175,13,175,76,1],[175,76,175,100,1],[175,100,175,102,1],[175,13,175,102,1],[176,13,176,39,1],[178,13,178,58,1],[180,13,180,47,1],[181,13,181,64,1],[182,13,182,33,1],[184,13,184,94,1],[186,13,186,63,1],[187,9,187,10,1],[191,9,191,10,1],[192,13,192,57,1],[194,13,194,99,1],[196,13,196,64,1],[198,13,198,82,1],[198,82,198,100,1],[198,100,198,102,1],[198,13,198,102,1],[200,13,200,70,1],[201,13,201,56,1],[202,13,202,50,1],[203,13,203,65,1],[204,13,204,82,1],[205,13,205,44,1],[206,17,206,91,1],[207,13,207,67,1],[209,13,209,52,1],[210,13,210,68,1],[211,13,211,33,1],[213,13,213,98,1],[215,13,215,63,1],[217,13,217,76,1],[217,76,217,100,1],[217,100,217,102,1],[217,13,217,102,1],[218,13,218,39,1],[219,13,219,70,1],[220,13,220,74,1],[222,13,222,58,1],[224,13,224,47,1],[225,13,225,64,1],[226,13,226,33,1],[228,13,228,94,1],[230,13,230,63,1],[231,9,231,10,1],[235,9,235,10,1],[236,13,236,57,1],[238,13,238,99,1],[240,13,240,82,1],[240,82,240,100,1],[240,100,240,102,1],[240,13,240,102,1],[242,13,243,65,1],[243,65,243,96,1],[243,96,243,98,1],[242,13,243,98,1],[245,13,245,48,1],[246,13,246,52,1],[247,13,247,107,1],[248,13,248,88,1],[250,13,250,52,1],[251,13,251,68,1],[252,13,252,33,1],[254,13,254,95,1],[256,13,256,78,1],[256,78,256,96,1],[256,96,256,98,1],[256,13,256,98,1],[258,13,259,65,1],[259,65,259,96,1],[259,96,259,98,1],[258,13,259,98,1],[261,13,261,48,1],[262,13,262,52,1],[263,13,263,101,1],[265,13,265,91,1],[267,13,267,48,1],[268,13,268,64,1],[269,13,269,33,1],[271,13,271,78,1],[271,78,271,96,1],[271,96,271,98,1],[271,13,271,98,1],[273,13,274,65,1],[274,65,274,96,1],[274,96,274,98,1],[273,13,274,98,1],[276,13,276,48,1],[277,13,277,52,1],[278,13,278,107,1],[279,9,279,10,1],[282,9,282,10,1],[283,9,283,10,1]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Controls\DataGridEditableComboBoxColumn.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using Swr.Configurator.Common.Settings.Lists;
+
+namespace Swr.Configurator.View.Controls
+{
+	public class DataGridEditableComboBoxColumn : DataGridTemplateColumn
+	{
+		private KeyEventArgs _currentArgs;
+
+		protected override FrameworkElement GenerateElement(DataGridCell cell, object dataItem)
+		{
+			cell.PreviewKeyDown += cell_KeyDown;
+			return base.GenerateElement(cell, dataItem);
+		}
+
+		private void cell_KeyDown(object sender, KeyEventArgs e)
+		{
+			var cell = sender as DataGridCell;
+			if (cell == null)
+				return;
+
+			var t = typeof(DataGridColumn);
+			PropertyInfo[] propInfos1 = t.GetProperties(BindingFlags.NonPublic | BindingFlags.Instance);
+			var ownerDataGridProperty = propInfos1.FirstOrDefault(x =&gt; x.Name == &quot;DataGridOwner&quot;);
+			if (ownerDataGridProperty == null)
+				return;
+
+			var dataGridOwner = ownerDataGridProperty.GetValue(cell.Column, null) as DataGrid;
+			if (dataGridOwner == null)
+				return;
+
+			if (cell.IsEnabled &amp;&amp; cell.IsEditing)
+			{
+				if (e.Key == Key.Escape)
+				{
+					dataGridOwner.CancelEdit(DataGridEditingUnit.Cell);
+					return;
+
+				}
+			}
+
+			if (cell.IsEnabled &amp;&amp; !cell.IsEditing)
+			{
+				if (e.Key == Key.Escape)
+				{
+					dataGridOwner.CancelEdit(DataGridEditingUnit.Row);
+					return;
+				}
+
+				if (KeysToIgnore.Keys.Contains(e.Key))
+					return;
+
+				_currentArgs = e;
+				dataGridOwner.BeginEdit();
+			}
+		}
+
+		protected override bool CommitCellEdit(FrameworkElement editingElement)
+		{
+			var cell = editingElement.Parent as DataGridCell;
+			if (cell != null) 
+				cell.PreviewKeyDown -= cell_KeyDown;
+			return base.CommitCellEdit(editingElement);
+		}
+
+		protected override void CancelCellEdit(FrameworkElement editingElement, object uneditedValue)
+		{
+			base.CancelCellEdit(editingElement, uneditedValue);
+			var cell = editingElement.Parent as DataGridCell;
+			if (cell != null) cell.PreviewKeyDown -= cell_KeyDown;
+		}
+
+		protected override FrameworkElement GenerateEditingElement(DataGridCell cell, object dataItem)
+		{
+			var cp = base.GenerateEditingElement(cell, dataItem);
+			cp.Loaded += cp_Loaded;
+			return cp;
+		}
+
+		void cp_Loaded(object sender, RoutedEventArgs e)
+		{
+			var cp = sender as ContentPresenter;
+			if (cp != null)
+			{
+				cp.Loaded -= cp_Loaded;
+
+				if (_currentArgs == null)
+					return;
+
+				var cmBox = VisualTreeHelper.GetChild(cp, 0) as ComboBox;
+				if (cmBox != null)
+				{
+					var textBox = (cmBox.Template.FindName(&quot;PART_EditableTextBox&quot;,
+						cmBox) as TextBox);
+					if (textBox != null &amp;&amp; textBox.IsEnabled)
+					{
+						textBox.Focus();
+						var ch = GetCharFromKey(_currentArgs.Key);
+						_currentArgs = null;
+
+						if (char.IsLetterOrDigit(ch) || ch == &#39;-&#39; || ch == &#39;_&#39;)
+							textBox.Text = ch.ToString(CultureInfo.InvariantCulture);
+
+						textBox.SelectionStart = textBox.Text.Length;
+					}
+				}
+			}
+		}
+
+		#region CharHelper
+
+		public enum MapType : uint
+		{
+			MAPVK_VK_TO_VSC = 0x0,
+			MAPVK_VSC_TO_VK = 0x1,
+			MAPVK_VK_TO_CHAR = 0x2,
+			MAPVK_VSC_TO_VK_EX = 0x3,
+		}
+
+		[DllImport(&quot;user32.dll&quot;)]
+		public static extern int ToUnicode(
+			uint wVirtKey,
+			uint wScanCode,
+			byte[] lpKeyState,
+			[Out, MarshalAs(UnmanagedType.LPWStr, SizeParamIndex = 4)] StringBuilder pwszBuff,
+			int cchBuff,
+			uint wFlags);
+
+		[DllImport(&quot;user32.dll&quot;)]
+		public static extern bool GetKeyboardState(byte[] lpKeyState);
+
+		[DllImport(&quot;user32.dll&quot;)]
+		public static extern uint MapVirtualKey(uint uCode, MapType uMapType);
+
+		public static char GetCharFromKey(Key key)
+		{
+			char ch = &#39; &#39;;
+
+			int virtualKey = KeyInterop.VirtualKeyFromKey(key);
+			var keyboardState = new byte[256];
+			GetKeyboardState(keyboardState);
+
+			uint scanCode = MapVirtualKey((uint) virtualKey, MapType.MAPVK_VK_TO_VSC);
+			var stringBuilder = new StringBuilder(2);
+
+			int result = ToUnicode((uint) virtualKey, scanCode, keyboardState, stringBuilder, stringBuilder.Capacity, 0);
+			switch (result)
+			{
+				case -1:
+					break;
+				case 0:
+					break;
+				case 1:
+				{
+					ch = stringBuilder[0];
+					break;
+				}
+				default:
+				{
+					ch = stringBuilder[0];
+					break;
+				}
+			}
+			return ch;
+		}
+
+		#endregion
+
+	}
+
+	public class ListDataGridEditableComboBoxColumn : DataGridEditableComboBoxColumn
+	{
+		public object Source { get; set; }
+
+		public ListSettings Settings { get; set; }
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[19,3,19,4,0],[20,4,20,40,0],[21,4,21,48,0],[22,3,22,4,0],[25,3,25,4,0],[26,4,26,38,0],[27,4,27,21,0],[28,5,28,12,0],[30,4,30,35,0],[31,4,31,96,0],[32,4,32,63,0],[32,63,32,88,0],[32,88,32,90,0],[32,4,32,90,0],[33,4,33,38,0],[34,5,34,12,0],[36,4,36,86,0],[37,4,37,30,0],[38,5,38,12,0],[40,4,40,41,0],[41,4,41,5,0],[42,5,42,29,0],[43,5,43,6,0],[44,6,44,57,0],[45,6,45,13,0],[48,4,48,5,0],[50,4,50,42,0],[51,4,51,5,0],[52,5,52,29,0],[53,5,53,6,0],[54,6,54,56,0],[55,6,55,13,0],[58,5,58,43,0],[59,6,59,13,0],[61,5,61,22,0],[62,5,62,31,0],[63,4,63,5,0],[64,3,64,4,0],[67,3,67,4,0],[68,4,68,53,0],[69,4,69,21,0],[70,5,70,41,0],[71,4,71,47,0],[72,3,72,4,0],[75,3,75,4,0],[76,4,76,55,0],[77,4,77,53,0],[78,4,78,21,0],[78,22,78,58,0],[79,3,79,4,0],[82,3,82,4,0],[83,4,83,57,0],[84,4,84,27,0],[85,4,85,14,0],[86,3,86,4,0],[89,3,89,4,0],[90,4,90,40,0],[91,4,91,19,0],[92,4,92,5,0],[93,5,93,28,0],[95,5,95,30,0],[96,6,96,13,0],[98,5,98,62,0],[99,5,99,23,0],[100,5,100,6,0],[101,6,102,26,0],[103,6,103,47,0],[104,6,104,7,0],[105,7,105,23,0],[106,7,106,49,0],[107,7,107,27,0],[109,7,109,62,0],[110,8,110,65,0],[112,7,112,52,0],[113,6,113,7,0],[114,5,114,6,0],[115,4,115,5,0],[116,3,116,4,0],[144,3,144,4,0],[145,4,145,18,0],[147,4,147,55,0],[148,4,148,38,0],[149,4,149,36,0],[151,4,151,78,0],[152,4,152,45,0],[154,4,154,113,0],[155,4,155,19,0],[158,6,158,12,0],[160,6,160,12,0],[162,5,162,6,0],[163,6,163,28,0],[164,6,164,12,0],[167,5,167,6,0],[168,6,168,28,0],[169,6,169,12,0],[172,4,172,14,0],[173,3,173,4,0],[181,26,181,30,0],[181,31,181,35,0],[183,34,183,38,0],[183,39,183,43,0]]);
+    </script>
+  </body>
+</html>

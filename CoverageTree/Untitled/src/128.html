@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\TransformExtentions.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Media;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    internal static class TransformExtensions
+    {
+        public static Point PointToScreenDPI(this Visual visual, Point pt)
+        {
+	        try
+	        {
+				Point resultPt = visual.PointToScreen(pt);
+				return TransformToDeviceDPI(visual, resultPt);
+	        }
+	        catch (Exception)
+	        {
+		        return pt;
+	        }
+            
+        }
+
+        public static Point PointToScreenDPIWithoutFlowDirection(this FrameworkElement element, Point point)
+        {
+            if (FrameworkElement.GetFlowDirection(element) == FlowDirection.RightToLeft)
+            {
+                var actualSize = element.TransformActualSizeToAncestor();
+                Point leftToRightPoint = new Point(
+                    actualSize.Width - point.X,
+                    point.Y);
+                return element.PointToScreenDPI(leftToRightPoint);
+            }
+
+            return element.PointToScreenDPI(point);
+        }
+
+
+
+        public static Rect GetScreenArea(this FrameworkElement element)
+        {
+        //    return new Rect(element.PointToScreenDPI(new Point()),
+        //        element.TransformActualSizeToAncestor());
+        //}
+
+        //public static Rect GetScreenAreaWithoutFlowDirection(this FrameworkElement element)
+        //{
+            var point = element.PointToScreenDPI(new Point());
+            if (FrameworkElement.GetFlowDirection(element) == FlowDirection.RightToLeft)
+            {
+                var actualSize = element.TransformActualSizeToAncestor();
+                Point leftToRightPoint = new Point(
+                    actualSize.Width - point.X,
+                    point.Y);
+                return new Rect(leftToRightPoint,
+                    actualSize);
+            }
+
+            return new Rect(point,
+                element.TransformActualSizeToAncestor());
+        }
+
+        public static Point TransformToDeviceDPI(this Visual visual, Point pt)
+        {
+            Matrix m = PresentationSource.FromVisual(visual).CompositionTarget.TransformToDevice;
+            return new Point(pt.X / m.M11, pt.Y / m.M22);
+        }
+
+        public static Size TransformFromDeviceDPI(this Visual visual, Size size)
+        {
+            Matrix m = PresentationSource.FromVisual(visual).CompositionTarget.TransformToDevice;
+            return new Size(size.Width * m.M11, size.Height * m.M22);
+        }
+
+        public static Point TransformFromDeviceDPI(this Visual visual, Point pt)
+        {
+            Matrix m = PresentationSource.FromVisual(visual).CompositionTarget.TransformToDevice;
+            return new Point(pt.X * m.M11, pt.Y * m.M22);
+        }
+
+        public static bool CanTransform(this Visual visual)
+        {
+            return PresentationSource.FromVisual(visual) != null;
+        }
+
+        public static Size TransformActualSizeToAncestor(this FrameworkElement element)
+        {
+            if (PresentationSource.FromVisual(element) == null)
+                return new Size(element.ActualWidth, element.ActualHeight);
+
+            var parentWindow = PresentationSource.FromVisual(element).RootVisual;
+            var transformToWindow = element.TransformToAncestor(parentWindow);
+            return transformToWindow.TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight)).Size;
+        }
+
+        public static Size TransformSizeToAncestor(this FrameworkElement element, Size sizeToTransform)
+        {
+            if (PresentationSource.FromVisual(element) == null)
+                return sizeToTransform;
+
+            var parentWindow = PresentationSource.FromVisual(element).RootVisual;
+            var transformToWindow = element.TransformToAncestor(parentWindow);
+            return transformToWindow.TransformBounds(new Rect(0, 0, sizeToTransform.Width, sizeToTransform.Height)).Size;
+        }
+
+        public static GeneralTransform TansformToAncestor(this FrameworkElement element)
+        {
+            if (PresentationSource.FromVisual(element) == null)
+                return new MatrixTransform(Matrix.Identity);
+
+            var parentWindow = PresentationSource.FromVisual(element).RootVisual;
+            return element.TransformToAncestor(parentWindow);
+        }
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[29,9,29,10,0],[31,10,31,11,0],[32,5,32,47,0],[33,5,33,51,0],[35,10,35,27,0],[36,10,36,11,0],[37,11,37,21,0],[40,9,40,10,0],[43,9,43,10,0],[44,13,44,89,0],[45,13,45,14,0],[46,17,46,74,0],[47,17,49,30,0],[50,17,50,67,0],[53,13,53,52,0],[54,9,54,10,0],[59,9,59,10,0],[66,13,66,63,0],[67,13,67,89,0],[68,13,68,14,0],[69,17,69,74,0],[70,17,72,30,0],[73,17,74,33,0],[77,13,78,58,0],[79,9,79,10,0],[82,9,82,10,0],[83,13,83,98,0],[84,13,84,58,0],[85,9,85,10,0],[88,9,88,10,0],[89,13,89,98,0],[90,13,90,70,0],[91,9,91,10,0],[94,9,94,10,0],[95,13,95,98,0],[96,13,96,58,0],[97,9,97,10,0],[100,9,100,10,0],[101,13,101,66,0],[102,9,102,10,0],[105,9,105,10,0],[106,13,106,64,0],[107,17,107,76,0],[109,13,109,82,0],[110,13,110,79,0],[111,13,111,118,0],[112,9,112,10,0],[115,9,115,10,0],[116,13,116,64,0],[117,17,117,40,0],[119,13,119,82,0],[120,13,120,79,0],[121,13,121,122,0],[122,9,122,10,0],[125,9,125,10,0],[126,13,126,64,0],[127,17,127,61,0],[129,13,129,82,0],[130,13,130,62,0],[131,9,131,10,0]]);
+    </script>
+  </body>
+</html>

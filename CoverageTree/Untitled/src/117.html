@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\IntegrationTest\OkeiServiceTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Okei;
+using Xunit;
+
+namespace IntegrationTest
+{
+    public class OkeiServiceTest
+    {
+        private const string Skip = &quot;Only for manual test&quot;;
+
+        [Fact(Skip = &quot;&quot;)]
+        public async void GetOkeiCodeAsync_ShouldReturnSuccessCodeAndResponseWithCode()
+        {
+            var service = new OkeiService(new OkeiServiceConnection
+            {
+                Address = &quot;http://localhost:5002/api/v2/okei/national-legends/&quot;
+            });
+
+            var code = await service.GetOkeiCodeAsync(&quot;10^3 м&quot;);
+
+            Assert.Equal(&quot;8&quot;, code);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[17,9,17,10,1],[18,13,21,16,1],[23,13,23,65,1],[25,13,25,37,1],[26,9,26,10,1]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-ConfiguratorAPI\Logic\Settings\Checks\AttributesUniqueChangeCheck.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace SWR.ConfiguratorApi.Logic.Settings.Checks
+{
+    public class AttributesUniqueChangeCheck : ICheckSettings
+    {
+        public bool DoCheck()
+        {
+            if(OldSettings == null || NewSettings == null) throw new NullReferenceException(&quot;AttributesUniqueChangeCheck&quot;);
+
+            Errors = new List&lt;string&gt;();
+            var result = true;
+
+            var oldAttributes = OldSettings.Attributes;
+            var newAttributes = NewSettings.Attributes;
+
+            foreach (var newAttribute in newAttributes)
+            {
+                if(newAttribute.DbAttributeId == Guid.Empty) continue;
+
+                var foundOldAttribute = oldAttributes.FirstOrDefault(t =&gt; t.DbAttributeId == newAttribute.DbAttributeId);
+                if (foundOldAttribute != null)
+                {
+                    if (!foundOldAttribute.IsUnique &amp;&amp; newAttribute.IsUnique)
+                    {
+                        result = false;
+                        Errors.Add($&quot;Impossible to change Unique property for common attribute {newAttribute.Name}&quot;);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public List&lt;string&gt; Errors { get; set; }
+        public Swr.Configurator.Common.Settings.Settings OldSettings { get; set; }
+        public Swr.Configurator.Common.Settings.Settings NewSettings { get; set; }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[11,9,11,10,1],[12,13,12,59,1],[12,60,12,124,0],[14,13,14,41,1],[15,13,15,31,1],[17,13,17,56,1],[18,13,18,56,1],[20,13,20,20,1],[20,22,20,38,1],[20,39,20,41,1],[20,42,20,55,1],[21,13,21,14,1],[22,17,22,61,1],[22,62,22,71,1],[24,17,24,75,1],[24,75,24,120,1],[24,120,24,122,1],[24,17,24,122,1],[25,17,25,47,1],[26,17,26,18,1],[27,21,27,78,1],[28,21,28,22,0],[29,25,29,40,0],[30,25,30,118,0],[31,21,31,22,0],[32,17,32,18,1],[33,13,33,14,1],[35,13,35,27,1],[36,9,36,10,1],[38,38,38,42,0],[38,43,38,47,1],[39,72,39,76,1],[39,77,39,81,1],[40,72,40,76,1],[40,77,40,81,1]]);
+    </script>
+  </body>
+</html>

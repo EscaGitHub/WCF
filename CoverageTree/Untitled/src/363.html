@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\SWRConfiguratorClient\Logic\ComponentBehaviorControllerTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Swr.Configurator.Logic;
+using SWR.ConfiguratorApi.Data.Db;
+using Xunit;
+
+namespace Swr.Configurator.Test.SWRConfiguratorClient.Logic
+{
+    public class ComponentBehaviorControllerTest
+    {
+        [Fact]
+        public void GetComponentNameByTemplate_OKTest()
+        {
+            var componentBehaviorController = new ComponentBehaviorController();
+
+            var template = &quot;%Наименование% %Обозначение%&quot;;
+
+            var componentAttributes = new List&lt;ComponentAttribute&gt;();
+
+            var componentAtttribute = new ComponentAttribute();
+            componentAtttribute.Id = Guid.NewGuid();
+            componentAtttribute.Name = &quot;Наименование&quot;;
+            componentAtttribute.Value = &quot;Ручка&quot;;
+            componentAttributes.Add(componentAtttribute);
+
+            componentAtttribute = new ComponentAttribute();
+            componentAtttribute.Id = Guid.NewGuid();
+            componentAtttribute.Name = &quot;Обозначение&quot;;
+            componentAtttribute.Value = &quot;АБВ.000.000&quot;;
+            componentAttributes.Add(componentAtttribute);
+
+            //var componentName = componentBehaviorController.GetComponentNameByTemplate(template, componentAttributes);
+
+            //Assert.NotNull(componentName);
+            //Assert.Equal(&quot;Ручка АБВ.000.000&quot;, componentName);
+        }
+
+        [Fact]
+        public void GetComponentNameByTemplate_MissingAttribute()
+        {
+            var componentBehaviorController = new ComponentBehaviorController();
+
+            var template = &quot;%Наименование% %Обозначение%&quot;;
+
+            var componentAttributes = new List&lt;ComponentAttribute&gt;();
+
+            var componentAtttribute = new ComponentAttribute();
+            componentAtttribute.Id = Guid.NewGuid();
+            componentAtttribute.Name = &quot;Наименование&quot;;
+            componentAtttribute.Value = &quot;Ручка&quot;;
+            componentAttributes.Add(componentAtttribute);
+
+            //var componentName = componentBehaviorController.GetComponentNameByTemplate(template, componentAttributes);
+
+            //Assert.NotNull(componentName);
+            //Assert.Equal(&quot;Ручка &quot;, componentName);
+        }
+
+        [Fact]
+        public void GetComponentNameByTemplate_TextInTemplate()
+        {
+            var componentBehaviorController = new ComponentBehaviorController();
+
+            var template = &quot;Структура - [%Наименование% %Обозначение%]&quot;;
+
+            var componentAttributes = new List&lt;ComponentAttribute&gt;();
+
+            var componentAtttribute = new ComponentAttribute();
+            componentAtttribute.Id = Guid.NewGuid();
+            componentAtttribute.Name = &quot;Наименование&quot;;
+            componentAtttribute.Value = &quot;Ручка&quot;;
+            componentAttributes.Add(componentAtttribute);
+
+            componentAtttribute = new ComponentAttribute();
+            componentAtttribute.Id = Guid.NewGuid();
+            componentAtttribute.Name = &quot;Обозначение&quot;;
+            componentAtttribute.Value = &quot;АБВ.000.000&quot;;
+            componentAttributes.Add(componentAtttribute);
+
+            //var componentName = componentBehaviorController.GetComponentNameByTemplate(template, componentAttributes);
+
+            //Assert.NotNull(componentName);
+            //Assert.Equal(&quot;Структура - [Ручка АБВ.000.000]&quot;, componentName);
+        }
+       
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,9,14,10,1],[15,13,15,81,1],[17,13,17,59,1],[19,13,19,70,1],[21,13,21,64,1],[22,13,22,53,1],[23,13,23,55,1],[24,13,24,49,1],[25,13,25,58,1],[27,13,27,60,1],[28,13,28,53,1],[29,13,29,54,1],[30,13,30,55,1],[31,13,31,58,1],[37,9,37,10,1],[41,9,41,10,1],[42,13,42,81,1],[44,13,44,59,1],[46,13,46,70,1],[48,13,48,64,1],[49,13,49,53,1],[50,13,50,55,1],[51,13,51,49,1],[52,13,52,58,1],[58,9,58,10,1],[62,9,62,10,1],[63,13,63,81,1],[65,13,65,73,1],[67,13,67,70,1],[69,13,69,64,1],[70,13,70,53,1],[71,13,71,55,1],[72,13,72,49,1],[73,13,73,58,1],[75,13,75,60,1],[76,13,76,53,1],[77,13,77,54,1],[78,13,78,55,1],[79,13,79,58,1],[85,9,85,10,1]]);
+    </script>
+  </body>
+</html>

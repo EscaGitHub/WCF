@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Settings\Columns\ColumnExpression.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+
+namespace Swr.Configurator.Common.Settings.Columns
+{
+	public class ColumnExpression : ICloneable
+	{
+		public ColumnExpression()
+		{
+			Expression = string.Empty;
+		}
+
+		public ColumnExpression(string expression)
+		{
+			Expression = expression;
+		}
+
+		public string Expression { get; set; }
+
+		#region Implementation of ICloneable
+
+		/// &lt;summary&gt;Creates a new object that is a copy of the current instance.&lt;/summary&gt;
+		/// &lt;returns&gt;A new object that is a copy of this instance.&lt;/returns&gt;
+		public object Clone()
+		{
+			var clone = new ColumnExpression();
+			clone.Expression = Expression;
+			
+			return clone;
+		}
+
+		#endregion
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[7,3,7,28,0],[8,3,8,4,0],[9,4,9,30,0],[10,3,10,4,0],[12,3,12,45,0],[13,3,13,4,0],[14,4,14,28,0],[15,3,15,4,0],[17,30,17,34,0],[17,35,17,39,0],[24,3,24,4,0],[25,4,25,39,0],[26,4,26,34,0],[28,4,28,17,0],[29,3,29,4,0]]);
+    </script>
+  </body>
+</html>

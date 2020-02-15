@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Domain\Services\Nomenclatures\CatalogItemQuery.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Data;
+using System.Data.SqlClient;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Service.Infrastructure.Nomenclatures;
+
+namespace Swr.Capital1C.Service.Domain.Services.Nomenclatures
+{
+    public class CatalogItemQuery : ICatalogItemQuery
+    {
+        private readonly string _connectionString;
+        private readonly string _vendorCodeVariableName;
+
+        public CatalogItemQuery(string connectionString, string vendorCodeVariableName)
+        {
+            _connectionString = connectionString;
+            _vendorCodeVariableName = vendorCodeVariableName;
+        }
+
+        public async Task&lt;CatalogItemId&gt; FindByArticleAsync(string vendorCode)
+        {
+            var query = BuildQuery();
+
+            var parameters = new[]
+            {
+                new SqlParameter(&quot;vendorCode&quot;, SqlDbType.NVarChar)
+                {
+                    Value = vendorCode
+                }
+            };
+
+            var dataTable = await ExecuteQueryAsync(query, parameters);
+
+            if (dataTable.Rows.Count == 0)
+                return null;
+
+            if (dataTable.Rows.Count &gt; 1)
+                throw new FoundMoreThanOneCatalogItemsException();
+
+            var dataTableRow = dataTable.Rows[0];
+
+            return new CatalogItemId((int) dataTableRow[&quot;Идентификатор документа&quot;],
+                (string) dataTableRow[&quot;Имя конфигурации документа&quot;], 
+                (int) dataTableRow[&quot;Версия документа&quot;]);
+        }
+
+        private string BuildQuery()
+        {
+            var builder = new StringBuilder();
+
+            builder.AppendLine($&quot;declare @vendorCodeVariableId as int = (select VariableID from Variable where VariableName = N&#39;{_vendorCodeVariableName}&#39; and IsDeleted = 0);&quot;);
+
+            builder.AppendLine(@&quot;select
+docs.DocumentID as N&#39;Идентификатор документа&#39;
+,docs.LatestRevisionNo as N&#39;Версия документа&#39;
+,docConfigs.ConfigurationName as N&#39;Имя конфигурации документа&#39;
+from VariableValue as vendorCodeVariableValues
+inner join DocumentConfiguration as docConfigs on docConfigs.ConfigurationID = vendorCodeVariableValues.ConfigurationID
+inner join Documents as docs on docs.DocumentID = vendorCodeVariableValues.DocumentID
+where
+docs.Deleted = 0
+and vendorCodeVariableValues.VariableID = @vendorCodeVariableId
+and vendorCodeVariableValues.ValueText = @vendorCode
+and vendorCodeVariableValues.RevisionNo = (select max(RevisionNo) from VariableValue where DocumentID = docs.DocumentId 
+                                        and ConfigurationID = docConfigs.ConfigurationID
+										and VariableID = @vendorCodeVariableId)&quot;);
+
+            return builder.ToString();
+        }
+
+        private async Task&lt;DataTable&gt; ExecuteQueryAsync(string query, SqlParameter[] parameters)
+        {
+            using (var sqlConnection = new SqlConnection { ConnectionString = _connectionString })
+            {
+                await sqlConnection.OpenAsync();
+
+                using (var command = new SqlCommand(query, sqlConnection) { CommandType = CommandType.Text })
+                {
+                    command.Parameters.AddRange(parameters);
+
+                    using (var sqlDataAdapter = new SqlDataAdapter(command))
+                    {
+                        var dataTable = new DataTable();
+
+                        sqlDataAdapter.Fill(dataTable);
+
+                        return dataTable;
+                    }
+                }
+            }
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,9,14,88,1],[15,9,15,10,1],[16,13,16,50,1],[17,13,17,62,1],[18,9,18,10,1],[21,9,21,10,1],[22,13,22,38,1],[24,13,30,15,1],[32,13,32,72,1],[34,13,34,43,1],[35,17,35,29,1],[37,13,37,42,1],[38,17,38,67,1],[40,13,40,50,1],[42,13,44,57,1],[45,9,45,10,1],[48,9,48,10,1],[49,13,49,47,1],[51,13,51,178,1],[53,13,66,53,1],[68,13,68,39,1],[69,9,69,10,1],[72,9,72,10,1],[73,20,73,98,1],[74,13,74,14,1],[75,17,75,49,1],[77,24,77,109,1],[78,17,78,18,1],[79,21,79,61,1],[81,28,81,76,1],[82,21,82,22,1],[83,25,83,57,1],[85,25,85,56,1],[87,25,87,42,1],[91,9,91,10,1]]);
+    </script>
+  </body>
+</html>

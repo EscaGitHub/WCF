@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Commands\RelayCommand.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Input;
+
+namespace Xceed.Wpf.AvalonDock.Commands
+{
+    internal class RelayCommand : ICommand
+    {
+        #region Fields
+
+        readonly Action&lt;object&gt; _execute;
+        readonly Predicate&lt;object&gt; _canExecute;
+
+        #endregion // Fields
+
+        #region Constructors
+
+        public RelayCommand(Action&lt;object&gt; execute)
+            : this(execute, null)
+        {
+        }
+
+        public RelayCommand(Action&lt;object&gt; execute, Predicate&lt;object&gt; canExecute)
+        {
+            if (execute == null)
+                throw new ArgumentNullException(&quot;execute&quot;);
+
+            _execute = execute;
+            _canExecute = canExecute;
+        }
+        #endregion // Constructors
+
+        #region ICommand Members
+
+        public bool CanExecute(object parameter)
+        {
+            return _canExecute == null ? true : _canExecute(parameter);
+        }
+
+        public event EventHandler CanExecuteChanged
+        {
+            add { CommandManager.RequerySuggested += value; }
+            remove { CommandManager.RequerySuggested -= value; }
+        }
+
+        public void Execute(object parameter)
+        {
+            _execute(parameter);
+        }
+
+        #endregion // ICommand Members
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[37,15,37,34,0],[38,9,38,10,0],[39,9,39,10,0],[41,9,41,82,0],[42,9,42,10,0],[43,13,43,33,0],[44,17,44,60,0],[46,13,46,32,0],[47,13,47,38,0],[48,9,48,10,0],[54,9,54,10,0],[55,13,55,72,0],[56,9,56,10,0],[60,17,60,18,0],[60,19,60,60,0],[60,61,60,62,0],[61,20,61,21,0],[61,22,61,63,0],[61,64,61,65,0],[65,9,65,10,0],[66,13,66,33,0],[67,9,67,10,0]]);
+    </script>
+  </body>
+</html>

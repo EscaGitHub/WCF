@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Settings\Model\CommonSettings.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using Swr.Capital1C.Okei;
+using Swr.Infrastructure.Mailing;
+
+namespace Swr.Capital1C.Service.Settings.Model
+{
+    public class CommonSettings : ICommonSettings
+    {
+        public CommonSettings()
+        {
+            NomenclatureCatalogServiceConnection = new CatalogServiceConnection();
+            BomCatalogServiceConnection = new CatalogServiceConnection();
+            PdmDbConnection = new DbConnection();
+            ExportedDocumentsStatusDbConnection = new DbConnection();
+            NomenclatureDefinition = new NomenclatureDefinition();
+            BomDefinition = new BomDefinition();
+            OkeiServiceConnection = new OkeiServiceConnection();
+        }
+
+        public string IsServiceVariableName { get; set; }
+
+        public string ArticleVariableName { get; set; }
+
+        public DbConnection PdmDbConnection { get; set; }
+
+        public DbConnection ExportedDocumentsStatusDbConnection { get; set; }
+
+        public CatalogServiceConnection NomenclatureCatalogServiceConnection { get; set; }
+
+        public CatalogServiceConnection BomCatalogServiceConnection { get; set; }
+
+        public NomenclatureDefinition NomenclatureDefinition { get; set; }
+
+        public BomDefinition BomDefinition { get; set; }
+
+        public OkeiServiceConnection OkeiServiceConnection { get; set; }
+
+        public EmailServiceSettings EmailServiceSettings { get; set; }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[8,9,8,32,1],[9,9,9,10,1],[10,13,10,83,1],[11,13,11,74,1],[12,13,12,50,1],[13,13,13,70,1],[14,13,14,67,1],[15,13,15,49,1],[16,13,16,65,1],[17,9,17,10,1],[19,47,19,51,1],[19,52,19,56,1],[21,45,21,49,1],[21,50,21,54,1],[23,47,23,51,1],[23,52,23,56,1],[25,67,25,71,1],[25,72,25,76,1],[27,80,27,84,1],[27,85,27,89,1],[29,71,29,75,1],[29,76,29,80,1],[31,64,31,68,1],[31,69,31,73,1],[33,46,33,50,1],[33,51,33,55,1],[35,62,35,66,1],[35,67,35,71,1],[37,60,37,64,1],[37,65,37,69,1]]);
+    </script>
+  </body>
+</html>

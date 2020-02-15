@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\WebApi\ServerWindow.xaml.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+
+namespace Swr.Configurator.WebApi
+{
+	/// &lt;summary&gt;
+	/// Interaction logic for ServerWindow.xaml
+	/// &lt;/summary&gt;
+	public partial class ServerWindow : Window
+	{
+		public ServerWindow()
+		{
+			InitializeComponent();
+		}
+
+		public void Navigate(string htmlString)
+		{
+			Browser.NavigateToString(htmlString);
+		}
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[22,3,22,24,0],[23,3,23,4,0],[24,4,24,26,0],[25,3,25,4,0],[28,3,28,4,0],[29,4,29,41,0],[30,3,30,4,0]]);
+    </script>
+  </body>
+</html>

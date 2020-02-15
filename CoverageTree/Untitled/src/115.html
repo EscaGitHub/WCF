@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\IntegrationTest\NomenclatureServiceTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures;
+using Swr.Capital1C.Service.Infrastructure.Nomenclatures;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace IntegrationTest
+{
+    public class NomenclatureServiceTest
+    {
+        private const string Skip = &quot;Run service&quot;;
+
+        [Fact(Skip = &quot;&quot;)]
+        public async void UpdateStatusAsync_ShouldUpdateNomenclatureStatus()
+        {
+            var settings = DefaultSettingsForTests.Get();
+
+            var catalogService = new NomenclatureCatalogService(settings.NomenclatureCatalogServiceConnection);
+
+            var nomenclatureQuery = new CatalogItemQuery(settings.PdmDbConnection.ConnectionString(), &quot;_Артикул_для_1С&quot;);
+            var service = new NomenclatureService(catalogService, nomenclatureQuery);
+
+
+            await service.UpdateStatusAsync(&quot;P0000036686&quot;, new ExportState
+            {
+                Status = &quot;Готов? 3&quot;,
+                Message = &quot;Всегда готов! 3&quot;
+            });
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[19,9,19,10,1],[20,13,20,58,1],[22,13,22,112,1],[24,13,24,122,1],[25,13,25,86,1],[28,13,32,16,1],[33,9,33,10,1]]);
+    </script>
+  </body>
+</html>

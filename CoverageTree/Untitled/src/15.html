@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\UnitTests\NomenclatureValidationTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Exceptions;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models.In;
+using Xunit;
+using Attribute = Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models.In.Attribute;
+
+namespace UnitTests
+{
+    public class NomenclatureValidationTest
+    {
+        [Fact]
+        public void TrueFields_Run_ShouldValidateNomenclature()
+        {
+            var nomenclature = new Nomenclature
+            {
+                Attributes = new[]
+                {
+                    new Attribute{Name = &quot;Артикул&quot;, Value = &quot;PB00001&quot; },
+                    new Attribute{Name = &quot;Наименование&quot;, Value = &quot;Деталь 1&quot; },
+                    new Attribute{Name = &quot;Обозначение&quot;, Value = &quot;SWR.000.001&quot; },
+                    new Attribute{Name = &quot;Единица измерения&quot;, Value = &quot;мм&quot; },
+                    new Attribute{Name = &quot;Раздел спецификации&quot;, Value = &quot;Детали&quot; },
+                    new Attribute{Name = &quot;Вид номенклатуры&quot;, Value = &quot;Ролики_2&quot; },
+                    new Attribute{Name = &quot;Признак готовой продукции&quot;, Value = &quot;1&quot; },
+                    new Attribute{Name = &quot;Вид воспроизводства&quot;, Value = &quot;Покупное&quot; },
+                    new Attribute{Name = &quot;Материал&quot;, Value = &quot;сталь&quot; },
+                    new Attribute{Name = &quot;Плотность&quot;, Value = &quot;0.5&quot; },
+                    new Attribute{Name = &quot;Масса&quot;, Value = &quot;13.2&quot; },
+                    new Attribute{Name = &quot;Площадь поверхности&quot;, Value = &quot;3.2&quot; },
+                    new Attribute{Name = &quot;Количество гибов&quot;, Value = &quot;3&quot; },
+                    new Attribute{Name = &quot;Общая длина&quot;, Value = &quot;44.7&quot; },
+                    new Attribute{Name = &quot;Общая ширина&quot;, Value = &quot;&quot; }, // empty value
+                    new Attribute{Name = &quot;Общая толщина&quot;, Value = &quot;4.7&quot; },
+                    new Attribute{Name = &quot;Длина реза&quot;, Value = &quot;1.7&quot; },
+                }
+            };
+
+            var validator = new NomenclatureValidation();
+            validator.Run(nomenclature, &quot;Артикул&quot;);
+        }
+
+        [Fact]
+        public void SectionWrong_Run_ShouldValidateNomenclature()
+        {
+            var nomenclature = new Nomenclature
+            {
+                Attributes = new[]
+                {
+                    new Attribute{Name = &quot;Артикул&quot;, Value = &quot;PB00001&quot; },
+                    new Attribute{Name = &quot;Наименование&quot;, Value = &quot;Деталь 1&quot; },
+                    new Attribute{Name = &quot;Единица измерения&quot;, Value = &quot;мм&quot; },
+                    new Attribute{Name = &quot;Раздел спецификации&quot;, Value = &quot;Детали3&quot; },
+                    new Attribute{Name = &quot;Вид номенклатуры&quot;, Value = &quot;Ролики_2&quot; },
+                    new Attribute{Name = &quot;Признак готовой продукции&quot;, Value = &quot;1&quot; },
+                    new Attribute{Name = &quot;Вид воспроизводства&quot;, Value = &quot;Покупное&quot; },
+                    new Attribute{Name = &quot;Материал&quot;, Value = &quot;сталь&quot; },
+                }
+            };
+
+            var validator = new NomenclatureValidation();
+
+            var message = Assert.Throws&lt;NomenclatureIsInvalidException&gt;(() =&gt; validator.Run(nomenclature, &quot;Артикул&quot;)).Message;
+            Assert.True(message != null &amp;&amp; message.Contains(&quot;Атрибут &#39;Раздел спецификации&#39;:\r\nЗначение не соответствует списку.&quot;));
+        }
+
+        [Fact]
+        public void RequiredArticle_Run_ShouldValidateNomenclature()
+        {
+            var nomenclature = new Nomenclature
+            {
+                Attributes = new[]
+                {
+                    new Attribute{Name = &quot;Наименование&quot;, Value = &quot;Деталь 1&quot; },
+                    new Attribute{Name = &quot;Единица измерения&quot;, Value = &quot;мм&quot; },
+                    new Attribute{Name = &quot;Раздел спецификации&quot;, Value = &quot;Детали&quot; },
+                    new Attribute{Name = &quot;Вид номенклатуры&quot;, Value = &quot;Ролики_2&quot; },
+                    new Attribute{Name = &quot;Признак готовой продукции&quot;, Value = &quot;1&quot; },
+                    new Attribute{Name = &quot;Вид воспроизводства&quot;, Value = &quot;Покупное&quot; },
+                    new Attribute{Name = &quot;Материал&quot;, Value = &quot;сталь&quot; },
+                }
+            };
+
+            var validator = new NomenclatureValidation();
+
+            var message = Assert.Throws&lt;NomenclatureIsInvalidException&gt;(() =&gt; validator.Run(nomenclature, &quot;Артикул&quot;)).Message;
+            Assert.True(message != null &amp;&amp; message.Contains(&quot;Атрибут &#39;Артикул&#39;:\r\nЗначение не задано&quot;));
+        }
+
+        [Fact]
+        public void WrongArticleLength_Run_ShouldValidateNomenclature()
+        {
+            var nomenclature = new Nomenclature
+            {
+                Attributes = new[]
+                {
+                    new Attribute{Name = &quot;Артикул&quot;, Value = &quot;PB0000111111111&quot; },
+                    new Attribute{Name = &quot;Наименование&quot;, Value = &quot;Деталь 1&quot; },
+                    new Attribute{Name = &quot;Единица измерения&quot;, Value = &quot;мм&quot; },
+                    new Attribute{Name = &quot;Раздел спецификации&quot;, Value = &quot;Детали&quot; },
+                    new Attribute{Name = &quot;Вид номенклатуры&quot;, Value = &quot;Ролики_2&quot; },
+                    new Attribute{Name = &quot;Признак готовой продукции&quot;, Value = &quot;1&quot; },
+                    new Attribute{Name = &quot;Вид воспроизводства&quot;, Value = &quot;Покупное&quot; },
+                    new Attribute{Name = &quot;Материал&quot;, Value = &quot;сталь&quot; },
+                }
+            };
+
+            var validator = new NomenclatureValidation();
+
+            var message = Assert.Throws&lt;NomenclatureIsInvalidException&gt;(() =&gt; validator.Run(nomenclature, &quot;Артикул&quot;)).Message;
+            Assert.True(message != null &amp;&amp; message.Contains(&quot;Атрибут &#39;Артикул&#39;:\r\nДлина текста не соответствует ограничению.&quot;));
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[18,9,18,10,1],[19,13,41,15,1],[43,13,43,58,1],[44,13,44,52,1],[45,9,45,10,1],[49,9,49,10,1],[50,13,63,15,1],[65,13,65,58,1],[67,13,67,79,1],[67,79,67,117,1],[67,117,67,127,1],[67,13,67,127,1],[68,13,68,133,1],[69,9,69,10,1],[73,9,73,10,1],[74,13,86,15,1],[88,13,88,58,1],[90,13,90,79,1],[90,79,90,117,1],[90,117,90,127,1],[90,13,90,127,1],[91,13,91,106,1],[92,9,92,10,1],[96,9,96,10,1],[97,13,110,15,1],[112,13,112,58,1],[114,13,114,79,1],[114,79,114,117,1],[114,117,114,127,1],[114,13,114,127,1],[115,13,115,130,1],[116,9,116,10,1]]);
+    </script>
+  </body>
+</html>

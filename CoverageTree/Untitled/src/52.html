@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-ConfiguratorAPI\Data\Db\SpecificationType.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace SWR.ConfiguratorApi.Data.Db
+{
+	public class SpecificationType
+	{
+        public SpecificationType()
+        {
+            SpecificationTypeAttributes = new List&lt;SpecificationTypeAttribute&gt;();
+            AllowComponentTypes = new List&lt;string&gt;();
+        }
+		public Guid ID { get; set; }
+
+		[MaxLength(255)]
+		public string Name { get; set; }
+
+        public List&lt;SpecificationTypeAttribute&gt; SpecificationTypeAttributes { get; set; }
+
+        /// &lt;summary&gt;
+        /// Список разрешенных типов компонентов
+        /// &lt;/summary&gt;
+        public List&lt;string&gt; AllowComponentTypes { get; set; }
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[9,9,9,35,1],[10,9,10,10,1],[11,13,11,82,1],[12,13,12,54,1],[13,9,13,10,1],[14,20,14,24,1],[14,25,14,29,1],[17,24,17,28,1],[17,29,17,33,1],[19,79,19,83,1],[19,84,19,88,1],[24,51,24,55,1],[24,56,24,60,1]]);
+    </script>
+  </body>
+</html>

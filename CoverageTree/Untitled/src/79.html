@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Logger\LoggerExtension.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using System.Xml;
+using System.Xml.Serialization;
+using NLog;
+using NLog.Targets;
+
+namespace Swr.Capital1C.Service.Logger
+{
+	public static class LoggerExtension
+	{
+		public static void ErrorWithContext(this NLog.Logger logger, Exception exception, object data, IDocumentContext documentContext, string message, params object[] args)
+		{
+			var eventInfo = new LogEventInfo(LogLevel.Error, logger.Name, CultureInfo.CurrentCulture, message, args, exception);
+
+			if (documentContext != null)
+				SetEventContext(documentContext, eventInfo);
+
+			if (data != null)
+				SetEventContext(SerializeToXml(data), eventInfo);
+
+			logger.Log(eventInfo);
+		}
+
+		public static void ErrorWithContext(this NLog.Logger logger, object data, IDocumentContext documentContext, string message, params object[] args)
+		{
+			var eventInfo = new LogEventInfo(LogLevel.Error, logger.Name, CultureInfo.CurrentCulture, message, args);
+
+			if (documentContext != null)
+				SetEventContext(documentContext, eventInfo);
+
+			if (data != null)
+				SetEventContext(SerializeToXml(data), eventInfo);
+
+			logger.Log(eventInfo);
+		}
+
+        public static void TraceWithContext(this NLog.Logger logger, object data, string message, params object[] args)
+        {
+            var eventInfo = new LogEventInfo(LogLevel.Trace, logger.Name, CultureInfo.CurrentCulture, message, args);
+
+            if (data != null)
+                SetEventContext(SerializeToXml(data), eventInfo);
+
+            logger.Log(eventInfo);
+        }
+
+        public static void ErrorWithContext(this NLog.Logger logger, Exception exception, IDocumentContext documentContext, string message, params object[] args)
+		{
+			var eventInfo = new LogEventInfo(LogLevel.Error, logger.Name, CultureInfo.CurrentCulture, message, args, exception);
+
+			if (documentContext != null)
+				SetEventContext(documentContext, eventInfo);
+
+			logger.Log(eventInfo);   
+		}
+
+		public static void ErrorWithContext(this NLog.Logger logger, IDocumentContext documentContext, string message, params object[] args)
+		{
+			var eventInfo = new LogEventInfo(LogLevel.Error, logger.Name, CultureInfo.CurrentCulture, message, args);
+
+			if (documentContext != null)
+				SetEventContext(documentContext, eventInfo);
+
+			logger.Log(eventInfo);
+		}
+
+		public static void InfoWithContext(this NLog.Logger logger, object data, IDocumentContext documentContext, string message, params object[] args)
+		{
+			var eventInfo = new LogEventInfo(LogLevel.Info, logger.Name, CultureInfo.CurrentCulture, message, args);
+
+			if (documentContext != null)
+				SetEventContext(documentContext, eventInfo);
+
+			if (data != null)
+				SetEventContext(SerializeToXml(data), eventInfo);
+
+			logger.Log(eventInfo);
+		}
+
+		public static void InfoWithContext(this NLog.Logger logger, IDocumentContext documentContext, string message, params object[] args)
+		{
+			var eventInfo = new LogEventInfo(LogLevel.Info, logger.Name, CultureInfo.CurrentCulture, message, args);
+
+			if (documentContext != null)
+				SetEventContext(documentContext, eventInfo);
+
+			logger.Log(eventInfo);
+		}
+
+		private static void SetEventContext(IDocumentContext documentContext, LogEventInfo eventInfo)
+		{
+			eventInfo.Properties[&quot;FileId&quot;] = documentContext.FileId;
+			eventInfo.Properties[&quot;FilePath&quot;] = documentContext.FolderPath + documentContext.Name;
+			eventInfo.Properties[&quot;FolderId&quot;] = documentContext.FolderId;
+			eventInfo.Properties[&quot;RevisionNumber&quot;] = documentContext.Redaction;
+			eventInfo.Properties[&quot;Configuration&quot;] = documentContext.Configuration;
+		}
+
+		private static void SetEventContext(string xmlData, LogEventInfo eventInfo)
+		{
+			eventInfo.Properties[&quot;XmlData&quot;] = xmlData;
+		}
+
+		private static string SerializeToXml(object obj)
+		{
+			if (obj == null)
+			{
+				return null;
+			}
+
+			var serializer = new XmlSerializer(obj.GetType());
+
+			var settings = new XmlWriterSettings { Encoding = new UnicodeEncoding(false, false), Indent = true, OmitXmlDeclaration = true };
+
+			using (var textWriter = new StringWriter())
+			{
+				using (var xmlWriter = XmlWriter.Create(textWriter, settings))
+				{
+					serializer.Serialize(xmlWriter, obj);
+				}
+
+				return textWriter.ToString();
+			}
+		}
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[15,3,15,4,0],[16,4,16,120,0],[18,4,18,32,0],[19,5,19,49,0],[21,4,21,21,0],[22,5,22,54,0],[24,4,24,26,0],[25,3,25,4,0],[28,3,28,4,0],[29,4,29,109,0],[31,4,31,32,0],[32,5,32,49,0],[34,4,34,21,0],[35,5,35,54,0],[37,4,37,26,0],[38,3,38,4,0],[41,9,41,10,1],[42,13,42,118,1],[44,13,44,30,1],[45,17,45,66,1],[47,13,47,35,1],[48,9,48,10,1],[51,3,51,4,0],[52,4,52,120,0],[54,4,54,32,0],[55,5,55,49,0],[57,4,57,26,0],[58,3,58,4,0],[61,3,61,4,0],[62,4,62,109,0],[64,4,64,32,0],[65,5,65,49,0],[67,4,67,26,0],[68,3,68,4,0],[71,3,71,4,0],[72,4,72,108,0],[74,4,74,32,0],[75,5,75,49,0],[77,4,77,21,0],[78,5,78,54,0],[80,4,80,26,0],[81,3,81,4,0],[84,3,84,4,0],[85,4,85,108,0],[87,4,87,32,0],[88,5,88,49,0],[90,4,90,26,0],[91,3,91,4,0],[94,3,94,4,0],[95,4,95,60,0],[96,4,96,89,0],[97,4,97,64,0],[98,4,98,71,0],[99,4,99,74,0],[100,3,100,4,0],[103,3,103,4,1],[104,4,104,46,1],[105,3,105,4,1],[108,3,108,4,1],[109,4,109,20,1],[110,4,110,5,0],[111,5,111,17,0],[114,4,114,54,1],[116,4,116,132,1],[118,11,118,46,1],[119,4,119,5,1],[120,12,120,66,1],[121,5,121,6,1],[122,6,122,43,1],[123,5,123,6,1],[125,5,125,34,1],[127,3,127,4,1]]);
+    </script>
+  </body>
+</html>

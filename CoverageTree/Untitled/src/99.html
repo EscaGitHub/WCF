@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Domain\Services\Boms\BomValidation.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Service.Domain.Services.Boms.Exceptions;
+using Swr.Capital1C.Service.Domain.Services.Boms.Models.In;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models.In;
+using Swr.Capital1C.Service.Infrastructure.Nomenclatures;
+using Swr.Capital1C.Service.Properties;
+using Swr.Capital1C.Service.Settings.Model;
+using Swr.Infrastructure.Validation.Domain.Models;
+using Swr.Infrastructure.Validation.Extensions;
+
+namespace Swr.Capital1C.Service.Domain.Services.Boms
+{
+    public class BomValidation : IBomValidation
+    {
+        public void Run(Bom bom)
+        {
+            var productState = GetProductState(bom);
+
+            var componentStates = GetComponentStates(bom.Components).Where(t =&gt; t.HasErrors()).ToArray();
+
+            if (productState.HasErrors()
+                || componentStates.Any(t =&gt; t.HasErrors()))
+            {
+                var message = BuildMessage(bom, productState, componentStates);
+
+                throw new BomIsInvalidException(message);
+            }
+        }
+
+        private ModelState&lt;Nomenclature&gt; GetProductState(Nomenclature bom)
+        {
+            var modelState = new ModelState&lt;Nomenclature&gt;(bom);
+
+            RuleFor(&quot;Артикул родителя&quot;, modelState).Required();
+            RuleFor(&quot;Версия&quot;, modelState).Required();
+            RuleFor(&quot;Наименование&quot;, modelState).Required();
+            if(!Empty(modelState,&quot;Кол-во выходного изделия&quot;)) RuleFor(&quot;Кол-во выходного изделия&quot;, modelState).Float();
+
+            return modelState;
+        }
+
+        private bool Empty(ModelState&lt;Nomenclature&gt; modelState, string attributeName)
+        {
+            return string.IsNullOrWhiteSpace(modelState.Model.GetValueOrDefault(attributeName));
+        }
+
+        private static IEnumerable&lt;ModelState&lt;Component&gt;&gt; GetComponentStates(IEnumerable&lt;Component&gt; components)
+        {
+            return components.Select(GetComponentState).ToArray();
+        }
+
+        private static ModelState&lt;Component&gt; GetComponentState(Component component)
+        {
+            var modelState = new ModelState&lt;Component&gt;(component);
+            
+            RuleFor(&quot;Артикул&quot;, modelState).Required();
+            //RuleFor(&quot;Количество&quot;, modelState).Required().Float();
+            RuleFor(&quot;Единица измерения количества&quot;, modelState).Required();
+
+            return modelState;
+        }
+
+        private static ValidatingProperty&lt;Nomenclature&gt; RuleFor(string name, ModelState&lt;Nomenclature&gt; modelState)
+        {
+            return new ValidatingProperty&lt;Nomenclature&gt;(name, modelState.Model.GetValueOrDefault(name), modelState);
+        }
+
+        private static ValidatingProperty&lt;Component&gt; RuleFor(string name, ModelState&lt;Component&gt; modelState)
+        {
+            return new ValidatingProperty&lt;Component&gt;(name, modelState.Model.GetValueOrDefault(name), modelState);
+        }
+
+        private static string BuildMessage(Nomenclature bom,
+            ModelState&lt;Nomenclature&gt; productState,
+            ICollection&lt;ModelState&lt;Component&gt;&gt; componentStates) 
+        {
+            var builder = new StringBuilder();
+
+            var code = bom.GetValueOrDefault(&quot;Артикул родителя&quot;);
+            var version = bom.GetValueOrDefault(&quot;Версия&quot;);
+            builder.AppendLine($&quot;Спецификация с кодом &#39;{code}&#39; (идентификатор &#39;{bom.Id}&#39;) не удовлетворяет требованиям проверки.&quot;);
+
+            var productMessage = BuildMessage(productState.GetPropertyStates());
+
+            if (!string.IsNullOrEmpty(productMessage))
+                builder.AppendLine(productMessage);
+
+            if (componentStates.Any())
+                builder.Append(BuildMessage(componentStates));
+
+            return builder.ToString();
+        }
+
+        private static string BuildMessage(IEnumerable&lt;ModelState&lt;Component&gt;&gt; componentStates)
+        {
+            var builder = new StringBuilder();
+
+            foreach (var componentState in componentStates)
+            {
+                var component = componentState.Model;
+                var code = component.GetValueOrDefault(&quot;Артикул&quot;);
+                builder.AppendLine($&quot;Компонент спецификации с кодом &#39;{code}&#39; (идентификатор &#39;{component.Id}&#39;) не удовлетворяет требованиям проверки.&quot;);
+                builder.AppendLine(BuildMessage(componentState.GetPropertyStates()));
+            }
+
+            return builder.ToString();
+        }
+
+        private static string BuildMessage(IEnumerable&lt;PropertyState&gt; propertyStates)
+        {
+            var builder = new StringBuilder();
+
+            foreach (var propertyState in propertyStates)
+            {
+                builder.AppendLine($&quot;Атрибут &#39;{propertyState.PropertyName}&#39;:&quot;);
+                builder.Append(string.Join(Environment.NewLine, propertyState.GetErrors()));
+                builder.AppendLine();
+            }
+
+            return builder.ToString();
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[20,9,20,10,1],[21,13,21,53,1],[23,13,23,81,1],[23,81,23,94,1],[23,94,23,106,1],[23,13,23,106,1],[25,13,26,45,1],[26,45,26,58,0],[26,58,26,60,1],[25,13,26,60,1],[27,13,27,14,1],[28,17,28,80,1],[30,17,30,58,1],[32,9,32,10,1],[35,9,35,10,1],[36,13,36,64,1],[38,13,38,64,1],[39,13,39,54,1],[40,13,40,60,1],[41,13,41,62,1],[41,63,41,119,1],[43,13,43,31,1],[44,9,44,10,1],[47,9,47,10,1],[48,13,48,97,1],[49,9,49,10,1],[52,9,52,10,1],[53,13,53,67,1],[54,9,54,10,1],[57,9,57,10,1],[58,13,58,67,1],[60,13,60,55,1],[62,13,62,76,1],[64,13,64,31,1],[65,9,65,10,1],[68,9,68,10,1],[69,13,69,117,1],[70,9,70,10,1],[73,9,73,10,1],[74,13,74,114,1],[75,9,75,10,1],[80,9,80,10,1],[81,13,81,47,1],[83,13,83,66,1],[84,13,84,59,1],[85,13,85,132,1],[87,13,87,81,1],[89,13,89,55,1],[90,17,90,52,1],[92,13,92,39,1],[93,17,93,63,0],[95,13,95,39,1],[96,9,96,10,1],[99,9,99,10,0],[100,13,100,47,0],[102,13,102,20,0],[102,22,102,40,0],[102,41,102,43,0],[102,44,102,59,0],[103,13,103,14,0],[104,17,104,54,0],[105,17,105,67,0],[106,17,106,152,0],[107,17,107,86,0],[108,13,108,14,0],[110,13,110,39,0],[111,9,111,10,0],[114,9,114,10,1],[115,13,115,47,1],[117,13,117,20,1],[117,22,117,39,1],[117,40,117,42,1],[117,43,117,57,1],[118,13,118,14,1],[119,17,119,80,1],[120,17,120,93,1],[121,17,121,38,1],[122,13,122,14,1],[124,13,124,39,1],[125,9,125,10,1]]);
+    </script>
+  </body>
+</html>

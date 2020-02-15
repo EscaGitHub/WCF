@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project id="a7c93d13-47ac-4597-87d4-06db61a4f6c5" activeEnvironment="Default" name="TestSoap" resourceRoot="" soapui-version="5.5.0" abortOnError="false" runType="SEQUENTIAL" xmlns:con="http://eviware.com/soapui/config"><con:settings/><con:interface xsi:type="con:WsdlInterface" id="2b8fc712-58aa-4d04-9ea2-7dafab89108a" wsaVersion="NONE" name="CustomBinding_IService" type="wsdl" bindingName="{http://tempuri.org/}CustomBinding_IService" soapVersion="1_2" anonymous="optional" definition="http://localhost:9020/Swr.Capital1C.Service/?singlewsdl" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:settings/><con:definitionCache type="TEXT" rootPart="http://localhost:9020/Swr.Capital1C.Service/?singlewsdl"><con:part><con:url>http://localhost:9020/Swr.Capital1C.Service/?singlewsdl</con:url><con:content><![CDATA[<wsdl:definitions name="Service" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex" xmlns:wsap="http://schemas.xmlsoap.org/ws/2004/08/addressing/policy" xmlns:msc="http://schemas.microsoft.com/ws/2005/12/wsdl/contract" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:tns="http://tempuri.org/" xmlns:wsa10="http://www.w3.org/2005/08/addressing" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing">
+  <wsp:Policy wsu:Id="CustomBinding_IService_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <http:BasicAuthentication xmlns:http="http://schemas.microsoft.com/ws/06/2004/policy/http"/>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsdl:types>
+    <xs:schema elementFormDefault="qualified" targetNamespace="http://tempuri.org/" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:import namespace="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models"/>
+      <xs:import namespace="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Boms.Models"/>
+      <xs:element name="IsAvailable">
+        <xs:complexType>
+          <xs:sequence/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="IsAvailableResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="IsAvailableResult" type="xs:boolean"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="GetNomenclatures">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="request" nillable="true" type="q1:ITEMS_REQ" xmlns:q1="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="GetNomenclaturesResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="GetNomenclaturesResult" nillable="true" type="q2:ITEMS_RES" xmlns:q2="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="SetNomenclaturesResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="request" nillable="true" type="q3:ITEM_RESULTS_REQ" xmlns:q3="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="SetNomenclaturesResponseResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="SetNomenclaturesResponseResult" nillable="true" type="q4:ITEM_RESULTS_RES" xmlns:q4="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="GetBoms">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="request" nillable="true" type="q5:BOMS_REQ" xmlns:q5="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Boms.Models"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="GetBomsResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="GetBomsResult" nillable="true" type="q6:BOMS_RES" xmlns:q6="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Boms.Models"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="SetBomsResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="request" nillable="true" type="q7:BOM_RESULTS_REQ" xmlns:q7="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Boms.Models"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="SetBomsResponseResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="SetBomsResponseResult" nillable="true" type="q8:BOM_RESULTS_RES" xmlns:q8="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Boms.Models"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>
+    <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://schemas.microsoft.com/2003/10/Serialization/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://schemas.microsoft.com/2003/10/Serialization/">
+      <xs:element name="anyType" nillable="true" type="xs:anyType"/>
+      <xs:element name="anyURI" nillable="true" type="xs:anyURI"/>
+      <xs:element name="base64Binary" nillable="true" type="xs:base64Binary"/>
+      <xs:element name="boolean" nillable="true" type="xs:boolean"/>
+      <xs:element name="byte" nillable="true" type="xs:byte"/>
+      <xs:element name="dateTime" nillable="true" type="xs:dateTime"/>
+      <xs:element name="decimal" nillable="true" type="xs:decimal"/>
+      <xs:element name="double" nillable="true" type="xs:double"/>
+      <xs:element name="float" nillable="true" type="xs:float"/>
+      <xs:element name="int" nillable="true" type="xs:int"/>
+      <xs:element name="long" nillable="true" type="xs:long"/>
+      <xs:element name="QName" nillable="true" type="xs:QName"/>
+      <xs:element name="short" nillable="true" type="xs:short"/>
+      <xs:element name="string" nillable="true" type="xs:string"/>
+      <xs:element name="unsignedByte" nillable="true" type="xs:unsignedByte"/>
+      <xs:element name="unsignedInt" nillable="true" type="xs:unsignedInt"/>
+      <xs:element name="unsignedLong" nillable="true" type="xs:unsignedLong"/>
+      <xs:element name="unsignedShort" nillable="true" type="xs:unsignedShort"/>
+      <xs:element name="char" nillable="true" type="tns:char"/>
+      <xs:simpleType name="char">
+        <xs:restriction base="xs:int"/>
+      </xs:simpleType>
+      <xs:element name="duration" nillable="true" type="tns:duration"/>
+      <xs:simpleType name="duration">
+        <xs:restriction base="xs:duration">
+          <xs:pattern value="\-?P(\d*D)?(T(\d*H)?(\d*M)?(\d*(\.\d*)?S)?)?"/>
+          <xs:minInclusive value="-P10675199DT2H48M5.4775808S"/>
+          <xs:maxInclusive value="P10675199DT2H48M5.4775807S"/>
+        </xs:restriction>
+      </xs:simpleType>
+      <xs:element name="guid" nillable="true" type="tns:guid"/>
+      <xs:simpleType name="guid">
+        <xs:restriction base="xs:string">
+          <xs:pattern value="[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}"/>
+        </xs:restriction>
+      </xs:simpleType>
+      <xs:attribute name="FactoryType" type="xs:QName"/>
+      <xs:attribute name="Id" type="xs:ID"/>
+      <xs:attribute name="Ref" type="xs:IDREF"/>
+    </xs:schema>
+    <xs:schema elementFormDefault="qualified" targetNamespace="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models">
+      <xs:complexType name="ITEMS_REQ">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="HEADER" nillable="true" type="tns:HEADER"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ITEMS_REQ" nillable="true" type="tns:ITEMS_REQ"/>
+      <xs:complexType name="HEADER">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="MSGID" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="TIMESTAMP" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="HEADER" nillable="true" type="tns:HEADER"/>
+      <xs:complexType name="ITEMS_RES">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="HEADER" nillable="true" type="tns:HEADER"/>
+          <xs:element minOccurs="0" name="ITEMS" nillable="true" type="tns:ArrayOfITEM"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ITEMS_RES" nillable="true" type="tns:ITEMS_RES"/>
+      <xs:complexType name="ArrayOfITEM">
+        <xs:sequence>
+          <xs:element minOccurs="0" maxOccurs="unbounded" name="ITEM" nillable="true" type="tns:ITEM"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfITEM" nillable="true" type="tns:ArrayOfITEM"/>
+      <xs:complexType name="ITEM">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="AREA" nillable="true" type="xs:float"/>
+          <xs:element minOccurs="0" name="BEND" nillable="true" type="xs:int"/>
+          <xs:element minOccurs="0" name="BOM_PART" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="DENSITY" nillable="true" type="xs:float"/>
+          <xs:element minOccurs="0" name="ID" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="IS_PRODUCT" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="LENGTH" nillable="true" type="xs:float"/>
+          <xs:element minOccurs="0" name="LENGTH_CUT" nillable="true" type="xs:float"/>
+          <xs:element minOccurs="0" name="MATERIAL" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="NAME" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="PURCHASED" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="THICK" nillable="true" type="xs:float"/>
+          <xs:element minOccurs="0" name="TYPE" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="UOM" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="WEIGHT" nillable="true" type="xs:float"/>
+          <xs:element minOccurs="0" name="WIDTH" nillable="true" type="xs:float"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ITEM" nillable="true" type="tns:ITEM"/>
+      <xs:complexType name="ITEM_RESULTS_REQ">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="HEADER" nillable="true" type="tns:HEADER"/>
+          <xs:element minOccurs="0" name="ITEM_RESULTS" nillable="true" type="tns:ArrayOfITEM_RESULT"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ITEM_RESULTS_REQ" nillable="true" type="tns:ITEM_RESULTS_REQ"/>
+      <xs:complexType name="ArrayOfITEM_RESULT">
+        <xs:sequence>
+          <xs:element minOccurs="0" maxOccurs="unbounded" name="ITEM_RESULT" nillable="true" type="tns:ITEM_RESULT"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfITEM_RESULT" nillable="true" type="tns:ArrayOfITEM_RESULT"/>
+      <xs:complexType name="ITEM_RESULT">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="ID" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="MESSAGE" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="RESULT" type="xs:int"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ITEM_RESULT" nillable="true" type="tns:ITEM_RESULT"/>
+      <xs:complexType name="ITEM_RESULTS_RES">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="HEADER" nillable="true" type="tns:HEADER"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ITEM_RESULTS_RES" nillable="true" type="tns:ITEM_RESULTS_RES"/>
+    </xs:schema>
+    <xs:schema elementFormDefault="qualified" targetNamespace="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Boms.Models" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Boms.Models">
+      <xs:import namespace="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models"/>
+      <xs:complexType name="BOMS_REQ">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="HEADER" nillable="true" type="q1:HEADER" xmlns:q1="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="BOMS_REQ" nillable="true" type="tns:BOMS_REQ"/>
+      <xs:complexType name="BOMS_RES">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="BOMS" nillable="true" type="tns:ArrayOfBOM"/>
+          <xs:element minOccurs="0" name="HEADER" nillable="true" type="q2:HEADER" xmlns:q2="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="BOMS_RES" nillable="true" type="tns:BOMS_RES"/>
+      <xs:complexType name="ArrayOfBOM">
+        <xs:sequence>
+          <xs:element minOccurs="0" maxOccurs="unbounded" name="BOM" nillable="true" type="tns:BOM"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfBOM" nillable="true" type="tns:ArrayOfBOM"/>
+      <xs:complexType name="BOM">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="BOM_NAME" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="PARENT_ID" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="QTY_BOM" type="xs:float"/>
+          <xs:element minOccurs="0" name="ROWS" nillable="true" type="tns:ArrayOfROW"/>
+          <xs:element minOccurs="0" name="VERSION" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="BOM" nillable="true" type="tns:BOM"/>
+      <xs:complexType name="ArrayOfROW">
+        <xs:sequence>
+          <xs:element minOccurs="0" maxOccurs="unbounded" name="ROW" nillable="true" type="tns:ROW"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfROW" nillable="true" type="tns:ArrayOfROW"/>
+      <xs:complexType name="ROW">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="CHILD_ID" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="QTY" type="xs:float"/>
+          <xs:element minOccurs="0" name="UOM" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ROW" nillable="true" type="tns:ROW"/>
+      <xs:complexType name="BOM_RESULTS_REQ">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="BOM_RESULTS" nillable="true" type="tns:ArrayOfBOM_RESULT"/>
+          <xs:element minOccurs="0" name="HEADER" nillable="true" type="q3:HEADER" xmlns:q3="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="BOM_RESULTS_REQ" nillable="true" type="tns:BOM_RESULTS_REQ"/>
+      <xs:complexType name="ArrayOfBOM_RESULT">
+        <xs:sequence>
+          <xs:element minOccurs="0" maxOccurs="unbounded" name="BOM_RESULT" nillable="true" type="tns:BOM_RESULT"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="ArrayOfBOM_RESULT" nillable="true" type="tns:ArrayOfBOM_RESULT"/>
+      <xs:complexType name="BOM_RESULT">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="ID" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="MESSAGE" nillable="true" type="xs:string"/>
+          <xs:element minOccurs="0" name="RESULT" type="xs:int"/>
+          <xs:element minOccurs="0" name="VERSION" nillable="true" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="BOM_RESULT" nillable="true" type="tns:BOM_RESULT"/>
+      <xs:complexType name="BOM_RESULTS_RES">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="HEADER" nillable="true" type="q4:HEADER" xmlns:q4="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="BOM_RESULTS_RES" nillable="true" type="tns:BOM_RESULTS_RES"/>
+    </xs:schema>
+  </wsdl:types>
+  <wsdl:message name="IService_IsAvailable_InputMessage">
+    <wsdl:part name="parameters" element="tns:IsAvailable"/>
+  </wsdl:message>
+  <wsdl:message name="IService_IsAvailable_OutputMessage">
+    <wsdl:part name="parameters" element="tns:IsAvailableResponse"/>
+  </wsdl:message>
+  <wsdl:message name="IService_GetNomenclatures_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetNomenclatures"/>
+  </wsdl:message>
+  <wsdl:message name="IService_GetNomenclatures_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetNomenclaturesResponse"/>
+  </wsdl:message>
+  <wsdl:message name="IService_SetNomenclaturesResponse_InputMessage">
+    <wsdl:part name="parameters" element="tns:SetNomenclaturesResponse"/>
+  </wsdl:message>
+  <wsdl:message name="IService_SetNomenclaturesResponse_OutputMessage">
+    <wsdl:part name="parameters" element="tns:SetNomenclaturesResponseResponse"/>
+  </wsdl:message>
+  <wsdl:message name="IService_GetBoms_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetBoms"/>
+  </wsdl:message>
+  <wsdl:message name="IService_GetBoms_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetBomsResponse"/>
+  </wsdl:message>
+  <wsdl:message name="IService_SetBomsResponse_InputMessage">
+    <wsdl:part name="parameters" element="tns:SetBomsResponse"/>
+  </wsdl:message>
+  <wsdl:message name="IService_SetBomsResponse_OutputMessage">
+    <wsdl:part name="parameters" element="tns:SetBomsResponseResponse"/>
+  </wsdl:message>
+  <wsdl:portType name="IService">
+    <wsdl:operation name="IsAvailable">
+      <wsdl:input wsaw:Action="http://tempuri.org/IService/IsAvailable" message="tns:IService_IsAvailable_InputMessage"/>
+      <wsdl:output wsaw:Action="http://tempuri.org/IService/IsAvailableResponse" message="tns:IService_IsAvailable_OutputMessage"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetNomenclatures">
+      <wsdl:input wsaw:Action="http://tempuri.org/IService/GetNomenclatures" message="tns:IService_GetNomenclatures_InputMessage"/>
+      <wsdl:output wsaw:Action="http://tempuri.org/IService/GetNomenclaturesResponse" message="tns:IService_GetNomenclatures_OutputMessage"/>
+    </wsdl:operation>
+    <wsdl:operation name="SetNomenclaturesResponse">
+      <wsdl:input wsaw:Action="http://tempuri.org/IService/SetNomenclaturesResponse" message="tns:IService_SetNomenclaturesResponse_InputMessage"/>
+      <wsdl:output wsaw:Action="http://tempuri.org/IService/SetNomenclaturesResponseResponse" message="tns:IService_SetNomenclaturesResponse_OutputMessage"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetBoms">
+      <wsdl:input wsaw:Action="http://tempuri.org/IService/GetBoms" message="tns:IService_GetBoms_InputMessage"/>
+      <wsdl:output wsaw:Action="http://tempuri.org/IService/GetBomsResponse" message="tns:IService_GetBoms_OutputMessage"/>
+    </wsdl:operation>
+    <wsdl:operation name="SetBomsResponse">
+      <wsdl:input wsaw:Action="http://tempuri.org/IService/SetBomsResponse" message="tns:IService_SetBomsResponse_InputMessage"/>
+      <wsdl:output wsaw:Action="http://tempuri.org/IService/SetBomsResponseResponse" message="tns:IService_SetBomsResponse_OutputMessage"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="CustomBinding_IService" type="tns:IService">
+    <wsp:PolicyReference URI="#CustomBinding_IService_policy"/>
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="IsAvailable">
+      <soap12:operation soapAction="http://tempuri.org/IService/IsAvailable" style="document"/>
+      <wsdl:input>
+        <soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetNomenclatures">
+      <soap12:operation soapAction="http://tempuri.org/IService/GetNomenclatures" style="document"/>
+      <wsdl:input>
+        <soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="SetNomenclaturesResponse">
+      <soap12:operation soapAction="http://tempuri.org/IService/SetNomenclaturesResponse" style="document"/>
+      <wsdl:input>
+        <soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetBoms">
+      <soap12:operation soapAction="http://tempuri.org/IService/GetBoms" style="document"/>
+      <wsdl:input>
+        <soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="SetBomsResponse">
+      <soap12:operation soapAction="http://tempuri.org/IService/SetBomsResponse" style="document"/>
+      <wsdl:input>
+        <soap12:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="Service">
+    <wsdl:port name="CustomBinding_IService" binding="tns:CustomBinding_IService">
+      <soap12:address location="http://localhost:9020/Swr.Capital1C.Service/"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>]]></con:content><con:type>http://schemas.xmlsoap.org/wsdl/</con:type></con:part></con:definitionCache><con:endpoints><con:endpoint>http://localhost:9020/Swr.Capital1C.Service/</con:endpoint></con:endpoints><con:operation id="5014519a-9780-4c3d-b451-c9d2bc756299" isOneWay="false" action="http://tempuri.org/IService/GetBoms" name="GetBoms" bindingOperationName="GetBoms" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call id="d12b1a1d-b73f-4eec-93ae-0708dd6a1754" name="Request 1"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:9020/Swr.Capital1C.Service/</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:tem="http://tempuri.org/" xmlns:swr="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Boms.Models" xmlns:swr1="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models">\r
+   <soap:Header/>\r
+   <soap:Body>\r
+      <tem:GetBoms>\r
+         <!--Optional:-->\r
+         <tem:request>\r
+            <!--Optional:-->\r
+            <swr:HEADER>\r
+               <!--Optional:-->\r
+               <swr1:MSGID>AC6981C9-FB6F-4775-B947-B182122664FB</swr1:MSGID>\r
+               <!--Optional:-->\r
+               <swr1:TIMESTAMP>10.12.2019</swr1:TIMESTAMP>\r
+            </swr:HEADER>\r
+         </tem:request>\r
+      </tem:GetBoms>\r
+   </soap:Body>\r
+</soap:Envelope>]]></con:request><con:credentials><con:username>SWR</con:username><con:password>SWRPassword</con:password><con:selectedAuthProfile>Basic</con:selectedAuthProfile><con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes><con:authType>Global HTTP Settings</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://tempuri.org/IService/GetBoms"/><con:wsrmConfig version="1.2"/></con:call></con:operation><con:operation id="5d6d461c-82c0-4ac8-a67a-965c5981c32c" isOneWay="false" action="http://tempuri.org/IService/GetNomenclatures" name="GetNomenclatures" bindingOperationName="GetNomenclatures" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call id="56e197fd-5794-4f35-bca4-f5f88491d4e7" name="Request 1"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:9020/Swr.Capital1C.Service/</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:tem="http://tempuri.org/" xmlns:swr="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models">\r
+   <soap:Header/>\r
+   <soap:Body>\r
+      <tem:GetNomenclatures>\r
+         <!--Optional:-->\r
+         <tem:request>\r
+            <!--Optional:-->\r
+            <swr:HEADER>\r
+               <!--Optional:-->\r
+               <swr:MSGID>AC6981C9-FB6F-4775-B947-B182122664FA</swr:MSGID>\r
+               <!--Optional:-->\r
+               <swr:TIMESTAMP>10.12.2019</swr:TIMESTAMP>\r
+            </swr:HEADER>\r
+         </tem:request>\r
+      </tem:GetNomenclatures>\r
+   </soap:Body>\r
+</soap:Envelope>]]></con:request><con:credentials><con:username>SWR</con:username><con:password>SWRPassword</con:password><con:selectedAuthProfile>Basic</con:selectedAuthProfile><con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes><con:authType>Global HTTP Settings</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://tempuri.org/IService/GetNomenclatures"/><con:wsrmConfig version="1.2"/></con:call></con:operation><con:operation id="90ea5c38-f5e8-47f7-a79f-b4d789d099d7" isOneWay="false" action="http://tempuri.org/IService/IsAvailable" name="IsAvailable" bindingOperationName="IsAvailable" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call id="2355b01f-a079-4b3a-a808-add4ca8d8bde" name="Request 1"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:9020/Swr.Capital1C.Service/</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:tem="http://tempuri.org/">\r
+   <soap:Header/>\r
+   <soap:Body>\r
+      <tem:IsAvailable/>\r
+   </soap:Body>\r
+</soap:Envelope>]]></con:request><con:credentials><con:username>SWR</con:username><con:password>SWRPassword</con:password><con:selectedAuthProfile>Basic</con:selectedAuthProfile><con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes><con:authType>Global HTTP Settings</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://tempuri.org/IService/IsAvailable"/><con:wsrmConfig version="1.2"/></con:call></con:operation><con:operation id="2bc2aada-7810-4d05-9cb4-b5cfc4dd64fa" isOneWay="false" action="http://tempuri.org/IService/SetBomsResponse" name="SetBomsResponse" bindingOperationName="SetBomsResponse" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call id="2e3308f7-170c-4581-a97c-c2286d76c72d" name="Request 1"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:9020/Swr.Capital1C.Service/</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:tem="http://tempuri.org/" xmlns:swr="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Boms.Models" xmlns:swr1="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models">\r
+   <soap:Header/>\r
+   <soap:Body>\r
+      <tem:SetBomsResponse>\r
+         <!--Optional:-->\r
+         <tem:request>\r
+            <!--Optional:-->\r
+            <swr:BOM_RESULTS>\r
+               <!--Zero or more repetitions:-->\r
+               <swr:BOM_RESULT>\r
+                  <!--Optional:-->\r
+                  <swr:ID>?</swr:ID>\r
+                  <!--Optional:-->\r
+                  <swr:MESSAGE>?</swr:MESSAGE>\r
+                  <!--Optional:-->\r
+                  <swr:RESULT>?</swr:RESULT>\r
+                  <!--Optional:-->\r
+                  <swr:VERSION>?</swr:VERSION>\r
+               </swr:BOM_RESULT>\r
+            </swr:BOM_RESULTS>\r
+            <!--Optional:-->\r
+            <swr:HEADER>\r
+               <!--Optional:-->\r
+               <swr1:MSGID>?</swr1:MSGID>\r
+               <!--Optional:-->\r
+               <swr1:TIMESTAMP>?</swr1:TIMESTAMP>\r
+            </swr:HEADER>\r
+         </tem:request>\r
+      </tem:SetBomsResponse>\r
+   </soap:Body>\r
+</soap:Envelope>]]></con:request><con:credentials><con:username>SWR</con:username><con:password>SWRPaswword</con:password><con:selectedAuthProfile>Basic</con:selectedAuthProfile><con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes><con:authType>Global HTTP Settings</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://tempuri.org/IService/SetBomsResponse"/><con:wsrmConfig version="1.2"/></con:call></con:operation><con:operation id="64284537-038b-474b-b699-245ec74eda1b" isOneWay="false" action="http://tempuri.org/IService/SetNomenclaturesResponse" name="SetNomenclaturesResponse" bindingOperationName="SetNomenclaturesResponse" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call id="2a78dbde-754d-4b44-a0dc-db7b86a61fff" name="Update Response"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://localhost:9020/Swr.Capital1C.Service/</con:endpoint><con:request><![CDATA[<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:tem="http://tempuri.org/" xmlns:swr="http://schemas.datacontract.org/2004/07/Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models">\r
+   <soap:Header/>\r
+   <soap:Body>\r
+      <tem:SetNomenclaturesResponse>\r
+         <!--Optional:-->\r
+         <tem:request>\r
+            <!--Optional:-->\r
+            <swr:HEADER>\r
+               <!--Optional:-->\r
+               <swr:MSGID>AC6981C9-FB6F-4775-B947-B182122664FA</swr:MSGID>\r
+               <!--Optional:-->\r
+               <swr:TIMESTAMP>10.12.2019</swr:TIMESTAMP>\r
+            </swr:HEADER>\r
+            <!--Optional:-->\r
+            <swr:ITEM_RESULTS>\r
+               <!--Zero or more repetitions:-->\r
+               <swr:ITEM_RESULT>\r
+                  <!--Optional:-->\r
+                  <swr:ID>P0000036686</swr:ID>\r
+                  <!--Optional:-->\r
+                  <swr:MESSAGE>Ошибка7</swr:MESSAGE>\r
+                  <!--Optional:-->\r
+                  <swr:RESULT>1</swr:RESULT>\r
+               </swr:ITEM_RESULT>\r
+                <swr:ITEM_RESULT>
+                  <!--Optional:-->
+                  <swr:ID>P0000036685</swr:ID>
+                  <!--Optional:-->
+                  <swr:MESSAGE>Ошибка5</swr:MESSAGE>
+                  <!--Optional:-->
+                  <swr:RESULT>0</swr:RESULT>
+               </swr:ITEM_RESULT>
+
+            </swr:ITEM_RESULTS>\r
+         </tem:request>\r
+      </tem:SetNomenclaturesResponse>\r
+   </soap:Body>\r
+</soap:Envelope>]]></con:request><con:credentials><con:username>SWR</con:username><con:password>SWRPassword</con:password><con:selectedAuthProfile>Basic</con:selectedAuthProfile><con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes><con:authType>Global HTTP Settings</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="http://tempuri.org/IService/SetNomenclaturesResponse"/><con:wsrmConfig version="1.2"/></con:call></con:operation></con:interface><con:endpointStrategy xsi:type="con:DefaultEndpointStrategy" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:endpoint mode="COMPLEMENT" username="user" password="1">https://localhost:44350/Service.svc</con:endpoint></con:endpointStrategy><con:properties/><con:wssContainer/><con:oAuth2ProfileContainer/><con:oAuth1ProfileContainer/></con:soapui-project>

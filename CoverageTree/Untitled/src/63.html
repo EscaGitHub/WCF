@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Domain\Services\Boms\BomService.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Service.Domain.Services.Boms.Exceptions;
+using Swr.Capital1C.Service.Domain.Services.Boms.Models.In;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Exceptions;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models.In;
+using Swr.Capital1C.Service.Infrastructure.Nomenclatures;
+
+namespace Swr.Capital1C.Service.Domain.Services.Boms
+{
+    public class BomService
+    {
+        private readonly IBomCatalogService _catalogService;
+        private readonly ICatalogItemQuery _bomQuery;
+
+        public BomService(IBomCatalogService catalogService,
+            ICatalogItemQuery bomQuery)
+        {
+            _catalogService = catalogService;
+            _bomQuery = bomQuery;
+        }
+
+        public async Task UpdateStatusAsync(string vendorCode, ExportState state)
+        {
+            var bomId = await _bomQuery.FindByArticleAsync(vendorCode);
+
+            if (bomId == null)
+                throw new BomNotFoundException($&quot;Спецификация не найдена по артикулу &#39;{vendorCode}&#39;&quot;);
+
+            var bom = CreateBom(bomId, state);
+
+            await _catalogService.UpdateBomAsync(bom);
+        }
+
+        private static Bom CreateBom(CatalogItemId bomId, ExportState state)
+        {
+            return new Bom
+            {
+                Id = bomId.ToString(),
+                Attributes = new[]
+                {
+                    new Attribute
+                    {
+                        Name = &quot;Статус передачи спецификации&quot;,
+                        Value = state.Status
+                    },
+                    new Attribute
+                    {
+                        Name = &quot;Описание ошибки спецификации&quot;,
+                        Value = state.Message
+                    }
+                }
+            };
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[19,9,20,40,1],[21,9,21,10,1],[22,13,22,46,1],[23,13,23,34,1],[24,9,24,10,1],[27,9,27,10,1],[28,13,28,72,1],[30,13,30,31,1],[31,17,31,103,1],[33,13,33,47,1],[35,13,35,55,1],[36,9,36,10,1],[39,9,39,10,1],[40,13,56,15,1],[57,9,57,10,1]]);
+    </script>
+  </body>
+</html>

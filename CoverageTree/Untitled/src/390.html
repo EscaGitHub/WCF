@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\ExceptionMiddlewareTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Moq;
+using Newtonsoft.Json;
+using NLog;
+using SWR.ConfiguratorApi.Data;
+using SWR.ConfiguratorApi.Logic.Exceptions;
+using Xunit;
+
+namespace Swr.Configurator.Test
+{
+    public class ExceptionMiddlewareTest
+    {
+        [Fact]
+        public async Task WhenACustomExceptionIsRaisedTest()
+        {
+            var context = HttpContextMock.Get();
+            context.Response.Body = new MemoryStream();
+
+            var logMock = new Mock&lt;ILoggerManager&gt;();
+            logMock.Setup(log =&gt; log.LogError(&quot;Error&quot;));
+
+            var middleware = new ExceptionMiddleware((innerHttpContext) =&gt; { throw new NullReferenceException(&quot;Test exception&quot;); }, logMock.Object);
+
+            // Act
+            await middleware.InvokeAsync(context);
+
+            //Don&#39;t forget to rewind the stream
+            context.Response.Body.Seek(0, SeekOrigin.Begin);
+            var body = new StreamReader(context.Response.Body).ReadToEnd();
+            var objResponse = JsonConvert.DeserializeObject&lt;ErrorDetails&gt;(body);
+
+            // Assert
+            Assert.Equal(400, objResponse.StatusCode);
+            Assert.Equal(&quot;Test exception&quot;, objResponse.Message);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[21,9,21,10,1],[22,13,22,49,1],[23,13,23,56,1],[25,13,25,54,1],[26,13,26,57,1],[28,13,28,149,1],[28,76,28,77,1],[28,78,28,129,1],[31,13,31,51,1],[34,13,34,61,1],[35,13,35,76,1],[36,13,36,81,1],[39,13,39,55,1],[40,13,40,65,1],[41,9,41,10,1]]);
+    </script>
+  </body>
+</html>

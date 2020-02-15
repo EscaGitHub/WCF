@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\SettingsController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using System.Security.Permissions;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.Common.Logic;
+using Swr.Configurator.View;
+using Swr.Configurator.WebApi;
+using Attribute = System.Attribute;
+using Swr.Configurator.Common.Serialization;
+using Swr.Configurator.Data;
+using Swr.Configurator.Logic.Elastic;
+using SwrUI;
+
+namespace Swr.Configurator.Logic
+{
+    public class SettingsController
+    {
+        public SettingsController()
+        {
+            //Settings = new Common.Settings.Settings();
+        }
+
+        public Common.Settings.Settings Settings {
+            get;
+            private set;
+        }
+
+        public bool Load()
+        {
+            var dbSettings = SettingsApiCaller.GetSettings();
+
+            if (dbSettings != null)
+            {
+                Settings?.Dispose();
+
+                Settings = dbSettings;
+            }
+            else
+            {
+                throw new NullReferenceException(&quot;Не удалось получить настройки с сервера.&quot;);
+            }
+
+            // добавляем в атрибуты типов компонентов признаки для отображения на карте
+
+            foreach (var componentType in Settings.ComponentTypes)
+            {
+                var componentMask = componentType.ComponentNameTemplate;
+
+                foreach (var componentTypeAttribute in componentType.Attributes)
+                {
+                    if (MaskNameParser.PropertyInMask(componentMask, componentTypeAttribute.Attribute.Name))
+                    {
+                        componentTypeAttribute.IsMask = true;
+                    }
+                }
+            }
+
+            LoadLocalSettings();
+
+            return true;
+        }
+
+        public void LoadLocalSettings()
+        {
+            // зачитываем настройки адресов серверов из файла конфигурации
+
+
+            var localSettingsController = new LocalApplicationSettingsController();
+
+            localSettingsController.Load();
+
+            var localSettings = localSettingsController.Settings;
+
+            if(Settings == null) Settings = new Common.Settings.Settings();
+
+            if (localSettings == null)
+            {
+                Settings.DbServerAddress = ConfigurationManager.AppSettings[&quot;baseAddress&quot;];
+                Settings.AuthentificationServerAddress = ConfigurationManager.AppSettings[&quot;identityAddress&quot;];
+                Settings.ElasticUrl = ConfigurationManager.AppSettings[&quot;elasticUrl&quot;];
+                Settings.ElasticDefaultIndex = ConfigurationManager.AppSettings[&quot;elasticDefaultIndex&quot;];
+                Settings.ElasticLogin = ConfigurationManager.AppSettings[&quot;elasticLogin&quot;];
+                Settings.ElasticPassword = ConfigurationManager.AppSettings[&quot;elasticPassword&quot;];
+            }
+            else
+            {
+                Settings.DbServerAddress = localSettings.BaseAddress;
+                Settings.AuthentificationServerAddress = localSettings.IdentityAddress;
+                Settings.ElasticUrl = localSettings.ElasticUrl;
+                Settings.ElasticDefaultIndex = localSettings.ElasticDefaultIndex;
+                Settings.ElasticLogin = localSettings.ElasticLogin;
+                Settings.ElasticPassword = localSettings.ElasticPassword;
+            }
+
+            StaticConnectionSettings.BaseApiAddress = Settings.DbServerAddress;
+            StaticConnectionSettings.IdentityAddress = Settings.AuthentificationServerAddress;
+        }
+
+
+        private Common.Settings.Settings GetDefaultSettings()
+        {
+            var defaultSettings = new Common.Settings.Settings();
+
+            /// TODO: добавить настройки по умолчанию, сейчас просто пустые
+
+            return defaultSettings;
+        }
+
+
+        public bool Save()
+        {
+            var result = true;
+
+            try
+            {
+                SaveToLocalAppConfig();
+
+                result = SettingsApiCaller.SaveSettings(Settings);
+            }
+            catch (Exception e)
+            {
+                SwrMessageBox.Show(&quot;Ошибка при сохранении настроек: &quot; + e.Message, &quot;&quot;, SwrMessageBoxButton.OK,
+                    SwrMessageBoxImage.Error);
+
+                result = false;
+            }
+
+            return result;
+        }
+
+        private void SaveToLocalAppConfig()
+        {
+            var localSettingsController = new LocalApplicationSettingsController();
+
+            localSettingsController.Settings = new LocalApplicationSettings
+            {
+                BaseAddress = Settings.DbServerAddress,
+                IdentityAddress = Settings.AuthentificationServerAddress,
+                ElasticUrl = Settings.ElasticUrl,
+                ElasticDefaultIndex = Settings.ElasticDefaultIndex,
+                ElasticLogin = Settings.ElasticLogin,
+                ElasticPassword = Settings.ElasticPassword
+            };
+
+            localSettingsController.Save();
+
+            ElasticLogController.Log(LogTypeEnum.Info, &quot;Local settings had been saved&quot;, EventEnum.Update, true, ObjectTypeEnum.Settings);
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[22,9,22,36,0],[23,9,23,10,0],[25,9,25,10,0],[28,13,28,17,0],[29,13,29,25,0],[33,9,33,10,0],[34,13,34,62,0],[36,13,36,36,0],[37,13,37,14,0],[38,17,38,37,0],[40,17,40,39,0],[41,13,41,14,0],[43,13,43,14,0],[44,17,44,94,0],[49,13,49,20,0],[49,22,49,39,0],[49,40,49,42,0],[49,43,49,66,0],[50,13,50,14,0],[51,17,51,73,0],[53,17,53,24,0],[53,26,53,52,0],[53,53,53,55,0],[53,56,53,80,0],[54,17,54,18,0],[55,21,55,109,0],[56,21,56,22,0],[57,25,57,62,0],[58,21,58,22,0],[59,17,59,18,0],[60,13,60,14,0],[62,13,62,33,0],[64,13,64,25,0],[65,9,65,10,0],[68,9,68,10,0],[72,13,72,84,0],[74,13,74,44,0],[76,13,76,66,0],[78,13,78,33,0],[78,34,78,76,0],[80,13,80,39,0],[81,13,81,14,0],[82,17,82,92,0],[83,17,83,110,0],[84,17,84,86,0],[85,17,85,104,0],[86,17,86,90,0],[87,17,87,96,0],[88,13,88,14,0],[90,13,90,14,0],[91,17,91,70,0],[92,17,92,88,0],[93,17,93,64,0],[94,17,94,82,0],[95,17,95,68,0],[96,17,96,74,0],[97,13,97,14,0],[99,13,99,80,0],[100,13,100,95,0],[101,9,101,10,0],[105,9,105,10,0],[106,13,106,66,0],[110,13,110,36,0],[111,9,111,10,0],[115,9,115,10,0],[116,13,116,31,0],[119,13,119,14,0],[120,17,120,40,0],[122,17,122,67,0],[123,13,123,14,0],[124,13,124,32,0],[125,13,125,14,0],[126,17,127,47,0],[129,17,129,32,0],[130,13,130,14,0],[132,13,132,27,0],[133,9,133,10,0],[136,9,136,10,0],[137,13,137,84,0],[139,13,147,15,0],[149,13,149,44,0],[151,13,151,138,0],[152,9,152,10,0]]);
+    </script>
+  </body>
+</html>

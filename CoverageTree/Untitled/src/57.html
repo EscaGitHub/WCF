@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Infrastructure\Boms\BomCatalogService.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Security.Authentication;
+using System.Text;
+using System.Threading.Tasks;
+using System.Web;
+using Newtonsoft.Json;
+using Swr.Capital1C.Service.Domain.Services.Boms;
+using Swr.Capital1C.Service.Domain.Services.Boms.Exceptions;
+using Swr.Capital1C.Service.Domain.Services.Boms.Models.In;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models.In;
+using Swr.Capital1C.Service.Settings.Model;
+
+namespace Swr.Capital1C.Service.Infrastructure.Boms
+{
+    public class BomCatalogService : IBomCatalogService, IDisposable
+    {
+        private readonly HttpClient _client;
+        private readonly CatalogServiceConnection _settings;
+
+        public BomCatalogService(CatalogServiceConnection settings)
+        {
+            _settings = settings;
+            _client = new HttpClient();
+        }
+
+        public async Task&lt;Bom&gt; GetBomAsync(string id)
+        {
+            await Authorize();
+
+            var requestUri = _settings.Address + Encode(id);
+            var httpResponse = await _client.GetAsync(requestUri);
+
+            if (!httpResponse.IsSuccessStatusCode)
+            {
+                switch (httpResponse.StatusCode)
+                {
+                    case HttpStatusCode.NotFound:
+                        return null;
+                    case HttpStatusCode.BadRequest:
+                        {
+                            await HandleBadRequest(httpResponse);
+                            break;
+                        }
+                    default:
+                        throw new InvalidOperationException();
+                }
+            }
+
+            var content = await httpResponse.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject&lt;Bom&gt;(content);
+        }
+
+        public async Task UpdateBomAsync(Bom bom)
+        {
+            await Authorize();
+
+            var requestUri = _settings.Address + Encode(bom.Id);
+
+            var request = new HttpRequestMessage(new HttpMethod(&quot;PATCH&quot;), requestUri)
+            {
+                Content = new StringContent(GetContent(bom), Encoding.UTF8, &quot;application/json&quot;)
+            };
+
+            var response = await _client.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                switch (response.StatusCode)
+                {
+                    case HttpStatusCode.NotFound:
+                        throw new BomNotFoundException($&quot;Спецификация не найдена по идентификатору &#39;{bom.Id}&#39;&quot;);
+                    case HttpStatusCode.BadRequest:
+                    {
+                        await HandleBadRequest(response);
+                        break;
+                    }
+                    default:
+                        throw new InvalidOperationException();
+                }
+            }
+        }
+
+        private static string GetContent(Nomenclature bom)
+        {
+            return JsonConvert.SerializeObject(new { bom.Attributes });
+        }
+
+        private static string Encode(string plainText)
+        {
+            var bytes = Encoding.UTF8.GetBytes(plainText);
+
+            char[] padding = { &#39;=&#39; };
+
+            return Convert.ToBase64String(bytes)
+                .TrimEnd(padding).Replace(&#39;+&#39;, &#39;-&#39;).Replace(&#39;/&#39;, &#39;_&#39;);
+        }
+
+        private async Task Authorize()
+        {
+            var tokenRequest = _settings.IdentityAddress + HttpUtility.UrlPathEncode($&quot;?userName={_settings.Login}&amp;password={_settings.Password}&quot;);
+
+            var tokenResponse = await _client.GetAsync(tokenRequest);
+
+            if (!tokenResponse.IsSuccessStatusCode)
+            {
+                switch (tokenResponse.StatusCode)
+                {
+                    case HttpStatusCode.BadRequest:
+                        throw new AuthenticationException(await tokenResponse.Content.ReadAsStringAsync());
+                    default:
+                        throw new InvalidOperationException();
+                }
+            }
+
+            var tokenContent = await tokenResponse.Content.ReadAsStringAsync();
+
+            var token = JsonConvert.DeserializeObject&lt;TokenResponse&gt;(tokenContent);
+
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(&quot;Bearer&quot;, token.Access_token);
+        }
+
+        private class TokenResponse
+        {
+            public string Access_token { get; set; }
+
+            public string Username { get; set; }
+        }
+
+        private static async Task HandleBadRequest(HttpResponseMessage httpResponse)
+        {
+            var content = await httpResponse.Content.ReadAsStringAsync();
+
+            if (content != null)
+                HandleBadRequestContent(content);
+
+            throw new InvalidOperationException();
+        }
+
+        private static void HandleBadRequestContent(string content)
+        {
+            Error error;
+
+            try
+            {
+                error = JsonConvert.DeserializeObject&lt;Error&gt;(content);
+            }
+            catch (Exception)
+            {
+                throw new InvalidOperationException(content);
+            }
+
+            switch (error.Code)
+            {
+                case ErrorCode.BomIsInvalid:
+                    throw new BomIsInvalidException(error.Message);
+                case ErrorCode.BomNotSatisfyDefinition:
+                    throw new BomIsNotSatisfyDefinitionException(error.Message);
+            }
+        }
+
+        public class Error
+        {
+            public ErrorCode Code { get; set; }
+
+            public string Message { get; set; }
+        }
+
+        public enum ErrorCode
+        {
+            BomNotSatisfyDefinition,
+            BomIsInvalid
+        }
+
+        public void Dispose()
+        {
+            _client?.Dispose();
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[25,9,25,68,1],[26,9,26,10,1],[27,13,27,34,1],[28,13,28,40,1],[29,9,29,10,1],[32,9,32,10,1],[33,13,33,31,1],[35,13,35,61,1],[36,13,36,67,1],[38,13,38,51,1],[39,13,39,14,1],[40,17,40,49,1],[43,25,43,37,0],[45,25,45,26,1],[46,29,46,66,1],[47,29,47,35,0],[50,25,50,63,0],[52,13,52,14,0],[54,13,54,74,1],[55,13,55,64,1],[56,9,56,10,1],[59,9,59,10,1],[60,13,60,31,1],[62,13,62,65,1],[64,13,67,15,1],[69,13,69,61,1],[71,13,71,47,1],[72,13,72,14,0],[73,17,73,45,0],[76,25,76,113,0],[78,21,78,22,0],[79,25,79,58,0],[80,25,80,31,0],[83,25,83,63,0],[85,13,85,14,0],[86,9,86,10,1],[89,9,89,10,1],[90,13,90,72,1],[91,9,91,10,1],[94,9,94,10,1],[95,13,95,59,1],[97,13,97,38,1],[99,13,100,71,1],[101,9,101,10,1],[104,9,104,10,1],[105,13,105,148,1],[107,13,107,70,1],[109,13,109,52,1],[110,13,110,14,0],[111,17,111,50,0],[114,25,114,108,0],[116,25,116,63,0],[120,13,120,80,1],[122,13,122,84,1],[124,13,124,119,1],[125,9,125,10,1],[129,42,129,46,1],[129,47,129,51,1],[131,38,131,42,0],[131,43,131,47,1],[135,9,135,10,1],[136,13,136,74,1],[138,13,138,33,1],[139,17,139,50,1],[141,13,141,51,0],[145,9,145,10,1],[149,13,149,14,1],[150,17,150,71,1],[151,13,151,14,1],[152,13,152,30,0],[153,13,153,14,0],[154,17,154,62,0],[157,13,157,32,1],[160,21,160,68,0],[162,21,162,81,1],[164,9,164,10,0],[168,37,168,41,1],[168,42,168,46,1],[170,37,170,41,1],[170,42,170,46,1],[180,9,180,10,1],[181,13,181,32,1],[182,9,182,10,1]]);
+    </script>
+  </body>
+</html>

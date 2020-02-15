@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\JsonSerializerTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text;
+using Newtonsoft.Json;
+using Swr.Configurator.Common.Data.Api;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace Swr.Configurator.Test
+{
+    
+    public class JsonSerializerTest
+    {
+        private ITestOutputHelper _output;
+
+        public JsonSerializerTest(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
+        [Fact]
+        public void SerializeTest()
+        {
+            var jsonText = &quot;[ { \&quot;id\&quot;: \&quot;356f6c08-e9cf-467b-9f31-4c3543faee3f\&quot;, \&quot;createDate\&quot;: \&quot;2019-05-17T09:50:02.3707761Z\&quot;, \&quot;changeDate\&quot;: \&quot;2019-05-17T11:50:02.3707761Z\&quot;,&quot; +
+            &quot;\&quot;typeName\&quot;: \&quot;Деталь\&quot;, \&quot;loginName\&quot;: \&quot;ivanov\&quot;, \&quot;attributes\&quot;: [ { \&quot;name\&quot;: \&quot;Наименование\&quot;, \&quot;value\&quot;: \&quot;Фигня\&quot; } ] } ]&quot;;
+
+            var component = JsonConvert.DeserializeObject&lt;ComponentApiExist[]&gt;(jsonText);
+
+            Assert.NotNull(component);
+
+            var jsonTextError = &quot;[ { \&quot;id\&quot;: \&quot;356f6c08-e9cf-467b-9f31-4c3543faee3f\&quot; \&quot;createDate\&quot;: \&quot;2019-05-17T09:50:02.3707761Z\&quot;, \&quot;changeDate\&quot;: \&quot;2019-05-17T11:50:02.3707761Z\&quot;,&quot; +
+                           &quot;\&quot;typeName\&quot;: \&quot;Деталь\&quot;, \&quot;loginName\&quot;: \&quot;ivanov\&quot;, \&quot;attributes\&quot;: [ { \&quot;name\&quot;: \&quot;Наименование\&quot;, \&quot;value\&quot;: \&quot;Фигня\&quot; } ] } ]&quot;;
+
+            var ex = Assert.Throws&lt;JsonReaderException&gt;(() =&gt; JsonConvert.DeserializeObject&lt;ComponentApiExist[]&gt;(jsonTextError));
+
+           _output.WriteLine(ex.Message);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[17,9,17,60,1],[18,9,18,10,1],[19,13,19,30,1],[20,9,20,10,1],[24,9,24,10,1],[25,13,26,145,1],[28,13,28,90,1],[30,13,30,39,1],[32,13,33,160,1],[35,13,35,63,1],[35,63,35,128,1],[35,128,35,130,1],[35,13,35,130,1],[37,12,37,42,1],[38,9,38,10,1]]);
+    </script>
+  </body>
+</html>

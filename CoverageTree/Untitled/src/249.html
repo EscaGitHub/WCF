@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Controls\SpecificationTabUC.xaml.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
+using NLog;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.Common.Settings.Columns;
+using Swr.Configurator.Logic;
+using Swr.Configurator.View.DataViewModels;
+using Swr.Configurator.View.Logic;
+using Swr.Configurator.View.Panels.ViewModels;
+using SwrUI;
+
+namespace Swr.Configurator.View.Controls
+{
+    /// &lt;summary&gt;
+    /// Одна таблица СП
+    /// &lt;/summary&gt;
+	public partial class SpecificationTabUC
+	{
+		readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
+        public static readonly DependencyProperty ViewModelProperty = DependencyProperty.Register(
+            &quot;ViewModel&quot;, typeof(SpecificationTabVM), typeof(SpecificationTabUC), new PropertyMetadata(default(SpecificationTabVM), ViewModelChanged));
+
+        public SpecificationTabUC()
+        {
+        	InitializeComponent();
+
+            ProductsDataGrid.BeginningEdit += ProductsDataGrid_BeginningEdit;
+            ProductsDataGrid.PreparingCellForEdit += ProductsDataGrid_PreparingCellForEdit;
+            ProductsDataGrid.CellEditEnding += ProductsDataGrid_CellEditEnding;
+            ProductsDataGrid.RowEditEnding += ProductsDataGrid_RowEditEnding;
+            ProductsDataGrid.CurrentCellChanged += ProductsDataGrid_CurrentCellChanged;
+            //ProductsDataGrid.ColumnReordered += ProductsDataGrid_ColumnReordered;
+        }
+
+        //private void ProductsDataGrid_ColumnReordered(object sender, DataGridColumnEventArgs e)
+        //{
+        //	var uiColumns = ProductsDataGrid.Columns.Except(new[] {ProductsDataGrid.Columns.First()});
+        //	foreach (var uiColumn in uiColumns)
+        //	{
+        //		var userColumnSettings = AttachedDataGridLocalColumnSettings.GetSettings(uiColumn);
+        //		userColumnSettings.DisplayIndex = uiColumn.DisplayIndex;
+        //	}
+        //}
+
+        public SpecificationTabVM ViewModel
+        {
+            get { return (SpecificationTabVM)GetValue(ViewModelProperty); }
+            set { SetValue(ViewModelProperty, value); }
+        }
+
+        private void ProductsDataGrid_CurrentCellChanged(object sender, EventArgs e)
+        {
+            if (ProductsDataGrid.CurrentCell.IsValid)
+                ViewModel.LastCurrentCell = ProductsDataGrid.CurrentCell;
+        }
+
+        private void ProductsDataGrid_RowEditEnding(object sender, DataGridRowEditEndingEventArgs e)
+        {
+            //Возникает при переходе пользователем на новую строку после редактирования текущей. Как и в случае CellEditEnding, в этот момент можно выполнить проверку достоверности и отменить изменения. Обычно проверка достоверности охватывает несколько столбцов, например, когда значение в одном столбце не должно быть больше значения в другом столбце
+        }
+
+        private void ProductsDataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            //Возникает перед выходом ячейки из режима редактирования, DataGridCellEditEndingEventArgs.EditAction позволяет узнать, пытается пользователь применить редактирование (например, нажимая клавишу &lt;Enter&gt; или щелкая на другой ячейке) или отменить его (нажатием клавиши &lt;Escape&gt;). В этот момент можно просмотреть новые данные и установить свойство Cancel для отката изменений
+        }
+
+        private void ProductsDataGrid_PreparingCellForEdit(object sender, DataGridPreparingCellForEditEventArgs e)
+        {
+            //Применяется для шаблонных столбцов. В этот момент можно выполнить любую инициализацию, которая требуется для элементов управления редактированием. Для доступа к элементу в CellEditingTemplate используется свойство DataGridPreparingCellForEditEventArgs.EditingElement
+        }
+
+        private void ProductsDataGrid_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
+        {
+            //Возникает перед переводом ячейки в режим редактирования. В этот момент можно просмотреть столбец и строку, которые будут редактироваться, проверить значение ячейки и отменить эту операцию с использованием свойства DataGridBeginningEditEventArgs.Cancel
+
+            e.Cancel = CellLockStatusChecker.IsLocked(e.Column, e.Row.DataContext);
+
+            //TODO: Открыть карту документа
+
+            /*	var host = ConfiguratorMainWindowVM.Instance.LayoutController.CardControlControl.WindowsFormHost;
+
+        	var cardController = new CardController(host, ConfiguratorMainWindowVM.Instance.VaultWrapper);
+
+        	var productVM = e.Row.DataContext as ProductForSpecificationTabVM;
+        	if (productVM == null)
+        		return;
+        	var product = productVM.Reference.Child;
+        	if (product == null)
+        		return;
+
+        	if (Equals(cardController.Product, product))
+        		return;
+
+        	cardController.GetCard(product);*/
+        }
+
+        private static void ViewModelChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs dependencyPropertyChangedEventArgs)
+        {
+            var logger = LogManager.GetCurrentClassLogger();
+
+            try
+            {
+                var specificationTabUC = dependencyObject as SpecificationTabUC;
+                if (specificationTabUC != null)
+                {
+                    specificationTabUC.AddColumns();
+                    specificationTabUC.ViewModel.SetFocus = specificationTabUC.SetFocus;
+                    var canUserAddRows = !specificationTabUC.ViewModel.SpecificationViewModel.CheckIfLocked(true);
+
+                    specificationTabUC.ProductsDataGrid.CanUserAddRows = canUserAddRows;
+
+                    if (dependencyPropertyChangedEventArgs.NewValue is SpecificationTabVM)
+                    {
+                        var vm = dependencyPropertyChangedEventArgs.NewValue as SpecificationTabVM;
+                        vm.DataGrid = specificationTabUC.ProductsDataGrid;
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                logger.Error(exception);
+                SwrMessageBox.Show(ConfiguratorMainWindow.Instance, String.Format(&quot;Ошибка: {0}&quot;, exception.Message), ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+            }
+        }
+
+        private void SetFocus(DataGridColumn dataGridColumn, object o)
+        {
+            ProductsDataGrid.CurrentCell = new DataGridCellInfo(o ?? ViewModel.Products.FirstOrDefault(), dataGridColumn);
+            if (!ProductsDataGrid.SelectedCells.Contains(ProductsDataGrid.CurrentCell))
+                ProductsDataGrid.SelectedCells.Add(ProductsDataGrid.CurrentCell);
+        }
+
+        private void AddColumns()
+        {
+            if (ProductsDataGrid == null || ProductsDataGrid.Columns == null)
+                return;
+
+            ProductsDataGrid.Columns.Clear();
+
+
+            ProductsDataGrid.Columns.Add(
+                new DataGridTemplateColumn
+                {
+                    Width = new DataGridLength(1, DataGridLengthUnitType.Auto),
+                    CanUserSort = false,
+                    CanUserReorder = false,
+                    CanUserResize = false,
+                    CellTemplate = FindResource(&quot;StandardColumnTemplate&quot;) as DataTemplate
+                });
+
+
+            if (ViewModel == null) return;
+
+            var columns = ViewModel.GetColumns();
+
+            var componentTypeColumn = new AttributeForTypeObject {ColumnType = ColumnType.ComponentOfType};
+            componentTypeColumn.Attribute = new AttributeObject();
+            componentTypeColumn.Attribute.Name = &quot;Тип компонента&quot;;
+            var uiColumnType = UIColumnGenerator.GetColumn(ProductsDataGrid, componentTypeColumn, ViewModel, null, ViewModel.SpecificationViewModel.Product);
+
+            ProductsDataGrid.Columns.Add(uiColumnType);
+
+            var columnsWithPosition = columns.Where(t =&gt; t.TablePosition != 0).OrderBy(t =&gt; t.TablePosition).ToList();
+            foreach (var column in columnsWithPosition)
+            {
+                var uiColumn = UIColumnGenerator.GetColumn(ProductsDataGrid, column, ViewModel, null, ViewModel.SpecificationViewModel.Product);
+
+                ProductsDataGrid.Columns.Add(uiColumn);
+            }
+
+            var columnsWithoutPosition = columns.Where(t =&gt; t.TablePosition == 0);
+            foreach (var column in columnsWithoutPosition)
+            {
+                var uiColumn = UIColumnGenerator.GetColumn(ProductsDataGrid, column, ViewModel, null, ViewModel.SpecificationViewModel.Product);
+
+                ProductsDataGrid.Columns.Add(uiColumn);
+            }
+
+            //foreach (var column in columns)
+            //{
+            //    var uiColumn = UIColumnGenerator.GetColumn(ProductsDataGrid, column, ViewModel, null, ViewModel.SpecificationViewModel.Product);
+
+            //    ProductsDataGrid.Columns.Add(uiColumn);
+            //}
+        }
+
+        private void ProductsDataGrid_OnSelectedCellsChanged(object sender, SelectedCellsChangedEventArgs e)
+        {
+            if (e.AddedCells.Count == 0)
+            {
+                if (e.RemovedCells.Count != 0)
+                {
+                    ViewModel.SelectedProduct = null;
+                }
+            }
+            else
+            {
+                var cell = e.AddedCells.FirstOrDefault();
+                if (cell == null)
+                    return;
+                var item = cell.Item as ProductForSpecificationTabVM;
+                ViewModel.SelectedProduct = item;
+            }
+        }
+
+        private void DataGridCell_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            DataGridCell cell = sender as DataGridCell;
+            GridColumnFastEdit(cell, e);
+        }
+
+        private void DataGridCell_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            DataGridCell cell = sender as DataGridCell;
+            GridColumnFastEdit(cell, e);
+        }
+
+        private static void GridColumnFastEdit(DataGridCell cell, RoutedEventArgs e)
+        {
+            if (cell == null || cell.IsEditing || cell.IsReadOnly)
+                return;
+
+            DataGrid dataGrid = FindVisualParent&lt;DataGrid&gt;(cell);
+            if (dataGrid == null)
+                return;
+
+            if (!cell.IsFocused)
+            {
+                cell.Focus();
+            }
+
+            if (cell.Content is CheckBox)
+            {
+                if (dataGrid.SelectionUnit != DataGridSelectionUnit.FullRow)
+                {
+                    if (!cell.IsSelected)
+                        cell.IsSelected = true;
+                }
+                else
+                {
+                    DataGridRow row = FindVisualParent&lt;DataGridRow&gt;(cell);
+                    if (row != null &amp;&amp; !row.IsSelected)
+                    {
+                        row.IsSelected = true;
+                    }
+                }
+            }
+            else
+            {
+                ComboBox cb = cell.Content as ComboBox;
+
+                if (cb != null)
+                {
+                    //DataGrid dataGrid = FindVisualParent&lt;DataGrid&gt;(cell);
+                    dataGrid.BeginEdit(e);
+                    cell.Dispatcher.Invoke(
+                        DispatcherPriority.Background,
+                        new Action(delegate { }));
+                    cb.IsDropDownOpen = true;
+                }
+            }
+        }
+
+
+        private static T FindVisualParent&lt;T&gt;(UIElement element) where T : UIElement
+        {
+            UIElement parent = element;
+            while (parent != null)
+            {
+                T correctlyTyped = parent as T;
+                if (correctlyTyped != null)
+                {
+                    return correctlyTyped;
+                }
+
+                parent = VisualTreeHelper.GetParent(parent) as UIElement;
+            }
+            return null;
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[25,3,25,64,0],[27,9,28,151,0],[30,9,30,36,0],[31,9,31,10,0],[32,10,32,32,0],[34,13,34,78,0],[35,13,35,92,0],[36,13,36,80,0],[37,13,37,78,0],[38,13,38,88,0],[40,9,40,10,0],[54,17,54,18,0],[54,19,54,74,0],[54,75,54,76,0],[55,17,55,18,0],[55,19,55,54,0],[55,55,55,56,0],[59,9,59,10,0],[60,13,60,54,0],[61,17,61,74,0],[62,9,62,10,0],[65,9,65,10,0],[67,9,67,10,0],[70,9,70,10,0],[72,9,72,10,0],[75,9,75,10,0],[77,9,77,10,0],[80,9,80,10,0],[83,13,83,84,0],[102,9,102,10,0],[105,9,105,10,0],[106,13,106,61,0],[109,13,109,14,0],[110,17,110,81,0],[111,17,111,48,0],[112,17,112,18,0],[113,21,113,53,0],[114,21,114,89,0],[115,21,115,115,0],[117,21,117,89,0],[119,21,119,91,0],[120,21,120,22,0],[121,25,121,100,0],[122,25,122,75,0],[123,21,123,22,0],[124,17,124,18,0],[125,13,125,14,0],[126,13,126,40,0],[127,13,127,14,0],[128,17,128,41,0],[129,17,129,215,0],[130,13,130,14,0],[131,9,131,10,0],[134,9,134,10,0],[135,13,135,123,0],[136,13,136,88,0],[137,17,137,82,0],[138,9,138,10,0],[141,9,141,10,0],[142,13,142,78,0],[143,17,143,24,0],[145,13,145,46,0],[148,13,156,20,0],[159,13,159,35,0],[159,36,159,43,0],[161,13,161,50,0],[163,13,163,108,0],[164,13,164,67,0],[165,13,165,67,0],[166,13,166,158,0],[168,13,168,56,0],[170,13,170,58,0],[170,58,170,78,0],[170,78,170,93,0],[170,93,170,108,0],[170,108,170,119,0],[170,13,170,119,0],[171,13,171,20,0],[171,22,171,32,0],[171,33,171,35,0],[171,36,171,55,0],[172,13,172,14,0],[173,17,173,145,0],[175,17,175,56,0],[176,13,176,14,0],[178,13,178,61,0],[178,61,178,81,0],[178,81,178,83,0],[178,13,178,83,0],[179,13,179,20,0],[179,22,179,32,0],[179,33,179,35,0],[179,36,179,58,0],[180,13,180,14,0],[181,17,181,145,0],[183,17,183,56,0],[184,13,184,14,0],[192,9,192,10,0],[195,9,195,10,0],[196,13,196,41,0],[197,13,197,14,0],[198,17,198,47,0],[199,17,199,18,0],[200,21,200,54,0],[201,17,201,18,0],[202,13,202,14,0],[204,13,204,14,0],[205,17,205,58,0],[206,17,206,34,0],[208,17,208,70,0],[209,17,209,50,0],[210,13,210,14,0],[211,9,211,10,0],[214,9,214,10,0],[215,13,215,56,0],[216,13,216,41,0],[217,9,217,10,0],[220,9,220,10,0],[221,13,221,56,0],[222,13,222,41,0],[223,9,223,10,0],[226,9,226,10,0],[227,13,227,67,0],[228,17,228,24,0],[230,13,230,66,0],[231,13,231,34,0],[232,17,232,24,0],[234,13,234,33,0],[235,13,235,14,0],[236,17,236,30,0],[237,13,237,14,0],[239,13,239,42,0],[240,13,240,14,0],[241,17,241,77,0],[242,17,242,18,0],[243,21,243,42,0],[244,25,244,48,0],[245,17,245,18,0],[247,17,247,18,0],[248,21,248,75,0],[249,21,249,56,0],[250,21,250,22,0],[251,25,251,47,0],[252,21,252,22,0],[253,17,253,18,0],[254,13,254,14,0],[256,13,256,14,0],[257,17,257,56,0],[259,17,259,32,0],[260,17,260,18,0],[262,21,262,43,0],[263,21,265,45,0],[265,45,265,46,0],[265,46,265,47,0],[265,47,265,48,0],[265,48,265,51,0],[263,21,265,51,0],[266,21,266,46,0],[267,17,267,18,0],[268,13,268,14,0],[269,9,269,10,0],[273,9,273,10,0],[274,13,274,40,0],[275,13,275,35,0],[276,13,276,14,0],[277,17,277,48,0],[278,17,278,44,0],[279,17,279,18,0],[280,21,280,43,0],[283,17,283,74,0],[284,13,284,14,0],[285,13,285,25,0],[286,9,286,10,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\LocalApplicationSettingsController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.IO;
+using Swr.Configurator.Data;
+using SWR_Tools.Security;
+using SWR_Tools.Serialization;
+
+namespace Swr.Configurator.Logic
+{
+	public class LocalApplicationSettingsController
+	{
+		private const string RelativePath = @&quot;\SWR\SWR-Configurator\&quot;;
+		private const string SettingsFileName = &quot;LocalApplicationSettings.xml&quot;;
+        private const Environment.SpecialFolder RootSpecialFolder = Environment.SpecialFolder.CommonApplicationData;
+
+        public LocalApplicationSettingsController()
+		{
+			Settings = new LocalApplicationSettings();
+		}
+
+		public void Load()
+		{
+			var folderPath = Environment.GetFolderPath(RootSpecialFolder) + RelativePath;
+			var filePath = Path.Combine(folderPath, SettingsFileName);
+
+			if (!File.Exists(filePath))
+			{
+				Settings = null;
+				return;
+			}
+
+			var settings = filePath.DeserializeFromFile&lt;LocalApplicationSettings&gt;();
+
+			var crypto = new CryptoData();
+
+			settings.ElasticPassword = Decrypt(crypto, settings.ElasticPassword);
+
+			Settings = settings;
+		}
+
+		public LocalApplicationSettings Settings { get; set; }
+
+		public void Save(string path = null)
+		{
+			if (Settings == null) throw new NullReferenceException(&quot;Локальные настройки подключений null.&quot;);
+
+			if (path == null) path = Environment.GetFolderPath(RootSpecialFolder) + RelativePath;
+
+			if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+
+			var crypto = new CryptoData();
+
+            LocalApplicationSettings settingsClone = Settings.GetClone();
+
+			settingsClone.ElasticPassword = Encrypt(crypto, settingsClone.ElasticPassword);
+
+			settingsClone.SerializeToFile(Path.Combine(path, SettingsFileName));
+		}
+
+		public static string Encrypt(CryptoData crypto, string encryptedData)
+		{
+			return String.IsNullOrWhiteSpace(encryptedData) ? String.Empty : crypto.EncryptData(encryptedData);
+		}
+
+		public static string Decrypt(CryptoData crypto, string encryptedData)
+		{
+			return String.IsNullOrWhiteSpace(encryptedData) ? String.Empty : crypto.DecryptData(encryptedData);
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[15,9,15,52,0],[16,3,16,4,0],[17,4,17,46,0],[18,3,18,4,0],[21,3,21,4,0],[22,4,22,81,0],[23,4,23,62,0],[25,4,25,31,0],[26,4,26,5,0],[27,5,27,21,0],[28,5,28,12,0],[31,4,31,76,0],[33,4,33,34,0],[35,4,35,73,0],[37,4,37,24,0],[38,3,38,4,0],[40,46,40,50,0],[40,51,40,55,0],[43,3,43,4,0],[44,4,44,25,0],[44,26,44,100,0],[46,4,46,21,0],[46,22,46,89,0],[48,4,48,32,0],[48,33,48,65,0],[50,4,50,34,0],[52,13,52,74,0],[54,4,54,83,0],[56,4,56,72,0],[57,3,57,4,0],[60,3,60,4,0],[61,4,61,103,0],[62,3,62,4,0],[65,3,65,4,0],[66,4,66,103,0],[67,3,67,4,0]]);
+    </script>
+  </body>
+</html>

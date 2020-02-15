@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\DataViewModels\ComponentTypeVM.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Linq;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.Data.SpecificationModel;
+using SwrUILogic.Data;
+
+namespace Swr.Configurator.View.DataViewModels
+{
+    [DebuggerDisplay(&quot;{Product.ObjectIdentificator}, {Type.Name}&quot;)]
+    public class ComponentTypeVM : NotifyBaseClass //, IEditableObject
+    {
+        private ComponentTypeObject _backupData;
+
+        private bool _inTransaction;
+
+        public ComponentTypeVM(IProduct product)
+        {
+            Product = product;
+            product.ComponentTypeChanged += Product_ComponentTypeChanged;
+            //property.PropertyChanged += PropertyPropertyChanged;
+            product.Errors.CollectionChanged += ErrorsCollectionChanged;
+            //product.Warnings.CollectionChanged += WarningsCollectionChanged;
+
+            UpdateErrorLevel();
+        }
+
+        private void Product_ComponentTypeChanged(object sender, EventArgs e)
+        {
+            OnPropertyChanged(nameof(Type));
+        }
+
+        private void WarningsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            UpdateErrorLevel();
+        }
+
+        private void ErrorsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            UpdateErrorLevel();
+        }
+
+        private void UpdateErrorLevel()
+        {
+            if (Product.Errors.Any())
+            {
+                ErrorLevel = PropertyErrorLevel.Error;
+                ErrorText = &quot;&quot;;//чтобы сработало onPropertyChange
+            }
+			
+            //else if (Product.Warnings.Any())
+                //ErrorLevel = PropertyErrorLevel.Warning;
+            else
+                ErrorLevel = PropertyErrorLevel.None;
+        }
+
+        public IProduct Product { get; set; }
+
+        public ComponentTypeObject Type
+        {
+            get =&gt; Product.Type;
+            set
+            {
+                if (!Equals(Product.Type, value))
+                {
+                    var type = value;
+                    //var commonSettings = ConfiguratorMainWindowVM.Instance?.SharedSettingsController?.Settings?.Common;
+                    //if (commonSettings != null &amp;&amp; commonSettings.TrimPropertyValues)
+                    //    properyValue = value?.Trim(); // #4175
+
+                    Product.Type = type;
+                    OnPropertyChanged(nameof(Type));
+                }
+            }
+        }
+
+        public string ErrorText
+        {
+            get =&gt; string.Join(Environment.NewLine, Product.Errors);
+            set =&gt; OnPropertyChanged(nameof(ErrorText));
+        }
+
+        private PropertyErrorLevel _errorLevel;
+
+        public PropertyErrorLevel ErrorLevel
+        {
+            get =&gt; _errorLevel;
+            private set
+            {
+                if (_errorLevel != value)
+                {
+                    _errorLevel = value;
+                    OnPropertyChanged(nameof(ErrorLevel));
+                }
+            }
+        }
+
+        //Implements IEditableObject
+        //void IEditableObject.BeginEdit()
+        //{
+        //    if (!_inTransaction)
+        //    {
+        //        _backupData = Product.Type;
+        //        _inTransaction = true;
+        //    }
+        //}
+
+        //void IEditableObject.CancelEdit()
+        //{
+        //    if (_inTransaction)
+        //    {
+        //        Product.Type = _backupData;
+        //        _inTransaction = false;
+        //    }
+        //}
+
+        //void IEditableObject.EndEdit()
+        //{
+        //    if (_inTransaction)
+        //    {
+        //        _backupData = null;
+        //        _inTransaction = false;
+        //    }
+        //}
+
+        //public override bool Equals(object obj)
+        //{
+        //    var cardType = obj as ComponentTypeVM;
+        //    return cardType.Type.Name == Type.Name;
+
+        //    //var pro = obj as ProductForSpecificationTabVM;
+        //    //return pro.ComponentType.Type.Name == Type.Name;
+        //}
+
+        //public override int GetHashCode()
+        //{
+        //    return Type.Name.GetHashCode();
+        //}
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[20,9,20,49,0],[21,9,21,10,0],[22,13,22,31,0],[23,13,23,74,0],[25,13,25,73,0],[28,13,28,32,0],[29,9,29,10,0],[32,9,32,10,0],[33,13,33,45,0],[34,9,34,10,0],[37,9,37,10,0],[38,13,38,32,0],[39,9,39,10,0],[42,9,42,10,0],[43,13,43,32,0],[44,9,44,10,0],[47,9,47,10,0],[48,13,48,38,0],[49,13,49,14,0],[50,17,50,55,0],[51,17,51,32,0],[52,13,52,14,0],[57,17,57,54,0],[58,9,58,10,0],[60,35,60,39,0],[60,40,60,44,0],[64,20,64,32,0],[66,13,66,14,0],[67,17,67,50,0],[68,17,68,18,0],[69,21,69,38,0],[74,21,74,41,0],[75,21,75,53,0],[76,17,76,18,0],[77,13,77,14,0],[82,20,82,68,0],[83,20,83,56,0],[90,20,90,31,0],[92,13,92,14,0],[93,17,93,42,0],[94,17,94,18,0],[95,21,95,41,0],[96,21,96,59,0],[97,17,97,18,0],[98,13,98,14,0]]);
+    </script>
+  </body>
+</html>

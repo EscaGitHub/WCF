@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Layout\LayoutContent.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Markup;
+using System.Xml.Serialization;
+using System.Windows;
+using System.Globalization;
+using System.Windows.Media;
+using System.ComponentModel;
+
+namespace Xceed.Wpf.AvalonDock.Layout
+{
+    [ContentProperty(&quot;Content&quot;)]
+    [Serializable]
+    public abstract class LayoutContent : LayoutElement, IXmlSerializable, ILayoutElementForFloatingWindow, IComparable&lt;LayoutContent&gt;, ILayoutPreviousContainer
+    {
+        internal LayoutContent()
+        { }
+
+        #region Title
+
+        public static readonly DependencyProperty TitleProperty =
+            DependencyProperty.Register( &quot;Title&quot;, typeof( string ), typeof( LayoutContent ), new UIPropertyMetadata( null, OnTitlePropertyChanged, CoerceTitleValue ) );
+
+        public string Title
+        {
+          get { return ( string )GetValue( TitleProperty ); }
+          set { SetValue( TitleProperty, value ); }
+        }
+
+        private static object CoerceTitleValue( DependencyObject obj, object value )
+        {
+          var lc = ( LayoutContent )obj;
+          if( ( ( string )value ) != lc.Title )
+          {
+            lc.RaisePropertyChanging( LayoutContent.TitleProperty.Name );
+          }
+          return value;
+        }
+
+        private static void OnTitlePropertyChanged( DependencyObject obj, DependencyPropertyChangedEventArgs args )
+        {
+          ( ( LayoutContent )obj ).RaisePropertyChanged( LayoutContent.TitleProperty.Name );
+        }
+
+        #endregion //Title
+
+        #region Content
+        [NonSerialized]
+        private object _content = null;
+        [XmlIgnore]
+        public object Content
+        {
+            get { return _content; }
+            set
+            {
+                if (_content != value)
+                {
+                    RaisePropertyChanging(&quot;Content&quot;);
+                    _content = value;
+                    RaisePropertyChanged(&quot;Content&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region ContentId
+
+        private string _contentId = null;
+        public string ContentId
+        {
+            get 
+            {
+                if (_contentId == null)
+                { 
+                    var contentAsControl = _content as FrameworkElement;
+                    if (contentAsControl != null &amp;&amp; !string.IsNullOrWhiteSpace(contentAsControl.Name))
+                        return contentAsControl.Name;
+                }
+                return _contentId; 
+            }
+            set
+            {
+                if (_contentId != value)
+                {
+                    _contentId = value;
+                    RaisePropertyChanged(&quot;ContentId&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region IsSelected
+
+        private bool _isSelected = false;
+        public bool IsSelected
+        {
+            get { return _isSelected; }
+            set
+            {
+                if (_isSelected != value)
+                {
+                    bool oldValue = _isSelected;
+                    RaisePropertyChanging(&quot;IsSelected&quot;);
+                    _isSelected = value;
+                    var parentSelector = (Parent as ILayoutContentSelector);
+                    if (parentSelector != null)
+                        parentSelector.SelectedContentIndex = _isSelected ? parentSelector.IndexOf(this) : -1;
+                    OnIsSelectedChanged(oldValue, value);
+                    RaisePropertyChanged(&quot;IsSelected&quot;);
+                }
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// Provides derived classes an opportunity to handle changes to the IsSelected property.
+        /// &lt;/summary&gt;
+        protected virtual void OnIsSelectedChanged(bool oldValue, bool newValue)
+        {
+            if (IsSelectedChanged != null)
+                IsSelectedChanged(this, EventArgs.Empty);
+        }
+
+        public event EventHandler IsSelectedChanged;
+
+        #endregion
+
+        #region IsActive
+
+        [field: NonSerialized]
+        private bool _isActive = false;
+        [XmlIgnore]
+        public bool IsActive
+        {
+            get { return _isActive; }
+            set
+            {
+                if (_isActive != value)
+                {
+                    RaisePropertyChanging(&quot;IsActive&quot;);
+                    bool oldValue = _isActive;
+
+                    _isActive = value;
+
+                    var root = Root;
+                    if (root != null &amp;&amp; _isActive)
+                        root.ActiveContent = this;
+
+                    if (_isActive)
+                        IsSelected = true;
+
+                    OnIsActiveChanged(oldValue, value);
+                    RaisePropertyChanged(&quot;IsActive&quot;);
+                }
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// Provides derived classes an opportunity to handle changes to the IsActive property.
+        /// &lt;/summary&gt;
+        protected virtual void OnIsActiveChanged(bool oldValue, bool newValue)
+        {
+            if (newValue)
+                LastActivationTimeStamp = DateTime.Now;
+
+            if (IsActiveChanged != null)
+                IsActiveChanged(this, EventArgs.Empty);
+        }
+
+        public event EventHandler IsActiveChanged;
+
+        #endregion
+
+        #region IsLastFocusedDocument
+
+        private bool _isLastFocusedDocument = false;
+        public bool IsLastFocusedDocument
+        {
+            get { return _isLastFocusedDocument; }
+            internal set
+            {
+                if (_isLastFocusedDocument != value)
+                {
+                    RaisePropertyChanging(&quot;IsLastFocusedDocument&quot;);
+                    _isLastFocusedDocument = value;
+                    RaisePropertyChanged(&quot;IsLastFocusedDocument&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region PreviousContainer
+
+        [field: NonSerialized]
+        private ILayoutContainer _previousContainer = null;
+
+        [XmlIgnore]
+        ILayoutContainer ILayoutPreviousContainer.PreviousContainer
+        {
+            get { return _previousContainer; }
+            set
+            {
+                if (_previousContainer != value)
+                {
+                    _previousContainer = value;
+                    RaisePropertyChanged(&quot;PreviousContainer&quot;);
+
+                    var paneSerializable = _previousContainer as ILayoutPaneSerializable;
+                    if (paneSerializable != null &amp;&amp;
+                        paneSerializable.Id == null)
+                        paneSerializable.Id = Guid.NewGuid().ToString();
+                }
+            }
+        }
+
+        protected ILayoutContainer PreviousContainer
+        {
+            get { return ((ILayoutPreviousContainer)this).PreviousContainer; }
+            set { ((ILayoutPreviousContainer)this).PreviousContainer = value; }
+        }
+
+        [XmlIgnore]
+        string ILayoutPreviousContainer.PreviousContainerId
+        {
+            get;
+            set;
+        }
+
+        protected string PreviousContainerId
+        {
+            get { return ((ILayoutPreviousContainer)this).PreviousContainerId; }
+            set { ((ILayoutPreviousContainer)this).PreviousContainerId = value; }
+        }
+
+        #endregion
+
+        #region PreviousContainerIndex
+        [field: NonSerialized]
+        private int _previousContainerIndex = -1;
+        [XmlIgnore]
+        public int PreviousContainerIndex
+        {
+            get { return _previousContainerIndex; }
+            set
+            {
+                if (_previousContainerIndex != value)
+                {
+                    _previousContainerIndex = value;
+                    RaisePropertyChanged(&quot;PreviousContainerIndex&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region LastActivationTimeStamp
+
+        private DateTime? _lastActivationTimeStamp = null;
+        public DateTime? LastActivationTimeStamp
+        {
+            get { return _lastActivationTimeStamp; }
+            set
+            {
+                if (_lastActivationTimeStamp != value)
+                {
+                    _lastActivationTimeStamp = value;
+                    RaisePropertyChanged(&quot;LastActivationTimeStamp&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        protected override void OnParentChanging(ILayoutContainer oldValue, ILayoutContainer newValue)
+        {
+            var root = Root;
+
+            if (oldValue != null)
+                IsSelected = false;
+
+            //if (root != null &amp;&amp; _isActive &amp;&amp; newValue == null)
+            //    root.ActiveContent = null;
+
+            base.OnParentChanging(oldValue, newValue);
+        }
+
+        protected override void OnParentChanged(ILayoutContainer oldValue, ILayoutContainer newValue)
+        {
+            if (IsSelected &amp;&amp; Parent != null &amp;&amp; Parent is ILayoutContentSelector)
+            {
+                var parentSelector = (Parent as ILayoutContentSelector);
+                parentSelector.SelectedContentIndex = parentSelector.IndexOf(this);
+            }
+
+            //var root = Root;
+            //if (root != null &amp;&amp; _isActive)
+            //    root.ActiveContent = this;
+
+            base.OnParentChanged(oldValue, newValue);
+        }
+
+        /// &lt;summary&gt;
+        /// Test if the content can be closed
+        /// &lt;/summary&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        internal bool TestCanClose()
+        {
+            CancelEventArgs args = new CancelEventArgs();
+
+            OnClosing(args);
+
+            if (args.Cancel)
+                return false;
+
+            return true;
+        }
+
+        /// &lt;summary&gt;
+        /// Close the content
+        /// &lt;/summary&gt;
+        /// &lt;remarks&gt;Please note that usually the anchorable is only hidden (not closed). By default when user click the X button it only hides the content.&lt;/remarks&gt;
+        public void Close()
+        {
+            var root = Root;
+            var parentAsContainer = Parent as ILayoutContainer;
+            parentAsContainer.RemoveChild(this);
+            if (root != null)
+                root.CollectGarbage();
+
+            OnClosed();
+        }
+
+        /// &lt;summary&gt;
+        /// Event fired when the content is closed (i.e. removed definitely from the layout)
+        /// &lt;/summary&gt;
+        public event EventHandler Closed;
+
+        protected virtual void OnClosed()
+        {
+            if (Closed != null)
+                Closed(this, EventArgs.Empty);
+        }
+
+        /// &lt;summary&gt;
+        /// Event fired when the content is about to be closed (i.e. removed definitely from the layout)
+        /// &lt;/summary&gt;
+        /// &lt;remarks&gt;Please note that LayoutAnchorable also can be hidden. Usually user hide anchorables when click the &#39;X&#39; button. To completely close 
+        /// an anchorable the user should click the &#39;Close&#39; menu item from the context menu. When an LayoutAnchorable is hidden its visibility changes to false and
+        /// IsHidden property is set to true.
+        /// Hanlde the Hiding event for the LayoutAnchorable to cancel the hide operation.&lt;/remarks&gt;
+        public event EventHandler&lt;CancelEventArgs&gt; Closing;
+
+        protected virtual void OnClosing(CancelEventArgs args)
+        {
+            if (Closing != null)
+                Closing(this, args);
+        }
+
+        public System.Xml.Schema.XmlSchema GetSchema()
+        {
+            return null;
+        }
+
+        public virtual void ReadXml(System.Xml.XmlReader reader)
+        {
+            if (reader.MoveToAttribute(&quot;Title&quot;))
+                Title = reader.Value;
+            //if (reader.MoveToAttribute(&quot;IconSource&quot;))
+            //    IconSource = new Uri(reader.Value, UriKind.RelativeOrAbsolute);
+
+            if (reader.MoveToAttribute(&quot;IsSelected&quot;))
+                IsSelected = bool.Parse(reader.Value);
+            if (reader.MoveToAttribute(&quot;ContentId&quot;))
+                ContentId = reader.Value;
+            if (reader.MoveToAttribute(&quot;IsLastFocusedDocument&quot;))
+                IsLastFocusedDocument = bool.Parse(reader.Value);
+            if (reader.MoveToAttribute(&quot;PreviousContainerId&quot;))
+                PreviousContainerId = reader.Value;
+            if (reader.MoveToAttribute(&quot;PreviousContainerIndex&quot;))
+                PreviousContainerIndex = int.Parse(reader.Value);
+
+            if (reader.MoveToAttribute(&quot;FloatingLeft&quot;))
+                FloatingLeft = double.Parse(reader.Value, CultureInfo.InvariantCulture);
+            if (reader.MoveToAttribute(&quot;FloatingTop&quot;))
+                FloatingTop = double.Parse(reader.Value, CultureInfo.InvariantCulture);
+            if (reader.MoveToAttribute(&quot;FloatingWidth&quot;))
+                FloatingWidth = double.Parse(reader.Value, CultureInfo.InvariantCulture);
+            if (reader.MoveToAttribute(&quot;FloatingHeight&quot;))
+                FloatingHeight = double.Parse(reader.Value, CultureInfo.InvariantCulture);
+            if (reader.MoveToAttribute(&quot;IsMaximized&quot;))
+                IsMaximized = bool.Parse(reader.Value);
+            if (reader.MoveToAttribute(&quot;CanClose&quot;))
+                CanClose = bool.Parse(reader.Value);
+            if (reader.MoveToAttribute(&quot;CanFloat&quot;))
+                CanFloat = bool.Parse(reader.Value);
+            if (reader.MoveToAttribute(&quot;LastActivationTimeStamp&quot;))
+                LastActivationTimeStamp = DateTime.Parse(reader.Value, CultureInfo.InvariantCulture);
+
+            reader.Read();
+        }
+
+        public virtual void WriteXml(System.Xml.XmlWriter writer)
+        {
+            if (!string.IsNullOrWhiteSpace(Title))
+                writer.WriteAttributeString(&quot;Title&quot;, Title);
+
+            //if (IconSource != null)
+            //    writer.WriteAttributeString(&quot;IconSource&quot;, IconSource.ToString());
+
+            if (IsSelected)
+                writer.WriteAttributeString(&quot;IsSelected&quot;, IsSelected.ToString());
+
+            if (IsLastFocusedDocument)
+                writer.WriteAttributeString(&quot;IsLastFocusedDocument&quot;, IsLastFocusedDocument.ToString());
+
+            if (!string.IsNullOrWhiteSpace(ContentId))
+                writer.WriteAttributeString(&quot;ContentId&quot;, ContentId);
+
+
+            if (ToolTip != null &amp;&amp; ToolTip is string)
+                if (!string.IsNullOrWhiteSpace((string)ToolTip))
+                    writer.WriteAttributeString(&quot;ToolTip&quot;, (string)ToolTip);
+
+            if (FloatingLeft != 0.0)
+                writer.WriteAttributeString(&quot;FloatingLeft&quot;, FloatingLeft.ToString(CultureInfo.InvariantCulture));
+            if (FloatingTop != 0.0)
+                writer.WriteAttributeString(&quot;FloatingTop&quot;, FloatingTop.ToString(CultureInfo.InvariantCulture));
+            if (FloatingWidth != 0.0)
+                writer.WriteAttributeString(&quot;FloatingWidth&quot;, FloatingWidth.ToString(CultureInfo.InvariantCulture));
+            if (FloatingHeight != 0.0)
+                writer.WriteAttributeString(&quot;FloatingHeight&quot;, FloatingHeight.ToString(CultureInfo.InvariantCulture));
+
+            if (IsMaximized)
+                writer.WriteAttributeString(&quot;IsMaximized&quot;, IsMaximized.ToString());
+            if (!CanClose)
+                writer.WriteAttributeString(&quot;CanClose&quot;, CanClose.ToString());
+            if (!CanFloat)
+                writer.WriteAttributeString(&quot;CanFloat&quot;, CanFloat.ToString());
+
+            if (LastActivationTimeStamp != null)
+                writer.WriteAttributeString(&quot;LastActivationTimeStamp&quot;, LastActivationTimeStamp.Value.ToString(CultureInfo.InvariantCulture));
+
+            if (_previousContainer != null)
+            {
+                var paneSerializable = _previousContainer as ILayoutPaneSerializable;
+                if (paneSerializable != null)
+                {
+                    writer.WriteAttributeString(&quot;PreviousContainerId&quot;, paneSerializable.Id);
+                    writer.WriteAttributeString(&quot;PreviousContainerIndex&quot;, _previousContainerIndex.ToString());
+                }
+            }
+
+        }
+
+        #region FloatingWidth
+
+        private double _floatingWidth = 0.0;
+        public double FloatingWidth
+        {
+            get { return _floatingWidth; }
+            set
+            {
+                if (_floatingWidth != value)
+                {
+                    RaisePropertyChanging(&quot;FloatingWidth&quot;);
+                    _floatingWidth = value;
+                    RaisePropertyChanged(&quot;FloatingWidth&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region FloatingHeight
+
+        private double _floatingHeight = 0.0;
+        public double FloatingHeight
+        {
+            get { return _floatingHeight; }
+            set
+            {
+                if (_floatingHeight != value)
+                {
+                    RaisePropertyChanging(&quot;FloatingHeight&quot;);
+                    _floatingHeight = value;
+                    RaisePropertyChanged(&quot;FloatingHeight&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region FloatingLeft
+
+        private double _floatingLeft = 0.0;
+        public double FloatingLeft
+        {
+            get { return _floatingLeft; }
+            set
+            {
+                if (_floatingLeft != value)
+                {
+                    RaisePropertyChanging(&quot;FloatingLeft&quot;);
+                    _floatingLeft = value;
+                    RaisePropertyChanged(&quot;FloatingLeft&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region FloatingTop
+
+        private double _floatingTop = 0.0;
+        public double FloatingTop
+        {
+            get { return _floatingTop; }
+            set
+            {
+                if (_floatingTop != value)
+                {
+                    RaisePropertyChanging(&quot;FloatingTop&quot;);
+                    _floatingTop = value;
+                    RaisePropertyChanged(&quot;FloatingTop&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region IsMaximized
+
+        private bool _isMaximized = false;
+        public bool IsMaximized
+        {
+            get { return _isMaximized; }
+            set
+            {
+                if (_isMaximized != value)
+                {
+                    RaisePropertyChanging(&quot;IsMaximized&quot;);
+                    _isMaximized = value;
+                    RaisePropertyChanged(&quot;IsMaximized&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region ToolTip
+
+        private object _toolTip = null;
+        public object ToolTip
+        {
+            get { return _toolTip; }
+            set
+            {
+                if (_toolTip != value)
+                {
+                    _toolTip = value;
+                    RaisePropertyChanged(&quot;ToolTip&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        public bool IsFloating
+        {
+            get { return this.FindParent&lt;LayoutFloatingWindow&gt;() != null; }
+        }
+
+        #region IconSource
+
+        private ImageSource _iconSource = null;
+        public ImageSource IconSource
+        {
+            get { return _iconSource; }
+            set
+            {
+                if (_iconSource != value)
+                {
+                    _iconSource = value;
+                    RaisePropertyChanged(&quot;IconSource&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        public int CompareTo(LayoutContent other)
+        {
+            var contentAsComparable = Content as IComparable;
+            if (contentAsComparable != null)
+            {
+                return contentAsComparable.CompareTo(other.Content);
+            }
+
+            return string.Compare(Title, other.Title);
+        }
+
+        /// &lt;summary&gt;
+        /// Float the content in a popup window
+        /// &lt;/summary&gt;
+        public void Float()
+        {
+            if (PreviousContainer != null &amp;&amp;
+                PreviousContainer.FindParent&lt;LayoutFloatingWindow&gt;() != null)
+            {
+
+                var currentContainer = Parent as ILayoutPane;
+                var currentContainerIndex = (currentContainer as ILayoutGroup).IndexOfChild(this);
+                var previousContainerAsLayoutGroup = PreviousContainer as ILayoutGroup;
+
+                if (PreviousContainerIndex &lt; previousContainerAsLayoutGroup.ChildrenCount)
+                    previousContainerAsLayoutGroup.InsertChildAt(PreviousContainerIndex, this);
+                else
+                    previousContainerAsLayoutGroup.InsertChildAt(previousContainerAsLayoutGroup.ChildrenCount, this);
+
+                PreviousContainer = currentContainer;
+                PreviousContainerIndex = currentContainerIndex;
+
+                IsSelected = true;
+                IsActive = true;
+
+                Root.CollectGarbage();
+            }
+            else
+            {
+                Root.Manager.StartDraggingFloatingWindowForContent(this, false);
+
+                IsSelected = true;
+                IsActive = true;
+            }
+
+        }
+
+        /// &lt;summary&gt;
+        /// Dock the content as document
+        /// &lt;/summary&gt;
+        public void DockAsDocument()
+        {
+            var root = Root as LayoutRoot;
+            if (root == null)
+                throw new InvalidOperationException();
+            if (Parent is LayoutDocumentPane)
+                return;
+
+            if (PreviousContainer is LayoutDocumentPane)
+            {
+                Dock();
+                return;
+            }
+
+            LayoutDocumentPane newParentPane;
+            if (root.LastFocusedDocument != null)
+            {
+                newParentPane = root.LastFocusedDocument.Parent as LayoutDocumentPane;
+            }
+            else
+            {
+                newParentPane = root.Descendents().OfType&lt;LayoutDocumentPane&gt;().FirstOrDefault();
+            }
+
+            if (newParentPane != null)
+            {
+                newParentPane.Children.Add(this);
+                root.CollectGarbage();
+            }
+
+            IsSelected = true;
+            IsActive = true;
+        }
+
+        /// &lt;summary&gt;
+        /// Re-dock the content to its previous container
+        /// &lt;/summary&gt;
+        public void Dock()
+        {
+            if (PreviousContainer != null)
+            {
+                var currentContainer = Parent as ILayoutContainer;
+                var currentContainerIndex = (currentContainer is ILayoutGroup) ? (currentContainer as ILayoutGroup).IndexOfChild(this) : -1;
+                var previousContainerAsLayoutGroup = PreviousContainer as ILayoutGroup;
+
+                if (PreviousContainerIndex &lt; previousContainerAsLayoutGroup.ChildrenCount)
+                    previousContainerAsLayoutGroup.InsertChildAt(PreviousContainerIndex, this);
+                else
+                    previousContainerAsLayoutGroup.InsertChildAt(previousContainerAsLayoutGroup.ChildrenCount, this);
+
+                if (currentContainerIndex &gt; -1)
+                {
+                    PreviousContainer = currentContainer;
+                    PreviousContainerIndex = currentContainerIndex;
+                }
+                else
+                {
+                    PreviousContainer = null;
+                    PreviousContainerIndex = 0;
+                }
+
+                IsSelected = true;
+                IsActive = true;
+            }
+            else
+            {
+                InternalDock();
+            }
+
+
+            Root.CollectGarbage();
+
+        }
+
+        protected virtual void InternalDock()
+        { 
+
+        }
+
+
+        #region CanClose
+
+        private bool _canClose = true;
+        public bool CanClose
+        {
+            get { return _canClose; }
+            set
+            {
+                if (_canClose != value)
+                {
+                    _canClose = value;
+                    RaisePropertyChanged(&quot;CanClose&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region CanFloat
+
+        private bool _canFloat = true;
+        public bool CanFloat
+        {
+            get { return _canFloat; }
+            set
+            {
+                if (_canFloat != value)
+                {
+                    _canFloat = value;
+                    RaisePropertyChanged(&quot;CanFloat&quot;);
+                }
+            }
+        }
+
+        #endregion
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[34,9,34,33,0],[35,9,35,10,0],[35,11,35,12,0],[39,9,40,169,0],[44,15,44,16,0],[44,17,44,60,0],[44,61,44,62,0],[45,15,45,16,0],[45,17,45,50,0],[45,51,45,52,0],[49,9,49,10,0],[50,11,50,41,0],[51,11,51,48,0],[52,11,52,12,0],[53,13,53,74,0],[54,11,54,12,0],[55,11,55,24,0],[56,9,56,10,0],[59,9,59,10,0],[60,11,60,93,0],[61,9,61,10,0],[67,9,67,40,0],[71,17,71,18,0],[71,19,71,35,0],[71,36,71,37,0],[73,13,73,14,0],[74,17,74,39,0],[75,17,75,18,0],[76,21,76,54,0],[77,21,77,38,0],[78,21,78,53,0],[79,17,79,18,0],[80,13,80,14,0],[87,9,87,42,0],[91,13,91,14,0],[92,17,92,40,0],[93,17,93,18,0],[94,21,94,73,0],[95,21,95,103,0],[96,25,96,54,0],[97,17,97,18,0],[98,17,98,35,0],[99,13,99,14,0],[101,13,101,14,0],[102,17,102,41,0],[103,17,103,18,0],[104,21,104,40,0],[105,21,105,55,0],[106,17,106,18,0],[107,13,107,14,0],[114,9,114,42,0],[117,17,117,18,0],[117,19,117,38,0],[117,39,117,40,0],[119,13,119,14,0],[120,17,120,42,0],[121,17,121,18,0],[122,21,122,49,0],[123,21,123,57,0],[124,21,124,41,0],[125,21,125,77,0],[126,21,126,48,0],[127,25,127,111,0],[128,21,128,58,0],[129,21,129,56,0],[130,17,130,18,0],[131,13,131,14,0],[138,9,138,10,0],[139,13,139,43,0],[140,17,140,58,0],[141,9,141,10,0],[150,9,150,40,0],[154,17,154,18,0],[154,19,154,36,0],[154,37,154,38,0],[156,13,156,14,0],[157,17,157,40,0],[158,17,158,18,0],[159,21,159,55,0],[160,21,160,47,0],[162,21,162,39,0],[164,21,164,37,0],[165,21,165,51,0],[166,25,166,51,0],[168,21,168,35,0],[169,25,169,43,0],[171,21,171,56,0],[172,21,172,54,0],[173,17,173,18,0],[174,13,174,14,0],[181,9,181,10,0],[182,13,182,26,0],[183,17,183,56,0],[185,13,185,41,0],[186,17,186,56,0],[187,9,187,10,0],[195,9,195,53,0],[198,17,198,18,0],[198,19,198,49,0],[198,50,198,51,0],[200,13,200,14,0],[201,17,201,53,0],[202,17,202,18,0],[203,21,203,68,0],[204,21,204,52,0],[205,21,205,67,0],[206,17,206,18,0],[207,13,207,14,0],[215,9,215,60,0],[220,17,220,18,0],[220,19,220,45,0],[220,46,220,47,0],[222,13,222,14,0],[223,17,223,49,0],[224,17,224,18,0],[225,21,225,48,0],[226,21,226,63,0],[228,21,228,90,0],[229,21,230,53,0],[231,25,231,73,0],[232,17,232,18,0],[233,13,233,14,0],[238,17,238,18,0],[238,19,238,77,0],[238,78,238,79,0],[239,17,239,18,0],[239,19,239,78,0],[239,79,239,80,0],[245,13,245,17,0],[246,13,246,17,0],[251,17,251,18,0],[251,19,251,79,0],[251,80,251,81,0],[252,17,252,18,0],[252,19,252,80,0],[252,81,252,82,0],[259,9,259,50,0],[263,17,263,18,0],[263,19,263,50,0],[263,51,263,52,0],[265,13,265,14,0],[266,17,266,54,0],[267,17,267,18,0],[268,21,268,53,0],[269,21,269,68,0],[270,17,270,18,0],[271,13,271,14,0],[278,9,278,59,0],[281,17,281,18,0],[281,19,281,51,0],[281,52,281,53,0],[283,13,283,14,0],[284,17,284,55,0],[285,17,285,18,0],[286,21,286,54,0],[287,21,287,69,0],[288,17,288,18,0],[289,13,289,14,0],[295,9,295,10,0],[296,13,296,29,0],[298,13,298,34,0],[299,17,299,36,0],[304,13,304,55,0],[305,9,305,10,0],[308,9,308,10,0],[309,13,309,82,0],[310,13,310,14,0],[311,17,311,73,0],[312,17,312,84,0],[313,13,313,14,0],[319,13,319,54,0],[320,9,320,10,0],[327,9,327,10,0],[328,13,328,58,0],[330,13,330,29,0],[332,13,332,29,0],[333,17,333,30,0],[335,13,335,25,0],[336,9,336,10,0],[343,9,343,10,0],[344,13,344,29,0],[345,13,345,64,0],[346,13,346,49,0],[347,13,347,30,0],[348,17,348,39,0],[350,13,350,24,0],[351,9,351,10,0],[359,9,359,10,0],[360,13,360,32,0],[361,17,361,47,0],[362,9,362,10,0],[374,9,374,10,0],[375,13,375,33,0],[376,17,376,37,0],[377,9,377,10,0],[380,9,380,10,0],[381,13,381,25,0],[382,9,382,10,0],[385,9,385,10,0],[386,13,386,49,0],[387,17,387,38,0],[391,13,391,54,0],[392,17,392,55,0],[393,13,393,53,0],[394,17,394,42,0],[395,13,395,65,0],[396,17,396,66,0],[397,13,397,63,0],[398,17,398,52,0],[399,13,399,66,0],[400,17,400,66,0],[402,13,402,56,0],[403,17,403,89,0],[404,13,404,55,0],[405,17,405,88,0],[406,13,406,57,0],[407,17,407,90,0],[408,13,408,58,0],[409,17,409,91,0],[410,13,410,55,0],[411,17,411,56,0],[412,13,412,52,0],[413,17,413,53,0],[414,13,414,52,0],[415,17,415,53,0],[416,13,416,67,0],[417,17,417,102,0],[419,13,419,27,0],[420,9,420,10,0],[423,9,423,10,0],[424,13,424,51,0],[425,17,425,61,0],[430,13,430,28,0],[431,17,431,82,0],[433,13,433,39,0],[434,17,434,104,0],[436,13,436,55,0],[437,17,437,69,0],[440,13,440,54,0],[441,17,441,65,0],[442,21,442,77,0],[444,13,444,37,0],[445,17,445,114,0],[446,13,446,36,0],[447,17,447,112,0],[448,13,448,38,0],[449,17,449,116,0],[450,13,450,39,0],[451,17,451,118,0],[453,13,453,29,0],[454,17,454,84,0],[455,13,455,27,0],[456,17,456,78,0],[457,13,457,27,0],[458,17,458,78,0],[460,13,460,49,0],[461,17,461,142,0],[463,13,463,44,0],[464,13,464,14,0],[465,17,465,86,0],[466,17,466,46,0],[467,17,467,18,0],[468,21,468,93,0],[469,21,469,111,0],[470,17,470,18,0],[471,13,471,14,0],[473,9,473,10,0],[477,9,477,45,0],[480,17,480,18,0],[480,19,480,41,0],[480,42,480,43,0],[482,13,482,14,0],[483,17,483,45,0],[484,17,484,18,0],[485,21,485,60,0],[486,21,486,44,0],[487,21,487,59,0],[488,17,488,18,0],[489,13,489,14,0],[496,9,496,46,0],[499,17,499,18,0],[499,19,499,42,0],[499,43,499,44,0],[501,13,501,14,0],[502,17,502,46,0],[503,17,503,18,0],[504,21,504,61,0],[505,21,505,45,0],[506,21,506,60,0],[507,17,507,18,0],[508,13,508,14,0],[515,9,515,44,0],[518,17,518,18,0],[518,19,518,40,0],[518,41,518,42,0],[520,13,520,14,0],[521,17,521,44,0],[522,17,522,18,0],[523,21,523,59,0],[524,21,524,43,0],[525,21,525,58,0],[526,17,526,18,0],[527,13,527,14,0],[534,9,534,43,0],[537,17,537,18,0],[537,19,537,39,0],[537,40,537,41,0],[539,13,539,14,0],[540,17,540,43,0],[541,17,541,18,0],[542,21,542,58,0],[543,21,543,42,0],[544,21,544,57,0],[545,17,545,18,0],[546,13,546,14,0],[553,9,553,43,0],[556,17,556,18,0],[556,19,556,39,0],[556,40,556,41,0],[558,13,558,14,0],[559,17,559,43,0],[560,17,560,18,0],[561,21,561,58,0],[562,21,562,42,0],[563,21,563,57,0],[564,17,564,18,0],[565,13,565,14,0],[572,9,572,40,0],[575,17,575,18,0],[575,19,575,35,0],[575,36,575,37,0],[577,13,577,14,0],[578,17,578,39,0],[579,17,579,18,0],[580,21,580,38,0],[581,21,581,53,0],[582,17,582,18,0],[583,13,583,14,0],[590,17,590,18,0],[590,19,590,74,0],[590,75,590,76,0],[595,9,595,48,0],[598,17,598,18,0],[598,19,598,38,0],[598,39,598,40,0],[600,13,600,14,0],[601,17,601,42,0],[602,17,602,18,0],[603,21,603,41,0],[604,21,604,56,0],[605,17,605,18,0],[606,13,606,14,0],[612,9,612,10,0],[613,13,613,62,0],[614,13,614,45,0],[615,13,615,14,0],[616,17,616,69,0],[619,13,619,55,0],[620,9,620,10,0],[626,9,626,10,0],[627,13,628,78,0],[629,13,629,14,0],[631,17,631,62,0],[632,17,632,99,0],[633,17,633,88,0],[635,17,635,91,0],[636,21,636,96,0],[638,21,638,118,0],[640,17,640,54,0],[641,17,641,64,0],[643,17,643,35,0],[644,17,644,33,0],[646,17,646,39,0],[647,13,647,14,0],[649,13,649,14,0],[650,17,650,81,0],[652,17,652,35,0],[653,17,653,33,0],[654,13,654,14,0],[656,9,656,10,0],[662,9,662,10,0],[663,13,663,43,0],[664,13,664,30,0],[665,17,665,55,0],[666,13,666,46,0],[667,17,667,24,0],[669,13,669,57,0],[670,13,670,14,0],[671,17,671,24,0],[672,17,672,24,0],[676,13,676,50,0],[677,13,677,14,0],[678,17,678,87,0],[679,13,679,14,0],[681,13,681,14,0],[682,17,682,98,0],[683,13,683,14,0],[685,13,685,39,0],[686,13,686,14,0],[687,17,687,50,0],[688,17,688,39,0],[689,13,689,14,0],[691,13,691,31,0],[692,13,692,29,0],[693,9,693,10,0],[699,9,699,10,0],[700,13,700,43,0],[701,13,701,14,0],[702,17,702,67,0],[703,17,703,141,0],[704,17,704,88,0],[706,17,706,91,0],[707,21,707,96,0],[709,21,709,118,0],[711,17,711,48,0],[712,17,712,18,0],[713,21,713,58,0],[714,21,714,68,0],[715,17,715,18,0],[717,17,717,18,0],[718,21,718,46,0],[719,21,719,48,0],[720,17,720,18,0],[722,17,722,35,0],[723,17,723,33,0],[724,13,724,14,0],[726,13,726,14,0],[727,17,727,32,0],[728,13,728,14,0],[731,13,731,35,0],[733,9,733,10,0],[736,9,736,10,0],[738,9,738,10,0],[743,9,743,39,0],[746,17,746,18,0],[746,19,746,36,0],[746,37,746,38,0],[748,13,748,14,0],[749,17,749,40,0],[750,17,750,18,0],[751,21,751,39,0],[752,21,752,54,0],[753,17,753,18,0],[754,13,754,14,0],[761,9,761,39,0],[764,17,764,18,0],[764,19,764,36,0],[764,37,764,38,0],[766,13,766,14,0],[767,17,767,40,0],[768,17,768,18,0],[769,21,769,39,0],[770,21,770,54,0],[771,17,771,18,0],[772,13,772,14,0]]);
+    </script>
+  </body>
+</html>

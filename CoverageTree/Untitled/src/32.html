@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Infrastructure\QueryBuilder.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Service.Settings.Model;
+
+namespace Swr.Capital1C.Service.Infrastructure
+{
+    public class QueryBuilder
+    {
+        public string ChangedDocumentsByVariableQuery(CatalogDefinition catalogDefinition, string[] systemAttributes)
+        {
+            var builder = new StringBuilder();
+
+            BuildVariableDeclarations(catalogDefinition.StatusVariableName, systemAttributes, builder);
+
+            builder.AppendLine(@&quot;select
+docs.DocumentID as N&#39;Идентификатор документа&#39;
+,case when revisions.RevNr is null then 0 else revisions.RevNr end as N&#39;Версия документа&#39;
+,docConfigs.ConfigurationName as N&#39;Имя конфигурации документа&#39;
+,revisions.Date as N&#39;Дата создания версии&#39;&quot;);
+
+            BuildSelectVariableTextValue(catalogDefinition.StatusVariableName, systemAttributes, builder);
+
+            builder.AppendLine(@&quot;from DocumentRevisionConfiguration
+inner join DocumentConfiguration as docConfigs on docConfigs.ConfigurationID = DocumentRevisionConfiguration.ConfigurationID
+inner join Documents as docs on docs.DocumentID = DocumentRevisionConfiguration.DocumentID
+inner join Revisions as revisions on revisions.RevNr = DocumentRevisionConfiguration.RevisionNo and revisions.DocumentID = docs.DocumentID
+                and revisions.RevNr = (select max(UserRevs.RevNr) from UserRevs where DocumentID = docs.DocumentId)&quot;);
+
+            BuildProductLeftJoinVariables(systemAttributes, builder);
+
+            BuildFolderPathDeclarations(catalogDefinition.FolderDefinitions, builder);
+
+            builder.AppendLine($@&quot;where
+StatusVariableValues.ValueText = N&#39;{catalogDefinition.StatusVariableValue}&#39; and folders.TruePath = 1&quot;);
+
+            return builder.ToString().TrimEnd(&#39;\r&#39;, &#39;\n&#39;);
+        }
+
+        private void BuildProductLeftJoinVariables(IEnumerable&lt;string&gt; systemAttributes, StringBuilder builder)
+        {
+            var i = 0;
+            foreach (var variableDefinition in systemAttributes)
+            {
+                i++;
+                builder.AppendLine($@&quot;left join VariableValue as Variable{i}Values on Variable{i}Values.DocumentID = docs.DocumentId
+and Variable{i}Values.ConfigurationID = docConfigs.ConfigurationID
+and Variable{i}Values.VariableID = @variableId{i} 
+and Variable{i}Values.RevisionNo = (select max(RevisionNo) from VariableValue where DocumentID = docs.DocumentId 
+                                        and ConfigurationID = docConfigs.ConfigurationID
+										and VariableID = @variableId{i}
+										and RevisionNo &lt;= revisions.RevNr)&quot;);
+            }
+
+            builder.AppendLine(@&quot;left join VariableValue as StatusVariableValues on StatusVariableValues.DocumentID = docs.DocumentId
+and StatusVariableValues.ConfigurationID = docConfigs.ConfigurationID
+and StatusVariableValues.VariableID = @statusVariableId 
+and StatusVariableValues.RevisionNo = (select max(RevisionNo) from VariableValue where DocumentID = docs.DocumentId 
+                                        and ConfigurationID = docConfigs.ConfigurationID
+										and VariableID = @statusVariableId
+										and RevisionNo &lt;= revisions.RevNr)&quot;);
+
+        }
+
+        private void BuildSelectVariableTextValue(string statusVariableName, string[] systemAttributes, StringBuilder builder)
+        {
+            var i = 0;
+            foreach (var variableDefinition in systemAttributes)
+            {
+                i++;
+                builder.AppendLine($&quot;,Variable{i}Values.ValueText as N&#39;{variableDefinition}&#39;&quot;);
+            }
+
+            builder.AppendLine($&quot;,StatusVariableValues.ValueText as N&#39;{statusVariableName}&#39;&quot;);
+
+            builder.AppendLine($&quot;,cast((case when revisions.RevNr is null then 0 else revisions.RevNr end) as nvarchar(max)) as N&#39;{Properties.Resources.VersionNumberColumn}&#39;&quot;);
+
+            builder.AppendLine($&quot;,folders.Path as N&#39;{Properties.Resources.FolderPathColumn}&#39;&quot;);
+
+            builder.AppendLine($&quot;,docs.FileName as N&#39;{Properties.Resources.FileNameColumn}&#39;&quot;);
+        }
+
+        private void BuildFolderPathDeclarations(IReadOnlyCollection&lt;FolderDefinition&gt; catalogDefinitions, StringBuilder builder)
+        {
+            builder.AppendLine(@&quot;cross apply (select top 1
+DocumentID
+,Path&quot;);
+            if (catalogDefinitions.Count == 0)
+            {
+                builder.AppendLine(@&quot;,1 as TruePath&quot;);
+            }
+            else
+            {
+                var i = 0;
+
+                var paths = catalogDefinitions.SelectMany(t =&gt; t.FolderPaths).Distinct();
+
+                foreach (var catalogPath in paths)
+                {
+                    var path = catalogPath;
+
+                    if (!path.EndsWith(&quot;\\&quot;)) path += &quot;\\&quot;;
+
+                    i++;
+
+                    builder.AppendLine(i == 1
+                        ? $@&quot;,CASE WHEN folders.Path like(&#39;{path}%&#39;) &quot;
+                        : $@&quot;OR folders.Path like(&#39;{path}%&#39;) &quot;);
+                }
+
+                builder.AppendLine(@&quot;THEN 1 ELSE 0 END as TruePath&quot;);
+            }
+
+            builder.AppendLine(@&quot;from DocumentsInProjects as docsInProject 
+inner join Projects as folders on folders.ProjectID = docsInProject.ProjectID
+where docsInProject.Deleted != 1 and docsInProject.DocumentID = docs.DocumentID
+order by TruePath desc) as folders&quot;);
+        }
+
+        private void BuildVariableDeclarations(string statusVariable, IEnumerable&lt;string&gt; systemAttributes, StringBuilder builder)
+        {
+            var i = 0;
+            foreach (var variableName in systemAttributes)
+            {
+                i++;
+                builder.AppendLine($&quot;declare @variableId{i} as int = (select VariableID from Variable where VariableName = N&#39;{variableName}&#39; and IsDeleted = 0);&quot;);
+            }
+
+            builder.AppendLine($&quot;declare @statusVariableId as int = (select VariableID from Variable where VariableName = N&#39;{statusVariable}&#39; and IsDeleted = 0);&quot;);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[13,9,13,10,1],[14,13,14,47,1],[16,13,16,104,1],[18,13,22,46,1],[24,13,24,107,1],[26,13,30,119,1],[32,13,32,70,1],[34,13,34,87,1],[36,13,37,104,1],[39,13,39,59,1],[40,9,40,10,1],[43,9,43,10,1],[44,13,44,23,1],[45,13,45,20,1],[45,22,45,44,1],[45,45,45,47,1],[45,48,45,64,1],[46,13,46,14,1],[47,17,47,21,1],[48,17,54,48,1],[55,13,55,14,1],[57,13,63,48,1],[65,9,65,10,1],[68,9,68,10,1],[69,13,69,23,1],[70,13,70,20,1],[70,22,70,44,1],[70,45,70,47,1],[70,48,70,64,1],[71,13,71,14,1],[72,17,72,21,1],[73,17,73,96,1],[74,13,74,14,1],[76,13,76,95,1],[78,13,78,177,1],[80,13,80,96,1],[82,13,82,95,1],[83,9,83,10,1],[86,9,86,10,1],[87,13,89,9,1],[90,13,90,47,1],[91,13,91,14,0],[92,17,92,55,0],[93,13,93,14,0],[95,13,95,14,1],[96,17,96,27,1],[98,17,98,64,1],[98,64,98,77,1],[98,77,98,90,1],[98,17,98,90,1],[100,17,100,24,1],[100,26,100,41,1],[100,42,100,44,1],[100,45,100,50,1],[101,17,101,18,1],[102,21,102,44,1],[104,21,104,46,1],[104,47,104,60,0],[106,21,106,25,1],[108,21,110,65,1],[111,17,111,18,1],[113,17,113,70,1],[114,13,114,14,1],[116,13,119,38,1],[120,9,120,10,1],[123,9,123,10,1],[124,13,124,23,1],[125,13,125,20,1],[125,22,125,38,1],[125,39,125,41,1],[125,42,125,58,1],[126,13,126,14,1],[127,17,127,21,1],[128,17,128,164,1],[129,13,129,14,1],[131,13,131,165,1],[132,9,132,10,1]]);
+    </script>
+  </body>
+</html>

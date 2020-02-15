@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\DropDownControlArea.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.Windows.Input;
+using System.Diagnostics;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public class DropDownControlArea : UserControl
+    {
+        //static DropDownControlArea()
+        //{
+        //    //IsHitTestVisibleProperty.OverrideMetadata(typeof(DropDownControlArea), new FrameworkPropertyMetadata(true));
+        //}
+
+        public DropDownControlArea()
+        { 
+
+        }
+
+        #region DropDownContextMenu
+
+        /// &lt;summary&gt;
+        /// DropDownContextMenu Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty DropDownContextMenuProperty =
+            DependencyProperty.Register(&quot;DropDownContextMenu&quot;, typeof(ContextMenu), typeof(DropDownControlArea),
+                new FrameworkPropertyMetadata((ContextMenu)null));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the DropDownContextMenu property.  This dependency property 
+        /// indicates context menu to show when a right click is detected over the area occpied by the control.
+        /// &lt;/summary&gt;
+        public ContextMenu DropDownContextMenu
+        {
+            get { return (ContextMenu)GetValue(DropDownContextMenuProperty); }
+            set { SetValue(DropDownContextMenuProperty, value); }
+        }
+
+        #endregion
+
+        #region DropDownContextMenuDataContext
+
+        /// &lt;summary&gt;
+        /// DropDownContextMenuDataContext Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty DropDownContextMenuDataContextProperty =
+            DependencyProperty.Register(&quot;DropDownContextMenuDataContext&quot;, typeof(object), typeof(DropDownControlArea),
+                new FrameworkPropertyMetadata((object)null));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the DropDownContextMenuDataContext property.  This dependency property 
+        /// indicates data context to attach when context menu is shown.
+        /// &lt;/summary&gt;
+        public object DropDownContextMenuDataContext
+        {
+            get { return (object)GetValue(DropDownContextMenuDataContextProperty); }
+            set { SetValue(DropDownContextMenuDataContextProperty, value); }
+        }
+
+        #endregion
+
+        protected override void OnMouseRightButtonDown(System.Windows.Input.MouseButtonEventArgs e)
+        {
+            base.OnMouseRightButtonDown(e);
+
+
+        }
+
+        protected override void OnPreviewMouseRightButtonUp(System.Windows.Input.MouseButtonEventArgs e)
+        {
+            base.OnPreviewMouseRightButtonUp(e);
+
+            if (!e.Handled)
+            {
+                if (DropDownContextMenu != null)
+                {
+                    DropDownContextMenu.PlacementTarget = null;
+                    DropDownContextMenu.Placement = PlacementMode.MousePoint;
+                    DropDownContextMenu.DataContext = DropDownContextMenuDataContext;
+                    DropDownContextMenu.IsOpen = true;
+                   // e.Handled = true;
+                }
+            } 
+        }
+
+
+        //protected override System.Windows.Media.HitTestResult HitTestCore(System.Windows.Media.PointHitTestParameters hitTestParameters)
+        //{
+        //    var hitResult = base.HitTestCore(hitTestParameters);
+        //    if (hitResult == null)
+        //        return new PointHitTestResult(this, hitTestParameters.HitPoint);
+
+        //    return hitResult;
+        //}
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[37,9,37,37,0],[38,9,38,10,0],[40,9,40,10,0],[47,9,49,67,0],[57,17,57,18,0],[57,19,57,77,0],[57,78,57,79,0],[58,17,58,18,0],[58,19,58,64,0],[58,65,58,66,0],[68,9,70,62,0],[78,17,78,18,0],[78,19,78,83,0],[78,84,78,85,0],[79,17,79,18,0],[79,19,79,75,0],[79,76,79,77,0],[85,9,85,10,0],[86,13,86,44,0],[89,9,89,10,0],[92,9,92,10,0],[93,13,93,49,0],[95,13,95,28,0],[96,13,96,14,0],[97,17,97,49,0],[98,17,98,18,0],[99,21,99,64,0],[100,21,100,78,0],[101,21,101,86,0],[102,21,102,55,0],[104,17,104,18,0],[105,13,105,14,0],[106,9,106,10,0]]);
+    </script>
+  </body>
+</html>

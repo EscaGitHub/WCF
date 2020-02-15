@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Layout\LayoutDocument.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Globalization;
+
+namespace Xceed.Wpf.AvalonDock.Layout
+{
+    [Serializable]
+    public class LayoutDocument : LayoutContent
+    {
+        public bool IsVisible
+        {
+            get { return true; }
+        }
+
+        #region Description
+
+        private string _description = null;
+        public string Description
+        {
+            get { return _description; }
+            set
+            {
+                if (_description != value)
+                {
+                    _description = value;
+                    RaisePropertyChanged(&quot;Description&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        public override void WriteXml(System.Xml.XmlWriter writer)
+        {
+            base.WriteXml(writer);
+
+            if (!string.IsNullOrWhiteSpace(Description))
+                writer.WriteAttributeString(&quot;Description&quot;, Description);
+
+        }
+
+        public override void ReadXml(System.Xml.XmlReader reader)
+        {
+            if (reader.MoveToAttribute(&quot;Description&quot;))
+                Description = reader.Value;
+
+            base.ReadXml(reader);
+        }
+
+
+#if TRACE
+        public override void ConsoleDump(int tab)
+        {
+          System.Diagnostics.Trace.Write( new string( &#39; &#39;, tab * 4 ) );
+          System.Diagnostics.Trace.WriteLine( &quot;Document()&quot; );
+        }
+#endif
+
+
+        protected override void InternalDock()
+        {
+            var root = Root as LayoutRoot;
+            LayoutDocumentPane documentPane = null;
+            if (root.LastFocusedDocument != null &amp;&amp;
+                root.LastFocusedDocument != this)
+            {
+                documentPane = root.LastFocusedDocument.Parent as LayoutDocumentPane;
+            }
+
+            if (documentPane == null)
+            {
+                documentPane = root.Descendents().OfType&lt;LayoutDocumentPane&gt;().FirstOrDefault();
+            }
+
+
+            bool added = false;
+            if (root.Manager.LayoutUpdateStrategy != null)
+            {
+                added = root.Manager.LayoutUpdateStrategy.BeforeInsertDocument(root, this, documentPane);
+            }
+
+            if (!added)
+            {
+                if (documentPane == null)
+                    throw new InvalidOperationException(&quot;Layout must contains at least one LayoutDocumentPane in order to host documents&quot;);
+
+                documentPane.Children.Add(this);
+                added = true;
+            }
+
+            if (root.Manager.LayoutUpdateStrategy != null)
+            {
+                root.Manager.LayoutUpdateStrategy.AfterInsertDocument(root, this);
+            }
+
+
+            base.InternalDock();
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[30,17,30,18,0],[30,19,30,31,0],[30,32,30,33,0],[35,9,35,44,0],[38,17,38,18,0],[38,19,38,39,0],[38,40,38,41,0],[40,13,40,14,0],[41,17,41,43,0],[42,17,42,18,0],[43,21,43,42,0],[44,21,44,57,0],[45,17,45,18,0],[46,13,46,14,0],[52,9,52,10,0],[53,13,53,35,0],[55,13,55,57,0],[56,17,56,73,0],[58,9,58,10,0],[61,9,61,10,0],[62,13,62,55,0],[63,17,63,44,0],[65,13,65,34,0],[66,9,66,10,0],[79,9,79,10,0],[80,13,80,43,0],[81,13,81,52,0],[82,13,83,50,0],[84,13,84,14,0],[85,17,85,86,0],[86,13,86,14,0],[88,13,88,38,0],[89,13,89,14,0],[90,17,90,97,0],[91,13,91,14,0],[94,13,94,32,0],[95,13,95,59,0],[96,13,96,14,0],[97,17,97,106,0],[98,13,98,14,0],[100,13,100,24,0],[101,13,101,14,0],[102,17,102,42,0],[103,21,103,140,0],[105,17,105,49,0],[106,17,106,30,0],[107,13,107,14,0],[109,13,109,59,0],[110,13,110,14,0],[111,17,111,83,0],[112,13,112,14,0],[115,13,115,33,0],[116,9,116,10,0]]);
+    </script>
+  </body>
+</html>

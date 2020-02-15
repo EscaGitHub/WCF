@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Logic\EntityChangedSuspender.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using Swr.Configurator.Common.Data;
+
+namespace Swr.Configurator.Common.Logic
+{
+    public class EntityChangedSuspender : IDisposable
+    {
+        private readonly IChangable _changable;
+        private readonly bool _oldState;
+
+        public EntityChangedSuspender(IChangable changable)
+        {
+            _changable = changable ?? throw new ArgumentNullException(&quot;changable&quot;);
+
+            _oldState = _changable.SuspendChanged;
+            _changable.SuspendChanged = true;
+        }
+
+        /// &lt;summary&gt;
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// &lt;/summary&gt;
+        /// &lt;filterpriority&gt;2&lt;/filterpriority&gt;
+        public void Dispose()
+        {
+            _changable.SuspendChanged = _oldState;
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[11,9,11,60,0],[12,9,12,10,0],[13,13,13,84,0],[15,13,15,51,0],[16,13,16,46,0],[17,9,17,10,0],[24,9,24,10,0],[25,13,25,51,0],[26,9,26,10,0]]);
+    </script>
+  </body>
+</html>

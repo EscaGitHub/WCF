@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\SpecificationConverter.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Configurator.Common.Data.Api;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.Data.SpecificationModel;
+using Swr.Configurator.View;
+using SwrUI;
+
+
+namespace Swr.Configurator.Logic
+{
+    /// &lt;summary&gt;
+    /// Класс преобразования спецификаций, зачитанных из БД, и Product 
+    /// &lt;/summary&gt;
+    public class SpecificationConverter
+    {
+        public void FillReferences(IProduct parentProduct, List&lt;SpecificationApiExist&gt; specificationApiExists)
+        {
+	        
+			foreach (var specificationApiExist in specificationApiExists)
+            {
+                if (!parentProduct.Specifications.ContainsKey(specificationApiExist.TypeName))
+                {
+                    parentProduct.Specifications.Add(specificationApiExist.TypeName, specificationApiExist.ID);
+                    foreach (var child in specificationApiExist.Childs)
+                    {
+                        IProduct childProduct;
+                        if (AllProductsLinkContainer.Instance.HasProductByGuid(child.ID))
+                            childProduct = AllProductsLinkContainer.Instance.GetProductByGuid(child.ID);
+
+                        else
+                        {
+                            var type =
+                                ConfiguratorMainWindowVM.Instance.SettingsController.Settings.ComponentTypes
+                                    .FirstOrDefault(
+                                        t =&gt; t.Name == child.TypeName);
+                            if (type == null)
+                            {
+                                SwrMessageBox.Show(ConfiguratorMainWindow.Instance,
+                                    $&quot;В настройках не найден тип компонента &#39;{child.TypeName}&#39;&quot;,
+                                    ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK,
+                                    SwrMessageBoxImage.Error);
+                                return;
+                            }
+
+                            childProduct = Product.GetOrCreate(child.ID, type.ID) ;
+                        }
+
+
+                        childProduct.DbIdentificator = child.ID;
+
+                        var propDic = new Dictionary&lt;string, string&gt;();
+                        foreach (var childComponentAttribute in child.ComponentAttributes)
+                        {
+                            childProduct.SetProperty(childComponentAttribute.Name, childComponentAttribute.Value);
+                            var childProp = childProduct.GetProperty(childComponentAttribute.Name);
+                            if (childProp != null) childProp.IsChanged = false;
+                        }
+
+                        childProduct.UpdateName();
+                        foreach (var childRelationAttribute in child.RelationAttributes)
+                        {
+                            propDic.Add(childRelationAttribute.Name, childRelationAttribute.Value);
+                        }
+
+                        propDic.Add(&quot;Тип спецификации&quot;, specificationApiExist.TypeName);
+
+                        parentProduct.AddReference(childProduct, propDic);
+                    }
+                }
+            }
+
+            parentProduct.IsChanged = false;
+
+        }
+
+        public SpecificationApiNew ProductToSpecificationApiNew(IProduct product, string specificationTypeName)
+        {
+            var references = product.References.Where(t =&gt;
+                t.Properties.Any(l =&gt; l.Variable == &quot;Тип спецификации&quot; &amp;&amp; l.Value == specificationTypeName) /*&amp;&amp;
+                t.IsChanged*/).ToList();
+
+            if (references != null &amp;&amp; references.Count != 0)
+            {
+                var specificationApiNew = new SpecificationApiNew();
+                specificationApiNew.ComponentID = product.DbIdentificator;
+                specificationApiNew.TypeName = specificationTypeName;
+
+                var childs = new List&lt;SpecificationComponentApi&gt;();
+                foreach (var reference in references)
+                {
+                    if (!reference.IsDeleted)
+                    {
+                        var child = new SpecificationComponentApi();
+                        child.ID = reference.Child.DbIdentificator;
+                        var attributes = new List&lt;AttributeApi&gt;();
+                        foreach (var referenceProperty in reference.Properties)
+                        {
+                            if (referenceProperty.Variable != &quot;Тип спецификации&quot;)
+                            {
+                                var attributeApi = new AttributeApi();
+                                attributeApi.Name = referenceProperty.Variable;
+                                attributeApi.Value = referenceProperty.Value;
+                                attributes.Add(attributeApi);
+                            }
+                        }
+                        
+
+                        child.RelationAttributes = attributes;
+
+                        child.TypeName = reference.Child.Type.Name;
+
+
+                        childs.Add(child);
+                    }
+                }
+
+                specificationApiNew.Childs = childs;
+
+                return specificationApiNew;
+            }
+
+            return null;
+        }
+
+
+        public SpecificationApiExist ProductToSpecificationApiExist(IProduct product,
+            string specificationTypeName)
+        {
+            var specificationApiExist = new SpecificationApiExist();
+
+            specificationApiExist.ID = product.Specifications[specificationTypeName];
+            specificationApiExist.TypeName = specificationTypeName;
+            specificationApiExist.ComponentID = product.DbIdentificator;
+            var references = product.References.Where(t =&gt;
+                t.Properties.Any(l =&gt; l.Variable == &quot;Тип спецификации&quot; &amp;&amp; l.Value == specificationTypeName) /*&amp;&amp;
+                t.IsChanged*/).ToList();
+
+            if (references != null &amp;&amp; references.Count != 0)
+            {
+                var childs = new List&lt;SpecificationComponentApi&gt;();
+                foreach (var reference in references)
+                {
+                    
+                    var child = new SpecificationComponentApi();
+                    child.IsDeleted = reference.IsDeleted;
+                    child.ID = reference.Child.DbIdentificator;
+                    child.TypeName = reference.Child.Type.Name;
+                    var attributes = new List&lt;AttributeApi&gt;();
+                    foreach (var referenceProperty in reference.Properties)
+                    {
+                        if (referenceProperty.Variable != &quot;Тип спецификации&quot;)
+                        {
+                            var attributeApi = new AttributeApi();
+                            attributeApi.Name = referenceProperty.Variable;
+                            attributeApi.Value = referenceProperty.Value;
+                            attributes.Add(attributeApi);
+                        }
+                    }
+
+                    child.RelationAttributes = attributes;
+
+                    childs.Add(child);
+                }
+
+                specificationApiExist.Childs = childs;
+            }
+
+            return specificationApiExist;
+        }
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[22,9,22,10,0],[24,4,24,11,0],[24,13,24,38,0],[24,39,24,41,0],[24,42,24,64,0],[25,13,25,14,0],[26,17,26,95,0],[27,17,27,18,0],[28,21,28,112,0],[29,21,29,28,0],[29,30,29,39,0],[29,40,29,42,0],[29,43,29,71,0],[30,21,30,22,0],[32,25,32,90,0],[33,29,33,105,0],[36,25,36,26,0],[37,29,40,46,0],[40,46,40,70,0],[40,70,40,72,0],[37,29,40,72,0],[41,29,41,46,0],[42,29,42,30,0],[43,33,46,63,0],[47,33,47,40,0],[50,29,50,84,0],[51,25,51,26,0],[54,25,54,65,0],[56,25,56,72,0],[57,25,57,32,0],[57,34,57,61,0],[57,62,57,64,0],[57,65,57,90,0],[58,25,58,26,0],[59,29,59,115,0],[60,29,60,100,0],[61,29,61,51,0],[61,52,61,80,0],[62,25,62,26,0],[64,25,64,51,0],[65,25,65,32,0],[65,34,65,60,0],[65,61,65,63,0],[65,64,65,88,0],[66,25,66,26,0],[67,29,67,100,0],[68,25,68,26,0],[70,25,70,89,0],[72,25,72,75,0],[73,21,73,22,0],[74,17,74,18,0],[75,13,75,14,0],[77,13,77,45,0],[79,9,79,10,0],[82,9,82,10,1],[83,13,84,17,1],[84,17,84,39,1],[84,39,84,107,1],[84,107,84,108,1],[84,17,84,108,1],[84,108,85,41,1],[83,13,85,41,1],[87,13,87,61,1],[88,13,88,14,1],[89,17,89,69,1],[90,17,90,75,1],[91,17,91,70,1],[93,17,93,68,1],[94,17,94,24,1],[94,26,94,39,1],[94,40,94,42,1],[94,43,94,53,1],[95,17,95,18,1],[96,21,96,46,1],[97,21,97,22,1],[98,25,98,69,1],[99,25,99,68,1],[100,25,100,67,1],[101,25,101,32,1],[101,34,101,55,1],[101,56,101,58,1],[101,59,101,79,1],[102,25,102,26,1],[103,29,103,82,1],[104,29,104,30,1],[105,33,105,71,1],[106,33,106,80,1],[107,33,107,78,1],[108,33,108,62,1],[109,29,109,30,1],[110,25,110,26,1],[113,25,113,63,1],[115,25,115,68,1],[118,25,118,43,1],[119,21,119,22,1],[120,17,120,18,1],[122,17,122,53,1],[124,17,124,44,1],[127,13,127,25,0],[128,9,128,10,1],[133,9,133,10,0],[134,13,134,69,0],[136,13,136,86,0],[137,13,137,68,0],[138,13,138,73,0],[139,13,140,17,0],[140,17,140,39,0],[140,39,140,107,0],[140,107,140,108,0],[140,17,140,108,0],[140,108,141,41,0],[139,13,141,41,0],[143,13,143,61,0],[144,13,144,14,0],[145,17,145,68,0],[146,17,146,24,0],[146,26,146,39,0],[146,40,146,42,0],[146,43,146,53,0],[147,17,147,18,0],[149,21,149,65,0],[150,21,150,59,0],[151,21,151,64,0],[152,21,152,64,0],[153,21,153,63,0],[154,21,154,28,0],[154,30,154,51,0],[154,52,154,54,0],[154,55,154,75,0],[155,21,155,22,0],[156,25,156,78,0],[157,25,157,26,0],[158,29,158,67,0],[159,29,159,76,0],[160,29,160,74,0],[161,29,161,58,0],[162,25,162,26,0],[163,21,163,22,0],[165,21,165,59,0],[167,21,167,39,0],[168,17,168,18,0],[170,17,170,55,0],[171,13,171,14,0],[173,13,173,42,0],[174,9,174,10,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Data\ProductModel\Product.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Linq;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.Data.EventArgs;
+using Swr.Configurator.Data.SpecificationModel;
+using Swr.Configurator.Logic;
+using Swr.Configurator.View;
+using SWR_Tools.Serialization;
+
+//using Swr.Configurator.SearchComponent;
+
+namespace Swr.Configurator.Data.ProductModel
+{
+	public class Product: IProduct
+    {
+        private readonly PropertyContainer _propertyContainer = new PropertyContainer();
+        private readonly ReferenceContainer _referenceContainer = new ReferenceContainer();
+		
+		private Product()
+        {
+            Subscribe();
+            Specifications = new Dictionary&lt;string, Guid&gt;();
+        }
+
+        private Product(Guid componentTypeId) : this()
+        {
+	        if (componentTypeId!= Guid.Empty)
+	        {
+				FillType(componentTypeId);
+				UpdateName();
+			}
+        }
+
+
+        public static IProduct GetOrCreate(Guid objectIdentificator, Guid componentTypeId)
+        {
+	        if (objectIdentificator.IsNotEmpty() &amp;&amp; AllProductsLinkContainer.Instance.HasProductByGuid(objectIdentificator))
+	        {
+		        return AllProductsLinkContainer.Instance.GetProductByGuid(objectIdentificator);
+	        }
+
+	        var newProduct = new Product(componentTypeId) {IsNew = true};
+	        var guidForContainer = objectIdentificator.IsEmpty() ? newProduct.ObjectIdentificator : objectIdentificator;
+
+	        AllProductsLinkContainer.Instance.AddProduct(guidForContainer, newProduct);
+
+	        return newProduct;
+        }
+
+		private void ReferenceContainerOnReferenceMarkedAsDeleted(object sender, ProductReferenceRemovedEventArgs e)
+        {
+            IsChanged = true;
+            ReferencesLoaded = true;
+
+            OnReferenceMarkedAsDeleted(e.Reference);
+        }
+
+        public void Subscribe()
+        {
+            _referenceContainer.NewReferenceAdded += ReferenceContainerNewReferenceAdded;
+            _referenceContainer.ReferenceMarkedAsDeleted += ReferenceContainerOnReferenceMarkedAsDeleted;
+			_referenceContainer.ReferenceRemoved +=	ReferenceContainerOnReferenceRemoved;
+
+		}
+
+        private void ReferenceContainerOnReferenceRemoved(object sender, ProductReferenceRemovedEventArgs e)
+        {
+	        OnReferenceRemoved(e);
+        }
+
+        public void Describe()
+        {
+            _referenceContainer.NewReferenceAdded -= ReferenceContainerNewReferenceAdded;
+            _referenceContainer.ReferenceMarkedAsDeleted -= ReferenceContainerOnReferenceMarkedAsDeleted;
+            _referenceContainer.ReferenceRemoved -= ReferenceContainerOnReferenceRemoved;
+		}
+
+        private void OnReferenceMarkedAsDeleted(IReference reference)
+        {
+            EventHandler&lt;ProductReferenceRemovedEventArgs&gt; handler = ReferenceMarkedAsDeleted;
+            if (handler != null) handler(this, new ProductReferenceRemovedEventArgs(reference));
+        }
+
+
+      
+
+        private void FillType(Guid componentTypeId)
+        {
+            var settings = ConfiguratorMainWindowVM.Instance.SettingsController.Settings;
+            Type = settings.ComponentTypes.FirstOrDefault(t =&gt; t.ID == componentTypeId).GetClone();
+            foreach (var attributeObject in Type.Attributes)
+            {
+                SetProperty(attributeObject.Attribute.Name, attributeObject.Value ?? &quot;&quot;);
+                var foundProperty = Properties.FirstOrDefault(t =&gt; t.Variable == attributeObject.Attribute.Name);
+                if (foundProperty != null)
+                {
+                    foundProperty.IsMask = attributeObject.IsMask;
+                    foundProperty.IsNecessary = attributeObject.IsNecessary;
+                    foundProperty.CardPosition = attributeObject.CardPosition;
+                    foundProperty.CardAlias = attributeObject.CardAlias;
+                }
+            }
+        }
+
+        private readonly Guid _objectIdentificator = Guid.NewGuid();
+
+        public Guid ObjectIdentificator
+        {
+	        get
+	        {
+		        if (DbIdentificator == Guid.Empty)
+		        {
+			        return _objectIdentificator;
+		        }
+
+		        return DbIdentificator;
+	        }
+        }
+
+        public Guid DbIdentificator { get; set; }
+
+        /// &lt;summary&gt;
+		/// Имя компонента, формируется из свойств комопонента по маске
+		/// &lt;/summary&gt;
+		public string Name { get; set; }
+
+        public string DisplayName { get; }
+        public ObservableCollection&lt;string&gt; Errors {
+            get
+            {
+                var properties = Properties.Where(t =&gt; t.Errors.Count &gt; 0).Select(t =&gt; &quot;Имя перменной: &quot; + t.Variable + &quot; Ошибки: &quot; + string.Join(&quot;\n&quot;, t.Errors)).ToList();
+
+                return new ObservableCollection&lt;string&gt;(properties);
+            }
+        }
+
+        private ComponentTypeObject _type;
+        public ComponentTypeObject Type
+        {
+            get
+            {
+                return _type;
+            }
+            set
+            {
+                if (value == null)
+                    throw new ArgumentNullException(&quot;value&quot;);
+
+                if (_type != value)
+                {
+                    _type = value;
+
+                    OnComponentTypeChanged();
+                }
+            }
+        }
+        public bool IsReadOnly { get; set; }
+        public bool IsLibrary { get; set; }
+        public bool IsNew { get; set; }
+        public Dictionary&lt;string, string&gt; NewProperties { get; }
+
+        public IProduct Clone(bool clonePdmFile, bool cloneIdentifier = true, bool cloneReferences = false,
+            bool cloneProperties = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        //public Dictionary&lt;string, Guid&gt; Specifications { get; }
+
+
+        public event EventHandler&lt;PropertyChangedEventArgs&gt; PropertyChanged;
+        public event EventHandler ComponentTypeChanged;
+        public event EventHandler NameChanged;
+        public event EventHandler IsLibraryChanged;
+
+        private void OnComponentTypeChanged()
+        {
+            ComponentTypeChanged?.Invoke(this, new System.EventArgs());
+        }
+
+        //public ComponentObject Component { get; set; }
+
+        public void UpdateName()
+		{
+			var componentBehaviorController = new ComponentBehaviorController();
+
+			Name = componentBehaviorController.GetComponentNameByTemplate(Type.ComponentNameTemplate/*Component.ComponentTypeObject.ComponentNameTemplate*/,
+				Properties.ToList());
+
+			OnNameChanged();
+		}
+
+        public ReadOnlyCollection&lt;IReference&gt; References
+        {
+            get { return _referenceContainer.References; }
+        }
+        public IReference AddReference(IProduct child)
+        {
+	        if (!(child is DummyProduct))
+	        {
+		        _referenceContainer.ClearDummy();
+	        }
+            return _referenceContainer.AddReference(this, child);
+        }
+
+        public IReference AddReference(IProduct child, IDictionary&lt;string, string&gt; variables)
+        {
+            //if (!(child is DummyProduct))
+            //{
+            //    _referenceContainer.ClearDummy();
+            //}
+
+            return _referenceContainer.AddReference(this, child, variables);
+        }
+
+        private bool _referencesLoaded;
+        public bool ReferencesLoaded {
+            get { return _referencesLoaded; }
+            set
+            {
+                if (_referencesLoaded != value)
+                {
+                    _referencesLoaded = value;
+                    OnReferencesLoadedChanged();
+                }
+            }
+        }
+
+        private void OnReferencesLoadedChanged()
+        {
+            EventHandler handler = ReferencesLoadedChanged;
+            if (handler != null) handler(this, new System.EventArgs());
+        }
+
+
+        public void RemoveReference(IProduct child)
+        {
+            _referenceContainer.RemoveReferences(child);
+        }
+
+        public void RemoveReference(IReference reference)
+        {
+            _referenceContainer.RemoveReference(reference);
+        }
+
+        public void DeleteReference(IProduct product)
+        {
+            _referenceContainer.DeleteReference(product);
+        }
+
+        public void DeleteReference(IReference reference)
+        {
+            _referenceContainer.DeleteReference(reference);
+        }
+
+        public void RestoreReference(IProduct product)
+        {
+            _referenceContainer.RestoreReference(product);
+        }
+
+        public IEnumerable&lt;IProduct&gt; GetAllChildProduct()
+        {
+			var products = new List&lt;IProduct&gt;();
+	        foreach (var reference in References)
+	        {
+		        products.Add(reference.Child);
+				products.AddRange(reference.Child.GetAllChildProduct()); 
+	        }
+
+	        return products.Distinct();
+        }
+
+        public void RestoreReference(IReference reference)
+        {
+            _referenceContainer.RestoreReference(reference);
+        }
+
+        public void RemoveAllDeleted()
+        {
+            _referenceContainer.RemoveAllDeleted();
+        }
+
+        public void ClearReferences()
+        {
+            _referenceContainer.ClearReferences();
+        }
+
+        public event EventHandler ReferencesLoadedChanged;
+        public event EventHandler&lt;ProductReferenceRemovedEventArgs&gt; ReferenceRemoved;
+        public event EventHandler&lt;ReferenceEventArgs&gt; NewReferenceAdded;
+        public event EventHandler&lt;ReferencePropertyChangedEventArgs&gt; ReferencePropertyChanged;
+        public event EventHandler&lt;ProductReferenceRemovedEventArgs&gt; ReferenceMarkedAsDeleted;
+        public event EventHandler&lt;ProductReferenceTimestampEventArgs&gt; ReferenceTimestampChanged;
+
+		public bool HasRealChilds()
+		{
+			var emptyChild = References.Count == 0;
+			var hasOnlyDummy = References.Count == 1 &amp;&amp; References[0].Child is DummyProduct;
+			return !(emptyChild || hasOnlyDummy);
+		}
+
+
+		private void ReferenceContainerNewReferenceAdded(object sender, ReferenceEventArgs e)
+        {
+            IsChanged = true;
+            ReferencesLoaded = true;
+
+            OnReferenceAdded(e.Reference);
+        }
+
+        private void OnReferenceAdded(IReference reference)
+        {
+            EventHandler&lt;ReferenceEventArgs&gt; handler = NewReferenceAdded;
+            if (handler != null) handler(this, new ReferenceEventArgs(reference));
+        }
+
+        public ReadOnlyCollection&lt;IProperty&gt; Properties
+        {
+            get { return _propertyContainer.Properties; }
+        }
+
+        public IProperty SetProperty(string variable, string value)
+        {
+            return _propertyContainer.SetProperty(variable, value);
+        }
+
+        public IProperty GetProperty(string variable)
+        {
+            return _propertyContainer.GetProperty(variable);
+        }
+
+        public void RemoveProperty(string variable)
+        {
+            _propertyContainer.RemoveProperty(variable);
+        }
+
+        public void ClearProperties()
+        {
+            _propertyContainer.ClearProperties();
+        }
+
+        public IDictionary&lt;string, string&gt; PropertiesToDictionary()
+        {
+            return Properties.ToDictionary(p =&gt; p.Variable, p =&gt; p.Value, StringComparer.OrdinalIgnoreCase);
+        }
+
+        public string GetSafePropertyValue(string variable)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool IsChanged { get; set; }
+        public bool SuspendChanged { get; set; }
+        public event EventHandler Changed;
+
+        protected virtual void OnNameChanged()
+        {
+	        NameChanged?.Invoke(this, System.EventArgs.Empty);
+        }
+
+
+        public Dictionary&lt;string, Guid&gt; Specifications { get; }
+
+        public void Dispose()
+        {
+            Describe();
+            Specifications.Clear();
+            ClearReferences();
+            ClearProperties();
+
+            //_referenceContainer.ReferenceMarkedAsDeleted -= ReferenceContainerOnReferenceMarkedAsDeleted;
+            //_referenceContainer.NewReferenceAdded -= ReferenceContainerNewReferenceAdded;
+        }
+
+        protected virtual void OnReferenceRemoved(ProductReferenceRemovedEventArgs e)
+        {
+	        ReferenceRemoved?.Invoke(this, e);
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[20,9,20,89,1],[21,9,21,92,1],[23,3,23,20,1],[24,9,24,10,1],[25,13,25,25,1],[26,13,26,61,1],[27,9,27,10,1],[29,49,29,55,1],[30,9,30,10,1],[31,10,31,43,1],[32,10,32,11,0],[33,5,33,31,0],[34,5,34,18,0],[35,4,35,5,0],[36,9,36,10,1],[40,9,40,10,1],[41,10,41,122,1],[42,10,42,11,0],[43,11,43,90,0],[46,10,46,71,1],[47,10,47,118,1],[49,10,49,85,1],[51,10,51,28,1],[52,9,52,10,1],[55,9,55,10,0],[56,13,56,30,0],[57,13,57,37,0],[59,13,59,53,0],[60,9,60,10,0],[63,9,63,10,1],[64,13,64,90,1],[65,13,65,106,1],[66,4,66,81,1],[68,3,68,4,1],[71,9,71,10,0],[72,10,72,32,0],[73,9,73,10,0],[76,9,76,10,0],[77,13,77,90,0],[78,13,78,106,0],[79,13,79,90,0],[80,3,80,4,0],[83,9,83,10,0],[84,13,84,95,0],[85,13,85,33,0],[85,34,85,97,0],[86,9,86,10,0],[92,9,92,10,0],[93,13,93,90,0],[94,13,94,64,0],[94,64,94,87,0],[94,87,94,100,0],[94,13,94,100,0],[95,13,95,20,0],[95,22,95,41,0],[95,42,95,44,0],[95,45,95,60,0],[96,13,96,14,0],[97,17,97,90,0],[98,17,98,68,0],[98,68,98,112,0],[98,112,98,114,0],[98,17,98,114,0],[99,17,99,43,0],[100,17,100,18,0],[101,21,101,67,0],[102,21,102,77,0],[103,21,103,79,0],[104,21,104,73,0],[105,17,105,18,0],[106,13,106,14,0],[107,9,107,10,0],[109,9,109,69,1],[114,10,114,11,1],[115,11,115,45,1],[116,11,116,12,1],[117,12,117,40,1],[120,11,120,34,1],[121,10,121,11,1],[124,39,124,43,1],[124,44,124,48,1],[129,24,129,28,0],[129,29,129,33,0],[131,37,131,41,0],[134,13,134,14,0],[135,17,135,56,0],[135,56,135,74,0],[135,74,135,88,0],[135,88,135,162,0],[135,162,135,173,0],[135,17,135,173,0],[137,17,137,69,0],[138,13,138,14,0],[145,13,145,14,1],[146,17,146,30,1],[147,13,147,14,1],[149,13,149,14,1],[150,17,150,35,1],[151,21,151,62,0],[153,17,153,36,1],[154,17,154,18,1],[155,21,155,35,1],[157,21,157,46,1],[158,17,158,18,1],[159,13,159,14,1],[161,34,161,38,0],[161,39,161,43,0],[162,33,162,37,0],[162,38,162,42,0],[163,29,163,33,0],[163,34,163,38,1],[164,59,164,63,0],[168,9,168,10,0],[169,13,169,49,0],[181,9,181,10,1],[182,13,182,72,1],[183,9,183,10,1],[188,3,188,4,0],[189,4,189,72,0],[191,4,192,26,0],[194,4,194,20,0],[195,3,195,4,0],[199,17,199,18,1],[199,19,199,57,1],[199,58,199,59,1],[202,9,202,10,0],[203,10,203,39,0],[204,10,204,11,0],[205,11,205,44,0],[206,10,206,11,0],[207,13,207,66,0],[208,9,208,10,0],[211,9,211,10,1],[217,13,217,77,1],[218,9,218,10,1],[222,17,222,18,0],[222,19,222,44,0],[222,45,222,46,0],[224,13,224,14,1],[225,17,225,48,1],[226,17,226,18,1],[227,21,227,47,1],[228,21,228,49,1],[229,17,229,18,1],[230,13,230,14,1],[234,9,234,10,1],[235,13,235,60,1],[236,13,236,33,1],[236,34,236,72,0],[237,9,237,10,1],[241,9,241,10,0],[242,13,242,57,0],[243,9,243,10,0],[246,9,246,10,0],[247,13,247,60,0],[248,9,248,10,0],[251,9,251,10,0],[252,13,252,58,0],[253,9,253,10,0],[256,9,256,10,0],[257,13,257,60,0],[258,9,258,10,0],[261,9,261,10,0],[262,13,262,59,0],[263,9,263,10,0],[266,9,266,10,0],[267,4,267,40,0],[268,10,268,17,0],[268,19,268,32,0],[268,33,268,35,0],[268,36,268,46,0],[269,10,269,11,0],[270,11,270,41,0],[271,5,271,61,0],[272,10,272,11,0],[274,10,274,37,0],[275,9,275,10,0],[278,9,278,10,0],[279,13,279,61,0],[280,9,280,10,0],[283,9,283,10,0],[284,13,284,52,0],[285,9,285,10,0],[288,9,288,10,0],[289,13,289,51,0],[290,9,290,10,0],[300,3,300,4,0],[301,4,301,43,0],[302,4,302,84,0],[303,4,303,41,0],[304,3,304,4,0],[308,9,308,10,1],[309,13,309,30,1],[310,13,310,37,1],[312,13,312,43,1],[313,9,313,10,1],[316,9,316,10,1],[317,13,317,74,1],[318,13,318,33,1],[318,34,318,83,0],[319,9,319,10,1],[323,17,323,18,0],[323,19,323,56,0],[323,57,323,58,0],[327,9,327,10,1],[328,13,328,68,1],[329,9,329,10,1],[332,9,332,10,0],[333,13,333,61,0],[334,9,334,10,0],[337,9,337,10,0],[338,13,338,57,0],[339,9,339,10,0],[342,9,342,10,0],[343,13,343,50,0],[344,9,344,10,0],[347,9,347,10,0],[348,13,348,49,0],[348,49,348,59,0],[348,59,348,66,0],[348,66,348,73,0],[348,73,348,109,0],[348,13,348,109,0],[349,9,349,10,0],[352,9,352,10,0],[353,13,353,49,0],[356,33,356,37,0],[356,38,356,42,1],[357,38,357,42,0],[357,43,357,47,1],[361,9,361,10,0],[362,10,362,60,0],[363,9,363,10,0],[366,58,366,62,0],[369,9,369,10,0],[370,13,370,24,0],[371,13,371,36,0],[372,13,372,31,0],[373,13,373,31,0],[377,9,377,10,0],[380,9,380,10,0],[381,10,381,44,0],[382,9,382,10,0]]);
+    </script>
+  </body>
+</html>

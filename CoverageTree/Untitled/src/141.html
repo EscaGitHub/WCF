@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Domain\Services\Boms\BomChain.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Okei;
+using Swr.Capital1C.Service.Domain.Services.Boms.Exceptions;
+using Swr.Capital1C.Service.Domain.Services.Boms.Models;
+using Swr.Capital1C.Service.Domain.Services.Boms.Models.In;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Exceptions;
+using Swr.Capital1C.Service.Infrastructure;
+using Swr.Capital1C.Service.Infrastructure.Boms;
+using Swr.Capital1C.Service.Infrastructure.Nomenclatures;
+using Swr.Capital1C.Service.Logger;
+using Swr.Capital1C.Service.Repositories;
+using Swr.Capital1C.Service.Settings.Model;
+using Swr.Infrastructure.Mailing;
+
+namespace Swr.Capital1C.Service.Domain.Services.Boms
+{
+    public class BomChain
+    {
+        private readonly NLog.Logger _logger = LogHelper.Instance.GetLogger(&quot;Цепочка получения спецификаций&quot;);
+        private List&lt;string&gt; _errors;
+
+        public List&lt;string&gt; Errors =&gt; _errors;
+
+        public BomChain()
+        {
+            _errors = new List&lt;string&gt;();
+        }
+
+        public BOM[] Get(ICommonSettings commonSettings)
+        {
+            _errors.Clear();
+
+            _logger.Info(&quot;Загрузка изменившихся спецификаций со статусом переменной...&quot;);
+
+            var repository = new ChangedDocumentsRepository(commonSettings);
+            var changedDocuments = repository.GetDocuments(CatalogTypeEnum.Specification);
+
+            _logger.Info(&quot;Фильтрация измененных спецификаций...&quot;);
+
+            changedDocuments = ChangedDocumentsFiltering.Filter(changedDocuments);
+
+            _logger.Info(&quot;Получение тел спецификаций из сервиса...&quot;);
+
+            var catalogBoms = GetBoms(changedDocuments, commonSettings.BomCatalogServiceConnection).Result;
+
+            _logger.Info(&quot;Проверка входящих в спецификации номенклатур на ранее переданные...&quot;);
+
+            catalogBoms = ValidateBomComponents(catalogBoms, commonSettings);
+
+            _logger.Info(&quot;Проверка загруженных данных...&quot;);
+
+            catalogBoms = ValidateBoms(catalogBoms, commonSettings.BomDefinition);
+
+            _logger.Info(&quot;Преобразование в сообщение ответ...&quot;);
+
+            var bomsFactory = new BomsFactory(commonSettings, new CachedOkeiService(new OkeiService(commonSettings.OkeiServiceConnection)));
+            var boms = bomsFactory.Create(ref catalogBoms);
+
+            if (bomsFactory.Errors.Count &gt; 0)
+                _errors.Add(string.Join(&quot;\n&quot;, bomsFactory.Errors));
+
+            _logger.Info(&quot;Сохранение спецификаций в переданные...&quot;);
+
+            SaveExportedStatus(catalogBoms, commonSettings);
+
+            return boms;
+        }
+
+        private List&lt;Bom&gt; ValidateBomComponents(List&lt;Bom&gt; catalogBoms, ICommonSettings settings)
+        {
+            var serviceAttributeAlias = &quot;Служебная запись&quot;;
+
+            var connectionString = settings.ExportedDocumentsStatusDbConnection.ConnectionString();
+            var idVariableName = settings.BomDefinition.GetAttributeNameByMessageAttribute(&quot;CHILD_ID&quot;);
+
+            IExportedItemRepository repository = new ExportedItemRepository(connectionString);
+
+            var result = new List&lt;Bom&gt;();
+
+            try
+            {
+                _logger.Debug($&quot;Спецификаций до проверки компонентов &#39;{catalogBoms.Count}&#39;&quot;);
+
+                foreach (var catalogBom in catalogBoms)
+                {
+                    try
+                    {
+                        foreach (var catalogBomComponent in catalogBom.Components)
+                        {
+                            if(catalogBomComponent.IsService(serviceAttributeAlias))
+                                throw new BomIsInvalidException($&quot;Спецификация с идентификатором &#39;{catalogBom.Id}&#39; содержит служебные компоненты.&quot;);
+
+                            var article = catalogBomComponent.GetValueOrDefault(idVariableName);
+
+                            var latestExported = repository.GetByIdAndTypeAsync(article, 0).Result;
+
+                            if(latestExported == null)
+                                throw new BomIsInvalidException($&quot;Спецификация с идентификатором &#39;{catalogBom.Id}&#39; содержит в составе не переданную ранее номенклатуру с идентификатором &#39;{catalogBomComponent.Id}&#39;.&quot;);
+                        }
+
+                        result.Add(catalogBom);
+                    }
+                    catch (BomIsInvalidException e)
+                    {
+                        _errors.Add(e.Message);
+                        _logger.Warn(e.Message);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, $&quot;Ошибка при проверке компонентов спецификаций&quot;);
+                throw;
+            }
+
+            _logger.Debug($&quot;Спецификаций после проверки компонентов &#39;{result.Count}&#39;&quot;);
+
+            return result;
+        }
+
+        private List&lt;Bom&gt; ValidateBoms(List&lt;Bom&gt; catalogBoms, BomDefinition settings)
+        {
+            var result = new List&lt;Bom&gt;();
+
+            var bomValidation = new BomValidation();
+
+            try
+            {
+                _logger.Debug($&quot;Спецификаций до проверки полей атрибутов &#39;{catalogBoms.Count}&#39;&quot;);
+
+                foreach (var catalogBom in catalogBoms)
+                {
+                    try
+                    {
+                        bomValidation.Run(catalogBom);
+
+                        result.Add(catalogBom);
+                    }
+                    catch (BomIsInvalidException e)
+                    {
+                        _errors.Add(e.Message);
+                        _logger.Warn(e.Message);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, $&quot;Ошибка при проверке спецификаций&quot;);
+                throw;
+            }
+
+            _logger.Debug($&quot;Спецификаций после проверки полей атрибутов &#39;{result.Count}&#39;&quot;);
+
+            return result;
+        }
+
+        private void SaveExportedStatus(List&lt;Bom&gt; boms, ICommonSettings settings)
+        {
+            var connectionString = settings.ExportedDocumentsStatusDbConnection.ConnectionString();
+            var idVariableName = settings.BomDefinition.GetAttributeNameByMessageAttribute(&quot;PARENT_ID&quot;);
+
+            IExportedItemRepository repository = new ExportedItemRepository(connectionString);
+
+            try
+            {
+                const int documentTypeId = (int)CatalogTypeEnum.Specification;
+
+                foreach (var bom in boms)
+                {
+                    var article = bom.GetValueOrDefault(idVariableName);
+
+                    try
+                    {
+                        var latestExported = repository.GetByIdAndTypeAsync(article, documentTypeId).Result;
+
+                        if (latestExported != null &amp;&amp; bom.ModifiedDate &lt; latestExported.ModifiedDate)
+                            throw new NomenclatureIsOutdatedException();
+
+                        if (latestExported == null)
+                        {
+                            var task = repository.AddAsync(new ExportedItem(article, bom.ModifiedDate, documentTypeId));
+
+                            task.Wait();
+                        }
+                        else
+                        {
+                            latestExported.ModifiedDate = bom.ModifiedDate;
+
+                            repository.UpdateAsync(latestExported);
+                        }
+                    }
+                    catch (NomenclatureIsOutdatedException e)
+                    {
+                        var message = $&quot;Ранее была передана новая версия спецификации с кодом &#39;{article}&#39; (идентификатор &#39;{bom.Id}&#39;).&quot;;
+                        _errors.Add(message);
+                        _logger.Error(e, message);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, &quot;Ошибка при сохранении номенклатур в переданные&quot;);
+                throw;
+            }
+        }
+
+        private async Task&lt;List&lt;Bom&gt;&gt; GetBoms(List&lt;ChangedDocument&gt; changedDocuments, CatalogServiceConnection settings)
+        {
+            var result = new List&lt;Bom&gt;();
+
+            using (var service = new BomCatalogService(settings))
+            {
+                foreach (var changedDocument in changedDocuments)
+                {
+                    var id = changedDocument.GetUniqueId();
+
+                    try
+                    {
+                        _logger.Info($&quot;Запрос данных спецификации по идентификатору &#39;{id}&#39;...&quot;);
+
+                        var bom = await service.GetBomAsync(id);
+
+                        if (bom != null) result.Add(bom);
+                        else
+                        {
+                            throw new BomNotFoundException();
+                        }
+
+                        _logger.Info($&quot;Запрос данных спецификации по идентификатору &#39;{id}&#39; выполнен.&quot;);
+                    }
+                    catch (BomNotFoundException e)
+                    {
+                        var message = $&quot;Спецификация с идентификатором &#39;{id}&#39; не найдена.&quot;;
+                        _errors.Add(message);
+                        _logger.Warn(e, message);
+                    }
+                    catch (BomIsInvalidException e)
+                    {
+                        var message = $&quot;Спецификация с идентификатором &#39;{id}&#39; не корректна. Номенклатура не будет передана.&quot;;
+                        _errors.Add(message + Environment.NewLine + e.Message);
+                        _logger.Warn(e, message);
+                    }
+                    catch (BomIsNotSatisfyDefinitionException e)
+                    {
+                        var message = $&quot;Спецификация с идентификатором &#39;{id}&#39; не удовлетворяет определению. Спецификация не будет передана.&quot;;
+                        _errors.Add(message);
+                        _logger.Warn(e, message);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.Error(e, $&quot;Ошибка при получении тела спецификации с артикулом &#39;{changedDocument.Article}&#39; и идентификатором &#39;{id}&#39;&quot;);
+                        throw;
+                    }
+                }
+            }
+
+            _logger.Debug($&quot;Получено тел номенклатур из сервиса &#39;{result.Count}&#39;&quot;);
+
+            return result;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[25,9,25,111,1],[28,39,28,46,1],[30,9,30,26,1],[31,9,31,10,1],[32,13,32,42,1],[33,9,33,10,1],[36,9,36,10,1],[37,13,37,29,1],[39,13,39,90,1],[41,13,41,77,1],[42,13,42,91,1],[44,13,44,67,1],[46,13,46,83,1],[48,13,48,70,1],[50,13,50,108,1],[52,13,52,97,1],[54,13,54,78,1],[56,13,56,60,1],[58,13,58,83,1],[60,13,60,65,1],[62,13,62,141,1],[63,13,63,60,1],[65,13,65,46,1],[66,17,66,68,0],[68,13,68,69,1],[70,13,70,61,1],[72,13,72,25,1],[73,9,73,10,1],[76,9,76,10,1],[77,13,77,60,1],[79,13,79,100,1],[80,13,80,104,1],[82,13,82,95,1],[84,13,84,42,1],[87,13,87,14,1],[88,17,88,94,1],[90,17,90,24,1],[90,26,90,40,1],[90,41,90,43,1],[90,44,90,55,1],[91,17,91,18,1],[93,21,93,22,1],[94,25,94,32,1],[94,34,94,57,1],[94,58,94,60,1],[94,61,94,82,1],[95,25,95,26,1],[96,29,96,85,1],[97,33,97,149,0],[99,29,99,97,1],[101,29,101,100,1],[103,29,103,55,1],[104,33,104,216,0],[105,25,105,26,1],[107,25,107,48,1],[108,21,108,22,1],[109,21,109,52,0],[110,21,110,22,0],[111,25,111,48,0],[112,25,112,49,0],[113,21,113,22,0],[114,17,114,18,1],[115,13,115,14,1],[116,13,116,32,0],[117,13,117,14,0],[118,17,118,83,0],[119,17,119,23,0],[122,13,122,88,1],[124,13,124,27,1],[125,9,125,10,1],[128,9,128,10,1],[129,13,129,42,1],[131,13,131,53,1],[134,13,134,14,1],[135,17,135,98,1],[137,17,137,24,1],[137,26,137,40,1],[137,41,137,43,1],[137,44,137,55,1],[138,17,138,18,1],[140,21,140,22,1],[141,25,141,55,1],[143,25,143,48,1],[144,21,144,22,1],[145,21,145,52,0],[146,21,146,22,0],[147,25,147,48,0],[148,25,148,49,0],[149,21,149,22,0],[150,17,150,18,1],[151,13,151,14,1],[152,13,152,32,0],[153,13,153,14,0],[154,17,154,71,0],[155,17,155,23,0],[158,13,158,92,1],[160,13,160,27,1],[161,9,161,10,1],[164,9,164,10,1],[165,13,165,100,1],[166,13,166,105,1],[168,13,168,95,1],[171,13,171,14,1],[174,17,174,24,1],[174,26,174,33,1],[174,34,174,36,1],[174,37,174,41,1],[175,17,175,18,1],[176,21,176,73,1],[179,21,179,22,1],[180,25,180,109,1],[182,25,182,102,1],[183,29,183,73,0],[185,25,185,52,1],[186,25,186,26,0],[187,29,187,121,0],[189,29,189,41,0],[190,25,190,26,0],[192,25,192,26,1],[193,29,193,76,1],[195,29,195,68,1],[196,25,196,26,1],[197,21,197,22,1],[198,21,198,62,0],[199,21,199,22,0],[200,25,200,136,0],[201,25,201,46,0],[202,25,202,51,0],[203,21,203,22,0],[204,17,204,18,1],[205,13,205,14,1],[206,13,206,32,0],[207,13,207,14,0],[208,17,208,84,0],[209,17,209,23,0],[211,9,211,10,1],[214,9,214,10,1],[215,13,215,42,1],[217,20,217,65,1],[218,13,218,14,1],[219,17,219,24,1],[219,26,219,45,1],[219,46,219,48,1],[219,49,219,65,1],[220,17,220,18,1],[221,21,221,60,1],[224,21,224,22,1],[225,25,225,97,1],[227,25,227,65,1],[229,25,229,41,1],[229,42,229,58,1],[231,25,231,26,0],[232,29,232,62,0],[235,25,235,104,1],[236,21,236,22,1],[237,21,237,51,0],[238,21,238,22,0],[239,25,239,92,0],[240,25,240,46,0],[241,25,241,50,0],[242,21,242,22,0],[243,21,243,52,0],[244,21,244,22,0],[245,25,245,126,0],[246,25,246,80,0],[247,25,247,50,0],[248,21,248,22,0],[249,21,249,65,1],[250,21,250,22,1],[251,25,251,142,1],[252,25,252,46,1],[253,25,253,50,1],[254,21,254,22,1],[255,21,255,40,0],[256,21,256,22,0],[257,25,257,150,0],[258,25,258,31,0],[260,17,260,18,1],[261,13,261,14,1],[263,13,263,84,1],[265,13,265,27,1],[266,9,266,10,1]]);
+    </script>
+  </body>
+</html>

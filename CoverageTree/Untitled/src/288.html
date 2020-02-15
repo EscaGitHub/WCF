@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\WebApi\IdentityClient.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Net.Http;
+using System.Security.Claims;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using IdentityModel.Client;
+using SWR_Tools.Security;
+
+namespace Swr.Configurator.WebApi
+{
+	public class IdentityClient
+	{
+		private static TokenResponse _instance;
+
+		internal static TokenResponse Instance
+		{
+			get { return _instance; }
+		}
+
+		public static async Task&lt;TokenResponse&gt; GetToken(string userName, string password)
+        {
+			if (_instance==null || _instance.AccessToken==null)
+			{
+				_instance = await Auth(userName, password);
+			}
+
+			return _instance;
+		}
+
+		private static async Task&lt;TokenResponse&gt; Auth(string userName, string password)
+		{
+			var protocolClient = new HttpClient();
+			CancellationTokenSource source = new CancellationTokenSource();
+			CancellationToken token = source.Token;
+			token.ThrowIfCancellationRequested();
+			source.CancelAfter(10000);
+
+            //var path = WebApiPaths.GetIdentityAddress();
+
+            //var disco = await protocolClient.GetDiscoveryDocumentAsync(path, token);
+
+            //        var disco = await protocolClient.GetDiscoveryDocumentAsync(new DiscoveryDocumentRequest
+            //        {
+            //            Address = WebApiPaths.GetIdentityAddress(),
+            //            Policy =
+            //            {
+            //                ValidateIssuerName = false,
+            //                RequireHttps = false,
+            //      // ValidateEndpoints = false,
+            ////AuthorityValidationStrategy = AuthorityUrlValidationStrategy.Instance,
+            //       //AuthorityNameComparison = StringComparison.OrdinalIgnoreCase
+            //   }
+            //        }, token);
+
+
+
+            //if (disco.IsError) throw new Exception(disco.Error);
+
+
+			return await protocolClient.RequestPasswordTokenAsync(new PasswordTokenRequest
+			{
+                Address = WebApiPaths.GetIdentityAddress() + &quot;/connect/token&quot;, // disco.TokenEndpoint,
+                //Address = disco.TokenEndpoint,
+                ClientId = &quot;5586b631-8bc2-4423-bac4-5e82d6995681&quot;, // общий для всего приложения
+				ClientSecret = &quot;secret&quot;,
+				Password = password,
+				UserName = userName,
+				Scope = &quot;SWR-API openid&quot;
+			}, token);
+			
+		}
+
+		public static async Task&lt;List&lt;Claim&gt;&gt; GetUserInfo()
+		{
+			var protocolClient = new HttpClient();
+
+            CancellationTokenSource source = new CancellationTokenSource();
+			CancellationToken token = source.Token;
+			token.ThrowIfCancellationRequested();
+			source.CancelAfter(5000);
+
+			//var disco = protocolClient.GetDiscoveryDocumentAsync(WebApiPaths.GetIdentityAddress(), token).Result;
+			//if (disco.IsError) throw new Exception(disco.Error);
+
+			var client = new HttpClient();
+			//client.SetBearerToken(Instance.AccessToken);
+
+			var response = await client.GetUserInfoAsync(new UserInfoRequest
+			{
+				Address = WebApiPaths.GetIdentityAddress() + &quot;/connect/userinfo&quot;,
+				Token = Instance.AccessToken
+			}, token);
+
+			return response.Claims?.ToList();
+		}
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[21,8,21,9,1],[21,10,21,27,1],[21,28,21,29,1],[25,9,25,10,1],[26,4,26,55,1],[27,4,27,5,1],[28,5,28,48,1],[29,4,29,5,1],[31,4,31,21,1],[32,3,32,4,1],[35,3,35,4,1],[36,4,36,42,1],[37,4,37,67,1],[38,4,38,43,1],[39,4,39,41,1],[40,4,40,30,1],[64,4,73,14,1],[75,3,75,4,1],[78,3,78,4,1],[79,4,79,42,1],[81,13,81,76,1],[82,4,82,43,1],[83,4,83,41,1],[84,4,84,29,1],[89,4,89,34,1],[92,4,96,14,1],[98,4,98,37,1],[99,3,99,4,1]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Controls\MultiSelectTreeListViewControls\MultiSelectTreeView.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Media3D;
+
+namespace Swr.Configurator.View.Controls.MultiSelectTreeListViewControls
+{
+	public class MultiSelectTreeView : TreeView
+	{
+		public MultiSelectTreeView()
+		{
+			GotFocus += OnTreeViewItemGotFocus;
+			PreviewMouseLeftButtonUp += OnTreeViewItemPreviewMouseUp;
+		}
+
+		private static TreeViewItem _selectTreeViewItemOnMouseUp;
+
+
+		public static readonly DependencyProperty IsItemSelectedProperty = DependencyProperty.RegisterAttached(&quot;IsItemSelected&quot;, typeof(Boolean), typeof(MultiSelectTreeView), new PropertyMetadata(false, OnIsItemSelectedPropertyChanged));
+
+		public static bool GetIsItemSelected(TreeViewItem element)
+		{
+			return (bool)element.GetValue(IsItemSelectedProperty);
+		}
+
+		public static void SetIsItemSelected(TreeViewItem element, Boolean value)
+		{
+			element?.SetValue(IsItemSelectedProperty, value);
+		}
+
+		private static void OnIsItemSelectedPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+		{
+			var treeViewItem = d as TreeViewItem;
+			var treeView = FindTreeView&lt;TreeView&gt;(treeViewItem);
+			if (treeViewItem != null &amp;&amp; treeView != null)
+			{
+				var selectedItems = GetSelectedItems(treeView);
+				if (selectedItems != null)
+				{
+					if (GetIsItemSelected(treeViewItem))
+					{
+                        if (!selectedItems.Contains(treeViewItem.DataContext)) selectedItems.Add(treeViewItem.DataContext);
+					}
+					else
+					{
+						selectedItems.Remove(treeViewItem.DataContext);
+					}
+				}
+			}
+		}
+
+		public static readonly DependencyProperty SelectedItemsProperty = DependencyProperty.RegisterAttached(&quot;SelectedItems&quot;, typeof(IList), typeof(MultiSelectTreeView));
+
+		public static IList GetSelectedItems(TreeView element)
+		{
+			return (IList)element.GetValue(SelectedItemsProperty);
+		}
+
+		public static void SetSelectedItems(TreeView element, IList value)
+		{
+			element.SetValue(SelectedItemsProperty, value);
+		}
+
+		private static readonly DependencyProperty StartItemProperty = DependencyProperty.RegisterAttached(&quot;StartItem&quot;, typeof(TreeViewItem), typeof(MultiSelectTreeView));
+
+
+		private static TreeViewItem GetStartItem(TreeView element)
+		{
+			return (TreeViewItem)element.GetValue(StartItemProperty);
+		}
+
+		private static void SetStartItem(TreeView element, TreeViewItem value)
+		{
+			element.SetValue(StartItemProperty, value);
+		}
+
+
+		private static void OnTreeViewItemGotFocus(object sender, RoutedEventArgs e)
+		{
+			_selectTreeViewItemOnMouseUp = null;
+
+			if (e.OriginalSource is TreeView)
+				return;
+
+			var treeViewItem = FindTreeViewItem(e.OriginalSource as DependencyObject);
+			if (Mouse.LeftButton == MouseButtonState.Pressed &amp;&amp; GetIsItemSelected(treeViewItem) &amp;&amp; Keyboard.Modifiers != ModifierKeys.Control)
+			{
+				_selectTreeViewItemOnMouseUp = treeViewItem;
+				return;
+			}
+
+			SelectItems(treeViewItem, sender as TreeView);
+		}
+
+		private static void SelectItems(TreeViewItem treeViewItem, TreeView treeView)
+		{
+			if (treeViewItem != null &amp;&amp; treeView != null)
+			{
+				if ((Keyboard.Modifiers &amp; (ModifierKeys.Control | ModifierKeys.Shift)) == (ModifierKeys.Control | ModifierKeys.Shift))
+				{
+					SelectMultipleItemsContinuously(treeView, treeViewItem, true);
+				}
+				else if (Keyboard.Modifiers == ModifierKeys.Control)
+				{
+					SelectMultipleItemsRandomly(treeView, treeViewItem);
+				}
+				else if (Keyboard.Modifiers == ModifierKeys.Shift)
+				{
+					SelectMultipleItemsContinuously(treeView, treeViewItem);
+				}
+				else
+				{
+					SelectSingleItem(treeView, treeViewItem);
+				}
+			}
+		}
+
+		private static void OnTreeViewItemPreviewMouseUp(object sender, MouseButtonEventArgs e)
+		{
+			var treeViewItem = FindTreeViewItem(e.OriginalSource as DependencyObject);
+
+			if (treeViewItem == _selectTreeViewItemOnMouseUp)
+				SelectItems(treeViewItem, sender as TreeView);
+		}
+
+		private static TreeViewItem FindTreeViewItem(DependencyObject dependencyObject)
+		{
+			if (!(dependencyObject is Visual || dependencyObject is Visual3D))
+				return null;
+
+			var treeViewItem = dependencyObject as TreeViewItem;
+			if (treeViewItem != null)
+			{
+				return treeViewItem;
+			}
+
+			return FindTreeViewItem(VisualTreeHelper.GetParent(dependencyObject));
+		}
+
+		private static void SelectSingleItem(TreeView treeView, TreeViewItem treeViewItem)
+		{
+			// first deselect all items
+			DeSelectAllItems(treeView, null);
+
+			var selectedItems = GetSelectedItems(treeView);
+			selectedItems?.Clear();
+
+			SetIsItemSelected(treeViewItem, true);
+			SetStartItem(treeView, treeViewItem);
+		}
+
+		private static void DeSelectAllItems(TreeView treeView, TreeViewItem treeViewItem)
+		{
+			if (treeView != null)
+			{
+				for (int i = 0; i &lt; treeView.Items.Count; i++)
+				{
+					var item = treeView.ItemContainerGenerator.ContainerFromIndex(i) as TreeViewItem;
+					if (item != null)
+					{
+						SetIsItemSelected(item, false);
+						DeSelectAllItems(null, item);
+					}
+				}
+			}
+			else
+			{
+				for (int i = 0; i &lt; treeViewItem.Items.Count; i++)
+				{
+					var item = treeViewItem.ItemContainerGenerator.ContainerFromIndex(i) as TreeViewItem;
+					if (item != null)
+					{
+						SetIsItemSelected(item, false);
+						DeSelectAllItems(null, item);
+					}
+				}
+			}
+		}
+
+		private static T FindTreeView&lt;T&gt;(DependencyObject dependencyObject) where T: TreeView
+		{
+			if (dependencyObject == null)
+			{
+				return null;
+			}
+
+			var treeView = dependencyObject as T;
+
+			return treeView ?? FindTreeView&lt;T&gt;(VisualTreeHelper.GetParent(dependencyObject));
+		}
+
+		private static void SelectMultipleItemsRandomly(TreeView treeView, TreeViewItem treeViewItem)
+		{
+			SetIsItemSelected(treeViewItem, !GetIsItemSelected(treeViewItem));
+			if (GetStartItem(treeView) == null || Keyboard.Modifiers == ModifierKeys.Control)
+			{
+				if (GetIsItemSelected(treeViewItem))
+				{
+					SetStartItem(treeView, treeViewItem);
+				}
+			}
+			else
+			{
+				if (GetSelectedItems(treeView).Count == 0)
+				{
+					SetStartItem(treeView, null);
+				}
+			}
+		}
+
+		private static void SelectMultipleItemsContinuously(TreeView treeView, TreeViewItem treeViewItem, bool shiftControl = false)
+		{
+			TreeViewItem startItem = GetStartItem(treeView);
+			if (startItem != null)
+			{
+				if (startItem == treeViewItem)
+				{
+					SelectSingleItem(treeView, treeViewItem);
+					return;
+				}
+
+				ICollection&lt;TreeViewItem&gt; allItems = new List&lt;TreeViewItem&gt;();
+				GetAllItems(treeView, null, allItems);
+				//DeSelectAllItems(treeView, null);
+				bool isBetween = false;
+				foreach (var item in allItems)
+				{
+					if (item == treeViewItem || item == startItem)
+					{
+						// toggle to true if first element is found and
+						// back to false if last element is found
+						isBetween = !isBetween;
+
+						// set boundary element
+						SetIsItemSelected(item, true);
+						continue;
+					}
+
+					if (isBetween)
+					{
+						SetIsItemSelected(item, true);
+						continue;
+					}
+
+					if (!shiftControl)
+						SetIsItemSelected(item, false);
+				}
+			}
+		}
+
+		private static void GetAllItems(TreeView treeView, TreeViewItem treeViewItem, ICollection&lt;TreeViewItem&gt; allItems)
+		{
+			if (treeView != null)
+			{
+				for (int i = 0; i &lt; treeView.Items.Count; i++)
+				{
+					var item = treeView.ItemContainerGenerator.ContainerFromIndex(i) as TreeViewItem;
+					if (item != null)
+					{
+						allItems.Add(item);
+						GetAllItems(null, item, allItems);
+					}
+				}
+			}
+			else
+			{
+				for (int i = 0; i &lt; treeViewItem.Items.Count; i++)
+				{
+					var item = treeViewItem.ItemContainerGenerator.ContainerFromIndex(i) as TreeViewItem;
+					if (item != null)
+					{
+						allItems.Add(item);
+						GetAllItems(null, item, allItems);
+					}
+				}
+			}
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,3,14,31,0],[15,3,15,4,0],[16,4,16,39,0],[17,4,17,61,0],[18,3,18,4,0],[23,3,23,232,0],[26,3,26,4,0],[27,4,27,58,0],[28,3,28,4,0],[31,3,31,4,0],[32,4,32,53,0],[33,3,33,4,0],[36,3,36,4,0],[37,4,37,41,0],[38,4,38,56,0],[39,4,39,49,0],[40,4,40,5,0],[41,5,41,52,0],[42,5,42,31,0],[43,5,43,6,0],[44,6,44,42,0],[45,6,45,7,0],[46,25,46,79,0],[46,80,46,124,0],[47,6,47,7,0],[49,6,49,7,0],[50,7,50,54,0],[51,6,51,7,0],[52,5,52,6,0],[53,4,53,5,0],[54,3,54,4,0],[56,3,56,166,0],[59,3,59,4,0],[60,4,60,58,0],[61,3,61,4,0],[64,3,64,4,0],[65,4,65,51,0],[66,3,66,4,0],[68,3,68,166,0],[72,3,72,4,0],[73,4,73,61,0],[74,3,74,4,0],[77,3,77,4,0],[78,4,78,47,0],[79,3,79,4,0],[83,3,83,4,0],[84,4,84,40,0],[86,4,86,37,0],[87,5,87,12,0],[89,4,89,78,0],[90,4,90,134,0],[91,4,91,5,0],[92,5,92,49,0],[93,5,93,12,0],[96,4,96,50,0],[97,3,97,4,0],[100,3,100,4,0],[101,4,101,49,0],[102,4,102,5,0],[103,5,103,123,0],[104,5,104,6,0],[105,6,105,68,0],[106,5,106,6,0],[107,10,107,57,0],[108,5,108,6,0],[109,6,109,58,0],[110,5,110,6,0],[111,10,111,55,0],[112,5,112,6,0],[113,6,113,62,0],[114,5,114,6,0],[116,5,116,6,0],[117,6,117,47,0],[118,5,118,6,0],[119,4,119,5,0],[120,3,120,4,0],[123,3,123,4,0],[124,4,124,78,0],[126,4,126,53,0],[127,5,127,51,0],[128,3,128,4,0],[131,3,131,4,0],[132,4,132,70,0],[133,5,133,17,0],[135,4,135,56,0],[136,4,136,29,0],[137,4,137,5,0],[138,5,138,25,0],[141,4,141,74,0],[142,3,142,4,0],[145,3,145,4,0],[147,4,147,37,0],[149,4,149,51,0],[150,4,150,27,0],[152,4,152,42,0],[153,4,153,41,0],[154,3,154,4,0],[157,3,157,4,0],[158,4,158,25,0],[159,4,159,5,0],[160,10,160,19,0],[160,21,160,45,0],[160,47,160,50,0],[161,5,161,6,0],[162,6,162,87,0],[163,6,163,23,0],[164,6,164,7,0],[165,7,165,38,0],[166,7,166,36,0],[167,6,167,7,0],[168,5,168,6,0],[169,4,169,5,0],[171,4,171,5,0],[172,10,172,19,0],[172,21,172,49,0],[172,51,172,54,0],[173,5,173,6,0],[174,6,174,91,0],[175,6,175,23,0],[176,6,176,7,0],[177,7,177,38,0],[178,7,178,36,0],[179,6,179,7,0],[180,5,180,6,0],[181,4,181,5,0],[182,3,182,4,0],[185,3,185,4,0],[186,4,186,33,0],[187,4,187,5,0],[188,5,188,17,0],[191,4,191,41,0],[193,4,193,85,0],[194,3,194,4,0],[197,3,197,4,0],[198,4,198,70,0],[199,4,199,85,0],[200,4,200,5,0],[201,5,201,41,0],[202,5,202,6,0],[203,6,203,43,0],[204,5,204,6,0],[205,4,205,5,0],[207,4,207,5,0],[208,5,208,47,0],[209,5,209,6,0],[210,6,210,35,0],[211,5,211,6,0],[212,4,212,5,0],[213,3,213,4,0],[216,3,216,4,0],[217,4,217,52,0],[218,4,218,26,0],[219,4,219,5,0],[220,5,220,35,0],[221,5,221,6,0],[222,6,222,47,0],[223,6,223,13,0],[226,5,226,67,0],[227,5,227,43,0],[229,5,229,28,0],[230,5,230,12,0],[230,14,230,22,0],[230,23,230,25,0],[230,26,230,34,0],[231,5,231,6,0],[232,6,232,52,0],[233,6,233,7,0],[236,7,236,30,0],[239,7,239,37,0],[240,7,240,16,0],[243,6,243,20,0],[244,6,244,7,0],[245,7,245,37,0],[246,7,246,16,0],[249,6,249,24,0],[250,7,250,38,0],[251,5,251,6,0],[252,4,252,5,0],[253,3,253,4,0],[256,3,256,4,0],[257,4,257,25,0],[258,4,258,5,0],[259,10,259,19,0],[259,21,259,45,0],[259,47,259,50,0],[260,5,260,6,0],[261,6,261,87,0],[262,6,262,23,0],[263,6,263,7,0],[264,7,264,26,0],[265,7,265,41,0],[266,6,266,7,0],[267,5,267,6,0],[268,4,268,5,0],[270,4,270,5,0],[271,10,271,19,0],[271,21,271,49,0],[271,51,271,54,0],[272,5,272,6,0],[273,6,273,91,0],[274,6,274,23,0],[275,6,275,7,0],[276,7,276,26,0],[277,7,277,41,0],[278,6,278,7,0],[279,5,279,6,0],[280,4,280,5,0],[281,3,281,4,0]]);
+    </script>
+  </body>
+</html>

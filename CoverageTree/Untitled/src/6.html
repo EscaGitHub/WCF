@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\IntegrationTest\NomenclatureQueryTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures;
+using Xunit;
+
+namespace IntegrationTest
+{
+    public class NomenclatureQueryTest
+    {
+        private const string ConnectionString = &quot;Data Source=192.168.1.13;Initial Catalog=PDM;User ID=sa;Password=qwe123PDM;&quot;;
+
+        [Fact]
+        public async void NomenclatureContainsVendorCode_BuildQuery_ShouldReturnNomenclature()
+        {
+            var query = new CatalogItemQuery(ConnectionString, &quot;_Артикул_для_1С&quot;);
+
+            var id = await query.FindByArticleAsync(&quot;P0000036651&quot;);
+
+            Assert.Equal(32444, id.FileId);
+            Assert.Equal(11, id.Version);
+            Assert.Equal(&quot;По умолчанию&quot;, id.Configuration);
+        }
+
+        [Fact]
+        public async void NoNomenclatureWithDesignationValue_BuildQuery_ShouldNothing()
+        {
+            var query = new CatalogItemQuery(ConnectionString, &quot;Обозначение&quot;);
+
+            var id = await query.FindByArticleAsync(&quot;1234567890абвгд&quot;);
+
+            Assert.Null(id);
+        }
+
+        [Fact]
+        public async void NomenclatureContainsDesignationInPreviousVersion_BuildQuery_ShouldReturnNothing()
+        {
+            var query = new CatalogItemQuery(ConnectionString, &quot;Обозначение&quot;);
+
+            var id = await query.FindByArticleAsync(&quot;SWR.006.002&quot;);
+
+            Assert.Null(id);
+        }
+
+        [Fact]
+        public async void NomenclatureIsDeleted_BuildQuery_ShouldReturnNothing()
+        {
+            var query = new CatalogItemQuery(ConnectionString, &quot;Обозначение&quot;);
+
+            var id = await query.FindByArticleAsync(&quot;SWR.006.003&quot;);
+
+            Assert.Null(id);
+        }
+
+        [Fact]
+        public async void TwoNomenclaturesWithSameDesignation_BuildQuery_ShouldThrowException()
+        {
+            var query = new CatalogItemQuery(ConnectionString, &quot;Обозначение&quot;);
+
+            await Assert.ThrowsAsync&lt;FoundMoreThanOneCatalogItemsException&gt;(() =&gt; query.FindByArticleAsync(&quot;SWR.006.005&quot;));
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[17,9,17,10,1],[18,13,18,83,1],[20,13,20,68,1],[22,13,22,44,1],[23,13,23,42,1],[24,13,24,60,1],[25,9,25,10,1],[29,9,29,10,1],[30,13,30,79,1],[32,13,32,72,1],[34,13,34,29,1],[35,9,35,10,1],[39,9,39,10,1],[40,13,40,79,1],[42,13,42,68,1],[44,13,44,29,1],[45,9,45,10,1],[49,9,49,10,1],[50,13,50,79,1],[52,13,52,68,1],[54,13,54,29,1],[55,9,55,10,1],[59,9,59,10,1],[60,13,60,79,1],[62,13,62,124,1],[62,83,62,122,1],[63,9,63,10,1]]);
+    </script>
+  </body>
+</html>

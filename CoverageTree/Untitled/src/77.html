@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\DocumentPaneDropAsAnchorableTarget.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Media;
+using System.Diagnostics;
+using Xceed.Wpf.AvalonDock.Layout;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    internal class DocumentPaneDropAsAnchorableTarget : DropTarget&lt;LayoutDocumentPaneControl&gt;
+    {
+        internal DocumentPaneDropAsAnchorableTarget(LayoutDocumentPaneControl paneControl, Rect detectionRect, DropTargetType type)
+            : base(paneControl, detectionRect, type)
+        {
+            _targetPane = paneControl;
+        }
+
+        internal DocumentPaneDropAsAnchorableTarget(LayoutDocumentPaneControl paneControl, Rect detectionRect, DropTargetType type, int tabIndex)
+            : base(paneControl, detectionRect, type)
+        {
+            _targetPane = paneControl;
+            _tabIndex = tabIndex;
+        }
+
+
+        LayoutDocumentPaneControl _targetPane;
+
+        int _tabIndex = -1;
+
+        protected override void Drop(LayoutAnchorableFloatingWindow floatingWindow)
+        {
+            ILayoutDocumentPane targetModel = _targetPane.Model as ILayoutDocumentPane;
+            LayoutDocumentPaneGroup parentGroup;
+            LayoutPanel parentGroupPanel;
+            FindParentLayoutDocumentPane(targetModel, out parentGroup, out parentGroupPanel);
+
+            switch (Type)
+            {
+                case DropTargetType.DocumentPaneDockAsAnchorableBottom:
+                    #region DropTargetType.DocumentPaneDockAsAnchorableBottom
+                    {
+                        if (parentGroupPanel != null &amp;&amp;
+                            parentGroupPanel.ChildrenCount == 1)
+                            parentGroupPanel.Orientation = System.Windows.Controls.Orientation.Vertical;
+
+                        if (parentGroupPanel != null &amp;&amp;
+                            parentGroupPanel.Orientation == System.Windows.Controls.Orientation.Vertical)
+                        {
+                            parentGroupPanel.Children.Insert(
+                                parentGroupPanel.IndexOfChild(parentGroup != null ? parentGroup : targetModel) + 1,
+                                floatingWindow.RootPanel);
+                        }
+                        else if (parentGroupPanel != null)
+                        {
+                            var newParentPanel = new LayoutPanel() { Orientation = System.Windows.Controls.Orientation.Vertical };
+                            parentGroupPanel.ReplaceChild(parentGroup != null ? parentGroup : targetModel, newParentPanel);
+                            newParentPanel.Children.Add(parentGroup != null ? parentGroup : targetModel);
+                            newParentPanel.Children.Add(floatingWindow.RootPanel);
+                        }
+                        else
+                        {
+                            throw new NotImplementedException();
+                        }
+
+
+                    }
+                    break;
+                    #endregion
+                case DropTargetType.DocumentPaneDockAsAnchorableTop:
+                    #region DropTargetType.DocumentPaneDockAsAnchorableTop
+                    {
+                        if (parentGroupPanel != null &amp;&amp;
+                            parentGroupPanel.ChildrenCount == 1)
+                            parentGroupPanel.Orientation = System.Windows.Controls.Orientation.Vertical;
+
+                        if (parentGroupPanel != null &amp;&amp;
+                            parentGroupPanel.Orientation == System.Windows.Controls.Orientation.Vertical)
+                        {
+                            parentGroupPanel.Children.Insert(
+                                parentGroupPanel.IndexOfChild(parentGroup != null ? parentGroup : targetModel),
+                                floatingWindow.RootPanel);
+                        }
+                        else if (parentGroupPanel != null)
+                        {
+                            var newParentPanel = new LayoutPanel() { Orientation = System.Windows.Controls.Orientation.Vertical };
+                            parentGroupPanel.ReplaceChild(parentGroup != null ? parentGroup : targetModel, newParentPanel);
+                            newParentPanel.Children.Add(parentGroup != null ? parentGroup : targetModel);
+                            newParentPanel.Children.Insert(0, floatingWindow.RootPanel);
+                        }
+                        else
+                        {
+                            throw new NotImplementedException();
+                        }
+
+                    }
+                    break;
+                    #endregion
+                case DropTargetType.DocumentPaneDockAsAnchorableLeft:
+                    #region DropTargetType.DocumentPaneDockAsAnchorableLeft
+                    {
+                        if (parentGroupPanel != null &amp;&amp;
+                            parentGroupPanel.ChildrenCount == 1)
+                            parentGroupPanel.Orientation = System.Windows.Controls.Orientation.Horizontal;
+
+                        if (parentGroupPanel != null &amp;&amp;
+                            parentGroupPanel.Orientation == System.Windows.Controls.Orientation.Horizontal)
+                        {
+                            parentGroupPanel.Children.Insert(
+                                parentGroupPanel.IndexOfChild(parentGroup != null ? parentGroup : targetModel),
+                                floatingWindow.RootPanel);
+                        }
+                        else if (parentGroupPanel != null)
+                        {
+                            var newParentPanel = new LayoutPanel() { Orientation = System.Windows.Controls.Orientation.Horizontal };
+                            parentGroupPanel.ReplaceChild(parentGroup != null ? parentGroup : targetModel, newParentPanel);
+                            newParentPanel.Children.Add(parentGroup != null ? parentGroup : targetModel);
+                            newParentPanel.Children.Insert(0, floatingWindow.RootPanel);
+                        }
+                        else
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                    break;
+                    #endregion
+                case DropTargetType.DocumentPaneDockAsAnchorableRight:
+                    #region DropTargetType.DocumentPaneDockAsAnchorableRight
+                    {
+                        if (parentGroupPanel != null &amp;&amp;
+                            parentGroupPanel.ChildrenCount == 1)
+                            parentGroupPanel.Orientation = System.Windows.Controls.Orientation.Horizontal;
+
+                        if (parentGroupPanel != null &amp;&amp;
+                            parentGroupPanel.Orientation == System.Windows.Controls.Orientation.Horizontal)
+                        {
+                            parentGroupPanel.Children.Insert(
+                                parentGroupPanel.IndexOfChild(parentGroup != null ? parentGroup : targetModel) + 1,
+                                floatingWindow.RootPanel);
+                        }
+                        else if (parentGroupPanel != null)
+                        {
+                            var newParentPanel = new LayoutPanel() { Orientation = System.Windows.Controls.Orientation.Horizontal };
+                            parentGroupPanel.ReplaceChild(parentGroup != null ? parentGroup : targetModel, newParentPanel);
+                            newParentPanel.Children.Add(parentGroup != null ? parentGroup : targetModel);
+                            newParentPanel.Children.Add(floatingWindow.RootPanel);
+                        }
+                        else
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                    break;
+                    #endregion
+            }
+
+            base.Drop(floatingWindow);
+        }
+
+        public override System.Windows.Media.Geometry GetPreviewPath(OverlayWindow overlayWindow, LayoutFloatingWindow floatingWindowModel)
+        {
+            Rect targetScreenRect;
+            ILayoutDocumentPane targetModel = _targetPane.Model as ILayoutDocumentPane;
+            var manager = targetModel.Root.Manager;
+
+            //ILayoutDocumentPane targetModel = _targetPane.Model as ILayoutDocumentPane;
+            LayoutDocumentPaneGroup parentGroup;
+            LayoutPanel parentGroupPanel;
+            if (!FindParentLayoutDocumentPane(targetModel, out parentGroup, out parentGroupPanel))
+                return null;
+
+            //if (targetModel.Parent is LayoutDocumentPaneGroup)
+            //{
+            //    var parentGroup = targetModel.Parent as LayoutDocumentPaneGroup;
+            //    var documentPaneGroupControl = manager.FindLogicalChildren&lt;LayoutDocumentPaneGroupControl&gt;().First(d =&gt; d.Model == parentGroup);
+            //    targetScreenRect = documentPaneGroupControl.GetScreenArea();
+            //}
+            //else
+            //{
+            //    var documentPaneControl = manager.FindLogicalChildren&lt;LayoutDocumentPaneControl&gt;().First(d =&gt; d.Model == targetModel);
+            //    targetScreenRect = documentPaneControl.GetScreenArea();
+            //}
+
+            //var parentPanel = targetModel.FindParent&lt;LayoutPanel&gt;();
+            var documentPaneControl = manager.FindLogicalChildren&lt;FrameworkElement&gt;().OfType&lt;ILayoutControl&gt;().First(d =&gt; parentGroup != null ? d.Model == parentGroup : d.Model == parentGroupPanel) as FrameworkElement;
+            targetScreenRect = documentPaneControl.GetScreenArea();
+
+            switch (Type)
+            {
+                case DropTargetType.DocumentPaneDockAsAnchorableBottom:
+                    {
+                        targetScreenRect.Offset(-overlayWindow.Left, -overlayWindow.Top);
+                        targetScreenRect.Offset(0.0, targetScreenRect.Height - targetScreenRect.Height / 3.0);
+                        targetScreenRect.Height /= 3.0;
+                        return new RectangleGeometry(targetScreenRect);
+                    }
+                case DropTargetType.DocumentPaneDockAsAnchorableTop:
+                    {
+                        targetScreenRect.Offset(-overlayWindow.Left, -overlayWindow.Top);
+                        targetScreenRect.Height /= 3.0;
+                        return new RectangleGeometry(targetScreenRect);
+                    }
+                case DropTargetType.DocumentPaneDockAsAnchorableRight:
+                    {
+                        targetScreenRect.Offset(-overlayWindow.Left, -overlayWindow.Top);
+                        targetScreenRect.Offset(targetScreenRect.Width - targetScreenRect.Width / 3.0, 0.0);
+                        targetScreenRect.Width /= 3.0;
+                        return new RectangleGeometry(targetScreenRect);
+                    }
+                case DropTargetType.DocumentPaneDockAsAnchorableLeft:
+                    {
+                        targetScreenRect.Offset(-overlayWindow.Left, -overlayWindow.Top);
+                        targetScreenRect.Width /= 3.0;
+                        return new RectangleGeometry(targetScreenRect);
+                    }
+            }
+
+            return null;
+        }
+
+
+
+        bool FindParentLayoutDocumentPane(ILayoutDocumentPane documentPane, out LayoutDocumentPaneGroup containerPaneGroup, out LayoutPanel containerPanel)
+        {
+            containerPaneGroup = null;
+            containerPanel = null;
+
+            if (documentPane.Parent is LayoutPanel)
+            {
+                containerPaneGroup = null;
+                containerPanel = documentPane.Parent as LayoutPanel;
+                return true;
+            }
+            else if (documentPane.Parent is LayoutDocumentPaneGroup)
+            {
+                var currentDocumentPaneGroup = documentPane.Parent as LayoutDocumentPaneGroup;
+                while (!(currentDocumentPaneGroup.Parent is LayoutPanel))
+                {
+                    currentDocumentPaneGroup = currentDocumentPaneGroup.Parent as LayoutDocumentPaneGroup;
+
+                    if (currentDocumentPaneGroup == null)
+                        break;
+                }
+
+                if (currentDocumentPaneGroup == null)
+                    return false;
+
+                containerPaneGroup = currentDocumentPaneGroup;
+                containerPanel = currentDocumentPaneGroup.Parent as LayoutPanel;
+                return true;
+            }
+
+            return false;
+
+
+
+        }
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[31,15,31,53,0],[32,9,32,10,0],[33,13,33,39,0],[34,9,34,10,0],[37,15,37,53,0],[38,9,38,10,0],[39,13,39,39,0],[40,13,40,34,0],[41,9,41,10,0],[46,9,46,28,0],[46,9,46,28,0],[49,9,49,10,0],[50,13,50,88,0],[53,13,53,94,0],[55,13,55,26,0],[59,21,59,22,0],[60,25,61,65,0],[62,29,62,105,0],[64,25,65,106,0],[66,25,66,26,0],[67,29,69,59,0],[70,25,70,26,0],[71,30,71,59,0],[72,25,72,26,0],[73,29,73,131,0],[74,29,74,124,0],[75,29,75,106,0],[76,29,76,83,0],[77,25,77,26,0],[79,25,79,26,0],[80,29,80,65,0],[84,21,84,22,0],[85,21,85,27,0],[89,21,89,22,0],[90,25,91,65,0],[92,29,92,105,0],[94,25,95,106,0],[96,25,96,26,0],[97,29,99,59,0],[100,25,100,26,0],[101,30,101,59,0],[102,25,102,26,0],[103,29,103,131,0],[104,29,104,124,0],[105,29,105,106,0],[106,29,106,89,0],[107,25,107,26,0],[109,25,109,26,0],[110,29,110,65,0],[113,21,113,22,0],[114,21,114,27,0],[118,21,118,22,0],[119,25,120,65,0],[121,29,121,107,0],[123,25,124,108,0],[125,25,125,26,0],[126,29,128,59,0],[129,25,129,26,0],[130,30,130,59,0],[131,25,131,26,0],[132,29,132,133,0],[133,29,133,124,0],[134,29,134,106,0],[135,29,135,89,0],[136,25,136,26,0],[138,25,138,26,0],[139,29,139,65,0],[141,21,141,22,0],[142,21,142,27,0],[146,21,146,22,0],[147,25,148,65,0],[149,29,149,107,0],[151,25,152,108,0],[153,25,153,26,0],[154,29,156,59,0],[157,25,157,26,0],[158,30,158,59,0],[159,25,159,26,0],[160,29,160,133,0],[161,29,161,124,0],[162,29,162,106,0],[163,29,163,83,0],[164,25,164,26,0],[166,25,166,26,0],[167,29,167,65,0],[169,21,169,22,0],[170,21,170,27,0],[174,13,174,39,0],[175,9,175,10,0],[178,9,178,10,0],[180,13,180,88,0],[181,13,181,52,0],[186,13,186,99,0],[187,17,187,29,0],[202,13,202,123,0],[202,123,202,197,0],[202,197,202,219,0],[202,13,202,219,0],[203,13,203,68,0],[205,13,205,26,0],[208,21,208,22,0],[209,25,209,90,0],[210,25,210,111,0],[211,25,211,56,0],[212,25,212,72,0],[215,21,215,22,0],[216,25,216,90,0],[217,25,217,56,0],[218,25,218,72,0],[221,21,221,22,0],[222,25,222,90,0],[223,25,223,109,0],[224,25,224,55,0],[225,25,225,72,0],[228,21,228,22,0],[229,25,229,90,0],[230,25,230,55,0],[231,25,231,72,0],[235,13,235,25,0],[236,9,236,10,0],[241,9,241,10,0],[242,13,242,39,0],[243,13,243,35,0],[245,13,245,52,0],[246,13,246,14,0],[247,17,247,43,0],[248,17,248,69,0],[249,17,249,29,0],[251,18,251,69,0],[252,13,252,14,0],[253,17,253,95,0],[254,17,254,74,0],[255,17,255,18,0],[256,21,256,107,0],[258,21,258,58,0],[259,25,259,31,0],[260,17,260,18,0],[262,17,262,54,0],[263,21,263,34,0],[265,17,265,63,0],[266,17,266,81,0],[267,17,267,29,0],[270,13,270,26,0],[274,9,274,10,0]]);
+    </script>
+  </body>
+</html>

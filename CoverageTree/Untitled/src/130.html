@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Layout\LayoutAnchorablePane.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Collections.ObjectModel;
+using System.Windows.Markup;
+using System.ComponentModel;
+using System.Xml.Serialization;
+
+namespace Xceed.Wpf.AvalonDock.Layout
+{
+    [ContentProperty(&quot;Children&quot;)]
+    [Serializable]
+    public class LayoutAnchorablePane : LayoutPositionableGroup&lt;LayoutAnchorable&gt;, ILayoutAnchorablePane, ILayoutPositionableElement, ILayoutContentSelector, ILayoutPaneSerializable
+    {
+        public LayoutAnchorablePane()
+        {
+        }
+
+        public LayoutAnchorablePane(LayoutAnchorable anchorable)
+        {
+            Children.Add(anchorable);
+        }
+
+        protected override bool GetVisibility()
+        {
+            return Children.Count &gt; 0 &amp;&amp; Children.Any(c =&gt; c.IsVisible);
+        }
+
+        #region SelectedContentIndex
+
+        private int _selectedIndex = -1;
+        public int SelectedContentIndex
+        {
+            get { return _selectedIndex; }
+            set
+            {
+                if (value &lt; 0 ||
+                    value &gt;= Children.Count)
+                    value = -1;
+
+                if (_selectedIndex != value)
+                {
+                    RaisePropertyChanging(&quot;SelectedContentIndex&quot;);
+                    RaisePropertyChanging(&quot;SelectedContent&quot;);
+                    if (_selectedIndex &gt;= 0 &amp;&amp;
+                        _selectedIndex &lt; Children.Count)
+                        Children[_selectedIndex].IsSelected = false;
+
+                    _selectedIndex = value;
+
+                    if (_selectedIndex &gt;= 0 &amp;&amp;
+                        _selectedIndex &lt; Children.Count)
+                        Children[_selectedIndex].IsSelected = true;
+
+                    RaisePropertyChanged(&quot;SelectedContentIndex&quot;);
+                    RaisePropertyChanged(&quot;SelectedContent&quot;);
+                }
+            }
+        }
+
+        protected override void ChildMoved(int oldIndex, int newIndex)
+        {
+            if (_selectedIndex == oldIndex)
+            {
+                RaisePropertyChanging(&quot;SelectedContentIndex&quot;);
+                _selectedIndex = newIndex;
+                RaisePropertyChanged(&quot;SelectedContentIndex&quot;);
+            }
+
+
+            base.ChildMoved(oldIndex, newIndex);
+        }
+
+        public LayoutContent SelectedContent
+        {
+            get
+            { 
+                return _selectedIndex == -1 ? null : Children[_selectedIndex]; 
+            }
+        }
+        #endregion
+
+        protected override void OnChildrenCollectionChanged()
+        {
+            AutoFixSelectedContent();
+            for (int i = 0; i &lt; Children.Count; i++)
+            {
+                if (Children[i].IsSelected)
+                {
+                    SelectedContentIndex = i;
+                    break;
+                }
+            }
+
+            RaisePropertyChanged(&quot;CanClose&quot;);
+            RaisePropertyChanged(&quot;CanHide&quot;);
+            RaisePropertyChanged(&quot;IsDirectlyHostedInFloatingWindow&quot;);
+            base.OnChildrenCollectionChanged();
+        }
+
+        [XmlIgnore]
+        bool _autoFixSelectedContent = true;
+        void AutoFixSelectedContent()
+        {
+            if (_autoFixSelectedContent)
+            {
+                if (SelectedContentIndex &gt;= ChildrenCount)
+                    SelectedContentIndex = Children.Count - 1;
+
+                if (SelectedContentIndex == -1 &amp;&amp; ChildrenCount &gt; 0)
+                    SelectedContentIndex = 0;
+            }
+        }
+
+        public int IndexOf(LayoutContent content)
+        {
+            var anchorableChild = content as LayoutAnchorable;
+            if (anchorableChild == null)
+                return -1;
+
+            return Children.IndexOf(anchorableChild);
+        }
+
+
+        public bool IsDirectlyHostedInFloatingWindow
+        {
+            get
+            {
+                var parentFloatingWindow = this.FindParent&lt;LayoutAnchorableFloatingWindow&gt;();
+                if (parentFloatingWindow != null)
+                    return parentFloatingWindow.IsSinglePane;
+
+                return false;
+                //return Parent != null &amp;&amp; Parent.ChildrenCount == 1 &amp;&amp; Parent.Parent is LayoutFloatingWindow;
+            }
+        }
+
+        internal void UpdateIsDirectlyHostedInFloatingWindow()
+        {
+            RaisePropertyChanged(&quot;IsDirectlyHostedInFloatingWindow&quot;);
+        }
+
+        public bool IsHostedInFloatingWindow
+        {
+            get
+            {
+                return this.FindParent&lt;LayoutFloatingWindow&gt;() != null;
+            }
+        }
+
+        protected override void OnParentChanged(ILayoutContainer oldValue, ILayoutContainer newValue)
+        {
+            var oldGroup = oldValue as ILayoutGroup;
+            if (oldGroup != null)
+                oldGroup.ChildrenCollectionChanged -= new EventHandler(OnParentChildrenCollectionChanged);
+
+            RaisePropertyChanged(&quot;IsDirectlyHostedInFloatingWindow&quot;);
+
+            var newGroup = newValue as ILayoutGroup;
+            if (newGroup != null)
+                newGroup.ChildrenCollectionChanged += new EventHandler(OnParentChildrenCollectionChanged);
+
+            base.OnParentChanged(oldValue, newValue);
+        }
+
+        void OnParentChildrenCollectionChanged(object sender, EventArgs e)
+        {
+            RaisePropertyChanged(&quot;IsDirectlyHostedInFloatingWindow&quot;);
+        }
+
+        string _id;
+
+        string ILayoutPaneSerializable.Id
+        {
+            get
+            {
+                return _id;
+            }
+            set
+            {
+                _id = value;
+            }
+        }
+
+        #region Name
+
+        private string _name = null;
+        public string Name
+        {
+            get { return _name; }
+            set
+            {
+                if (_name != value)
+                {
+                    _name = value;
+                    RaisePropertyChanged(&quot;Name&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+
+
+        public override void WriteXml(System.Xml.XmlWriter writer)
+        {
+            if (_id != null)
+                writer.WriteAttributeString(&quot;Id&quot;, _id);
+            if (_name != null)
+                writer.WriteAttributeString(&quot;Name&quot;, _name);
+
+            base.WriteXml(writer);
+        }
+
+        public override void ReadXml(System.Xml.XmlReader reader)
+        {
+            if (reader.MoveToAttribute(&quot;Id&quot;))
+                _id = reader.Value;
+            if (reader.MoveToAttribute(&quot;Name&quot;))
+                _name = reader.Value;
+
+            _autoFixSelectedContent = false;
+            base.ReadXml(reader);
+            _autoFixSelectedContent = true;
+            AutoFixSelectedContent();
+        }
+
+
+        public bool CanHide
+        {
+            get { return Children.All(a =&gt; a.CanHide); }
+        }
+
+        public bool CanClose
+        {
+            get { return Children.All(a =&gt; a.CanClose);}
+        }
+
+#if TRACE
+        public override void ConsoleDump(int tab)
+        {
+          System.Diagnostics.Trace.Write( new string( &#39; &#39;, tab * 4 ) );
+          System.Diagnostics.Trace.WriteLine( &quot;AnchorablePane()&quot; );
+
+          foreach (LayoutElement child in Children)
+              child.ConsoleDump(tab + 1);
+        }
+#endif
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[32,9,32,38,0],[33,9,33,10,0],[34,9,34,10,0],[36,9,36,65,0],[37,9,37,10,0],[38,13,38,38,0],[39,9,39,10,0],[42,9,42,10,0],[43,13,43,60,0],[43,60,43,71,0],[43,71,43,73,0],[43,13,43,73,0],[44,9,44,10,0],[48,9,48,41,0],[48,9,48,41,0],[51,17,51,18,0],[51,19,51,41,0],[51,42,51,43,0],[53,13,53,14,0],[54,17,55,45,0],[56,21,56,32,0],[58,17,58,45,0],[59,17,59,18,0],[60,21,60,67,0],[61,21,61,62,0],[62,21,63,57,0],[64,25,64,69,0],[66,21,66,44,0],[68,21,69,57,0],[70,25,70,68,0],[72,21,72,66,0],[73,21,73,61,0],[74,17,74,18,0],[75,13,75,14,0],[79,9,79,10,0],[80,13,80,44,0],[81,13,81,14,0],[82,17,82,63,0],[83,17,83,43,0],[84,17,84,62,0],[85,13,85,14,0],[88,13,88,49,0],[89,9,89,10,0],[94,13,94,14,0],[95,17,95,79,0],[96,13,96,14,0],[101,9,101,10,0],[102,13,102,38,0],[103,18,103,27,0],[103,29,103,47,0],[103,49,103,52,0],[104,13,104,14,0],[105,17,105,44,0],[106,17,106,18,0],[107,21,107,46,0],[108,21,108,27,0],[110,13,110,14,0],[112,13,112,46,0],[113,13,113,45,0],[114,13,114,70,0],[115,13,115,48,0],[116,9,116,10,0],[119,9,119,45,0],[119,9,119,45,0],[121,9,121,10,0],[122,13,122,41,0],[123,13,123,14,0],[124,17,124,59,0],[125,21,125,63,0],[127,17,127,69,0],[128,21,128,46,0],[129,13,129,14,0],[130,9,130,10,0],[133,9,133,10,0],[134,13,134,63,0],[135,13,135,41,0],[136,17,136,27,0],[138,13,138,54,0],[139,9,139,10,0],[145,13,145,14,0],[146,17,146,94,0],[147,17,147,50,0],[148,21,148,62,0],[150,17,150,30,0],[152,13,152,14,0],[156,9,156,10,0],[157,13,157,70,0],[158,9,158,10,0],[163,13,163,14,0],[164,17,164,72,0],[165,13,165,14,0],[169,9,169,10,0],[170,13,170,53,0],[171,13,171,34,0],[172,17,172,107,0],[174,13,174,70,0],[176,13,176,53,0],[177,13,177,34,0],[178,17,178,107,0],[180,13,180,54,0],[181,9,181,10,0],[184,9,184,10,0],[185,13,185,70,0],[186,9,186,10,0],[193,13,193,14,0],[194,17,194,28,0],[195,13,195,14,0],[197,13,197,14,0],[198,17,198,29,0],[199,13,199,14,0],[204,9,204,37,0],[204,9,204,37,0],[207,17,207,18,0],[207,19,207,32,0],[207,33,207,34,0],[209,13,209,14,0],[210,17,210,36,0],[211,17,211,18,0],[212,21,212,35,0],[213,21,213,50,0],[214,17,214,18,0],[215,13,215,14,0],[223,9,223,10,0],[224,13,224,29,0],[225,17,225,56,0],[226,13,226,31,0],[227,17,227,60,0],[229,13,229,35,0],[230,9,230,10,0],[233,9,233,10,0],[234,13,234,46,0],[235,17,235,36,0],[236,13,236,48,0],[237,17,237,38,0],[239,13,239,45,0],[240,13,240,34,0],[241,13,241,44,0],[242,13,242,38,0],[243,9,243,10,0],[248,17,248,18,0],[248,19,248,44,0],[248,44,248,53,0],[248,53,248,55,0],[248,19,248,55,0],[248,56,248,57,0],[253,17,253,18,0],[253,19,253,44,0],[253,44,253,54,0],[253,54,253,56,0],[253,19,253,56,0],[253,56,253,57,0]]);
+    </script>
+  </body>
+</html>

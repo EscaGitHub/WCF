@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\DataViewModels\PropertyVM.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Linq;
+using Swr.Configurator.Data.SpecificationModel;
+using SwrUILogic.Data;
+using SWR_Tools.Extention;
+
+namespace Swr.Configurator.View.DataViewModels
+{
+	public class PropertiesList : List&lt;PropertyVM&gt;
+	{
+		public PropertyVM this[string propertyName]
+		{
+			get { return this.FirstOrDefault(x =&gt; x.Property.Variable.Equals(propertyName)); }
+		}
+
+		public new void Add(PropertyVM property)
+		{
+			if (this.SafeAny(x =&gt; Equals(x.Property.Variable, property.Property.Variable)))
+				return;
+
+			base.Add(property);
+		}
+	}
+
+	[DebuggerDisplay(&quot;{Property.Variable}, {ProperyValue}&quot;)]
+	public class PropertyVM : NotifyBaseClass, IEditableObject
+	{
+		private string _backupData;
+
+		private bool _inTransaction;
+
+		public PropertyVM(IProperty property)
+		{
+			Property = property;
+			property.PropertyChanged += PropertyPropertyChanged;
+			property.Errors.CollectionChanged += ErrorsCollectionChanged;
+			property.Warnings.CollectionChanged += WarningsCollectionChanged;
+
+			UpdateErrorLevel();
+		}
+
+		void PropertyPropertyChanged(object sender, Swr.Configurator.Data.EventArgs.PropertyChangedEventArgs e)
+		{
+			OnPropertyChanged(() =&gt; ProperyValue);
+		}
+
+		private void WarningsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		{
+			UpdateErrorLevel();
+		}
+
+		private void ErrorsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		{
+			UpdateErrorLevel();
+		}
+
+		private void UpdateErrorLevel()
+		{
+			if (Property.Errors.Any())
+			{
+				ErrorLevel = PropertyErrorLevel.Error;
+				ErrorText = &quot;&quot;;//чтобы сработало onPropertyChange
+			}
+			
+			else if (Property.Warnings.Any())
+				ErrorLevel = PropertyErrorLevel.Warning;
+			else
+				ErrorLevel = PropertyErrorLevel.None;
+		}
+
+		public IProperty Property { get; set; }
+
+		public string ProperyValue
+		{
+			get =&gt; Property.Value;
+			set
+			{
+				if (!Equals(Property.Value, value))
+				{
+				    var properyValue = value;
+				    //var commonSettings = ConfiguratorMainWindowVM.Instance?.SharedSettingsController?.Settings?.Common;
+				    //if (commonSettings != null &amp;&amp; commonSettings.TrimPropertyValues)
+				    //    properyValue = value?.Trim(); // #4175
+
+				    Property.Value = properyValue;
+                    OnPropertyChanged(() =&gt; ProperyValue);
+				}
+			}
+		}
+
+		public string ErrorText
+		{
+			get =&gt; string.Join(Environment.NewLine, Property.Errors);
+			set =&gt; OnPropertyChanged(nameof(ErrorText));
+		}
+
+		private PropertyErrorLevel _errorLevel;
+
+		public PropertyErrorLevel ErrorLevel
+		{
+			get =&gt; _errorLevel;
+			private set
+			{
+				if (_errorLevel != value)
+				{
+					_errorLevel = value;
+					OnPropertyChanged(nameof(ErrorLevel));
+				}
+			}
+		}
+
+		// Implements IEditableObject
+		void IEditableObject.BeginEdit()
+		{
+			if (!_inTransaction)
+			{
+				_backupData = Property.Value;
+				_inTransaction = true;
+			}
+		}
+
+		void IEditableObject.CancelEdit()
+		{
+			if (_inTransaction)
+			{
+				Property.Value = _backupData;
+				_inTransaction = false;
+			}
+		}
+
+		void IEditableObject.EndEdit()
+		{
+			if (_inTransaction)
+			{
+				_backupData = String.Empty;
+				_inTransaction = false;
+			}
+		}
+	}
+
+	public enum PropertyErrorLevel
+	{
+		None,
+		Warning,
+		Error
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[17,8,17,9,0],[17,10,17,42,0],[17,42,17,82,0],[17,82,17,84,0],[17,10,17,84,0],[17,85,17,86,0],[21,3,21,4,0],[22,4,22,26,0],[22,26,22,81,0],[22,81,22,83,0],[22,4,22,83,0],[23,5,23,12,0],[25,4,25,23,0],[26,3,26,4,0],[36,3,36,40,0],[37,3,37,4,0],[38,4,38,24,0],[39,4,39,56,0],[40,4,40,65,0],[41,4,41,69,0],[43,4,43,23,0],[44,3,44,4,0],[47,3,47,4,0],[48,4,48,42,0],[49,3,49,4,0],[52,3,52,4,0],[53,4,53,23,0],[54,3,54,4,0],[57,3,57,4,0],[58,4,58,23,0],[59,3,59,4,0],[62,3,62,4,0],[63,4,63,30,0],[64,4,64,5,0],[65,5,65,43,0],[66,5,66,20,0],[67,4,67,5,0],[69,9,69,37,0],[70,5,70,45,0],[72,5,72,42,0],[73,3,73,4,0],[75,31,75,35,0],[75,36,75,40,0],[79,11,79,25,0],[81,4,81,5,0],[82,5,82,40,0],[83,5,83,6,0],[84,9,84,34,0],[89,9,89,39,0],[90,21,90,59,0],[91,5,91,6,0],[92,4,92,5,0],[97,11,97,60,0],[98,11,98,47,0],[105,11,105,22,0],[107,4,107,5,0],[108,5,108,30,0],[109,5,109,6,0],[110,6,110,26,0],[111,6,111,44,0],[112,5,112,6,0],[113,4,113,5,0],[118,3,118,4,0],[119,4,119,24,0],[120,4,120,5,0],[121,5,121,34,0],[122,5,122,27,0],[123,4,123,5,0],[124,3,124,4,0],[127,3,127,4,0],[128,4,128,23,0],[129,4,129,5,0],[130,5,130,34,0],[131,5,131,28,0],[132,4,132,5,0],[133,3,133,4,0],[136,3,136,4,0],[137,4,137,23,0],[138,4,138,5,0],[139,5,139,32,0],[140,5,140,28,0],[141,4,141,5,0],[142,3,142,4,0]]);
+    </script>
+  </body>
+</html>

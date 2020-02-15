@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-ConfiguratorAPI\Logic\Converters\ComponentConverter.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Common.Data.Api;
+using Swr.Configurator.Common.Data.ObjectModel;
+using SWR.ConfiguratorApi.Data.Db;
+using Component = SWR.ConfiguratorApi.Data.Db.Component;
+
+namespace SWR.ConfiguratorApi.Logic.Converters
+{
+    public class ComponentConverter : IDisposable
+    {
+        private readonly DbController _dbController; // используется для поиска Id по именам
+        private readonly ISettingsService _settingsService;
+
+        public ComponentConverter(DbController dbController, ISettingsService settingsService)
+        {
+            _dbController = dbController;
+            _settingsService = settingsService;
+        }
+
+
+        public Component ApiInToDbNew(ComponentApiNew apiComponent, out string errorMessage)
+        {
+            var dbComponent = new Component();
+
+            var errorList = new List&lt;string&gt;();
+
+            dbComponent.SetEmpty();
+
+            dbComponent.StateEnum = StateEnum.Locked;
+
+            var componentType =
+                _settingsService.CurrentSettings.ComponentTypes.FirstOrDefault(t =&gt; t.Name == apiComponent.TypeName);
+            if (componentType == null)
+            {
+                errorList.Add($&quot;Component type not found &#39;{apiComponent.TypeName}&#39;&quot;);
+            }
+            else
+            {
+                dbComponent.TypeId = componentType.ID;
+                foreach (var attribute in apiComponent.Attributes)
+                {
+                    var componentTypeAttribute =
+                        componentType.Attributes.FirstOrDefault(t =&gt; t.Attribute.Name == attribute.Name);
+                    if (componentTypeAttribute == null)
+                    {
+                        errorList.Add($&quot;Attribute with name &#39;{attribute.Name}&#39; not found&quot;);
+                    }
+                    else
+                    {
+                        if (componentTypeAttribute.IsNecessary &amp;&amp; attribute.Value == string.Empty)
+                        {
+                            errorList.Add($&quot;Necessary attribute with name &#39;{attribute.Name}&#39; is empty&quot;);
+                        }
+                        else
+                        {
+                            var commonAttribute = _settingsService.CurrentSettings.Attributes.FirstOrDefault(t =&gt;
+                                t.DbAttributeId == componentTypeAttribute.Attribute.DbAttributeId);
+                            if (commonAttribute != null)
+                            {
+                                if (commonAttribute.IsUnique &amp;&amp;
+                                    !IsAttributeValueUnique(attribute.Value, commonAttribute.DbAttributeId))
+                                {
+                                    errorList.Add($&quot;Value of attribute with name &#39;{attribute.Name}&#39; is not unique&quot;);
+                                }
+                                else
+                                {
+                                    var componentAttribute = new ComponentAttribute
+                                    {
+                                        ComponentId = dbComponent.Id,
+                                        ComponentTypeAttributeId = componentTypeAttribute.Id,//_dbController.GetComponentTypeAttributeId(dbComponent.TypeId, attribute.Name),
+                                        Value = attribute.Value,
+                                        Name = attribute.Name
+                                    };
+
+
+                                    dbComponent.ComponentAttributes.Add(componentAttribute);
+                                }
+                            }
+                            
+                        }
+                    }
+                    
+                }
+            }
+        
+
+            errorMessage = String.Empty;
+
+            if (errorList.Count != 0)
+            {
+                errorMessage = &quot;Error in component &quot;;
+
+                var designationProperty = apiComponent.Attributes.Find(t =&gt; t.Name == &quot;Обозначение&quot;);
+
+                if (designationProperty != null)
+                {
+                    errorMessage += $&quot;with attribute &#39;Обозначение&#39; and value &#39;{designationProperty.Value}&#39; &quot;;
+                }
+                else
+                {
+                    var nameProperty = apiComponent.Attributes.Find(t =&gt; t.Name == &quot;Наименование&quot;);
+
+                    if(nameProperty != null) errorMessage += $&quot;with attribute &#39;Наименование&#39; and value &#39;{nameProperty.Value}&#39; &quot;;
+                }
+
+                errorMessage += string.Join(&#39;\n&#39;, errorList);
+
+                return null;
+            }
+
+            return dbComponent;
+        }
+
+        private bool IsAttributeValueUnique(string attributeValue, Guid attributeId)
+        {
+            var result = false;
+
+            result = _dbController.IsAttributeValueUnique(attributeId, attributeValue);
+
+            return result;
+        }
+
+        /// &lt;summary&gt;
+        /// Преобразование из api объекта в уже существующего в базе компонента
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;apiComponent&quot;&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public Component ApiToDbExists(ComponentApiExist apiComponent, out string errorMessage)
+        {
+
+            var errorList = new List&lt;string&gt;();
+
+            var dbComponent = new Component
+            {
+                Id = apiComponent.Id,
+                //CreateDate = apiComponent.CreateDate,
+                ChangeDate = DateTime.UtcNow
+            };
+
+            dbComponent.StateEnum = StateEnum.Locked;
+
+            var componentType =
+                _settingsService.CurrentSettings.ComponentTypes.FirstOrDefault(t =&gt; t.Name == apiComponent.TypeName);
+
+            if (componentType == null)
+            {
+                errorList.Add($&quot;Component type not found &#39;{apiComponent.TypeName}&#39;&quot;);
+            }
+            else
+            {
+                dbComponent.TypeId = componentType.ID;
+                try
+                {
+                    dbComponent.CreateDate = _dbController.GetCreateDateByComponentId(apiComponent.Id);
+                }
+                catch (InvalidOperationException e)
+                {
+                    errorList.Add(&quot;Component&#39;s create date not found&quot;);
+                }
+
+                foreach (var attribute in apiComponent.Attributes)
+                {
+                    var componentTypeAttribute =
+                        componentType.Attributes.FirstOrDefault(t =&gt; t.Attribute.Name == attribute.Name);
+                    if (componentTypeAttribute == null)
+                    {
+                        errorList.Add($&quot;Attribute with name &#39;{attribute.Name}&#39; not found&quot;);
+                    }
+                    else
+                    {
+                        if (componentTypeAttribute.IsNecessary &amp;&amp; attribute.Value == string.Empty)
+                        {
+                            errorList.Add($&quot;Necessary attribute with name &#39;{attribute.Name}&#39; is empty&quot;);
+                        }
+                        else
+                        {
+                            var commonAttribute = _settingsService.CurrentSettings.Attributes.FirstOrDefault(t =&gt;
+                                t.DbAttributeId == componentTypeAttribute.Attribute.DbAttributeId);
+                            if (commonAttribute != null)
+                            {
+                                if (commonAttribute.IsUnique &amp;&amp;
+                                    !IsAttributeValueUnique(attribute.Value, componentTypeAttribute.Id))
+                                {
+                                    errorList.Add($&quot;Value of attribute with name &#39;{attribute.Name}&#39; is not unique&quot;);
+                                }
+                                else
+                                {
+
+                                    var componentAttribute = new ComponentAttribute
+                                    {
+                                        ComponentId = dbComponent.Id,
+                                        ComponentTypeAttributeId =
+                                            _dbController.GetComponentTypeAttributeId(dbComponent.TypeId,
+                                                attribute.Name),
+                                        Value = attribute.Value,
+                                        Name = attribute.Name
+                                    };
+
+                                    componentAttribute.Id = _dbController.GetComponentAttributeId(
+                                        componentAttribute.ComponentId, componentAttribute.ComponentTypeAttributeId);
+
+                                    if (componentAttribute.Id == Guid.Empty)
+                                    {
+                                        componentAttribute.Id = Guid.NewGuid();
+                                        componentAttribute.IsNew = true;
+                                    }
+
+                                    dbComponent.ComponentAttributes.Add(componentAttribute);
+                                }
+                            }
+                        }
+                        
+                    }
+                    
+                }
+            }
+
+            errorMessage = String.Empty;
+
+            if (errorList.Count != 0)
+            {
+                errorMessage = &quot;Error in component &quot;;
+
+                var designationProperty = apiComponent.Attributes.Find(t =&gt; t.Name == &quot;Обозначение&quot;);
+
+                if (designationProperty != null)
+                {
+                    errorMessage += $&quot;with attribute &#39;Обозначение&#39; and value &#39;{designationProperty.Value}&#39; &quot;;
+                }
+                else
+                {
+                    var nameProperty = apiComponent.Attributes.Find(t =&gt; t.Name == &quot;Наименование&quot;);
+
+                    if (nameProperty != null) errorMessage += $&quot;with attribute &#39;Наименование&#39; and value &#39;{nameProperty.Value}&#39; &quot;;
+                }
+
+                errorMessage += string.Join(&#39;\n&#39;, errorList);
+
+                return null;
+            }
+
+            return dbComponent;
+        }
+
+        public ComponentApiExist DbToApiOut(Component dbComponent)
+        {
+            var apiComponent = new ComponentApiExist();
+
+            apiComponent.Id = dbComponent.Id;
+            apiComponent.TypeName = _dbController.GetComponentTypeNameById(dbComponent.TypeId);
+            apiComponent.CreateDate = dbComponent.CreateDate;
+            apiComponent.ChangeDate = dbComponent.ChangeDate;
+            foreach (var componentAttribute in dbComponent.ComponentAttributes)
+            {
+                apiComponent.Attributes.Add(new AttributeApi
+                {
+                    Name = componentAttribute.Name,
+                    Value = componentAttribute.Value
+                });
+            }
+
+            return apiComponent;
+        }
+
+
+        public void Dispose()
+        {
+            _dbController?.Dispose();
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[17,9,17,95,1],[18,9,18,10,1],[19,13,19,42,1],[20,13,20,48,1],[21,9,21,10,1],[25,9,25,10,1],[26,13,26,47,1],[28,13,28,48,1],[30,13,30,36,1],[32,13,32,54,1],[34,13,35,85,1],[35,85,35,116,1],[35,116,35,118,1],[34,13,35,118,1],[36,13,36,39,1],[37,13,37,14,0],[38,17,38,86,0],[39,13,39,14,0],[41,13,41,14,1],[42,17,42,55,1],[43,17,43,24,1],[43,26,43,39,1],[43,40,43,42,1],[43,43,43,66,1],[44,17,44,18,1],[45,21,46,70,1],[46,70,46,104,1],[46,104,46,106,1],[45,21,46,106,1],[47,21,47,56,1],[48,21,48,22,0],[49,25,49,92,0],[50,21,50,22,0],[52,21,52,22,1],[53,25,53,99,1],[54,25,54,26,0],[55,29,55,105,0],[56,25,56,26,0],[58,25,58,26,1],[59,29,60,33,1],[60,33,60,98,1],[60,98,60,100,1],[59,29,60,100,1],[61,29,61,57,1],[62,29,62,30,1],[63,33,64,109,1],[65,33,65,34,0],[66,37,66,117,0],[67,33,67,34,0],[69,33,69,34,1],[70,37,76,39,1],[79,37,79,93,1],[80,33,80,34,1],[81,29,81,30,1],[83,25,83,26,1],[84,21,84,22,1],[86,17,86,18,1],[87,13,87,14,1],[90,13,90,41,1],[92,13,92,38,1],[93,13,93,14,0],[94,17,94,54,0],[96,17,96,77,0],[96,77,96,100,0],[96,100,96,102,0],[96,17,96,102,0],[98,17,98,49,0],[99,17,99,18,0],[100,21,100,110,0],[101,17,101,18,0],[103,17,103,18,0],[104,21,104,74,0],[104,74,104,98,0],[104,98,104,100,0],[104,21,104,100,0],[106,21,106,45,0],[106,46,106,129,0],[107,17,107,18,0],[109,17,109,62,0],[111,17,111,29,0],[114,13,114,32,1],[115,9,115,10,1],[118,9,118,10,0],[119,13,119,32,0],[121,13,121,88,0],[123,13,123,27,0],[124,9,124,10,0],[132,9,132,10,1],[134,13,134,48,1],[136,13,141,15,1],[143,13,143,54,1],[145,13,146,85,1],[146,85,146,116,1],[146,116,146,118,1],[145,13,146,118,1],[148,13,148,39,1],[149,13,149,14,0],[150,17,150,86,0],[151,13,151,14,0],[153,13,153,14,1],[154,17,154,55,1],[156,17,156,18,1],[157,21,157,104,1],[158,17,158,18,1],[159,17,159,52,0],[160,17,160,18,0],[161,21,161,72,0],[162,17,162,18,0],[164,17,164,24,1],[164,26,164,39,1],[164,40,164,42,1],[164,43,164,66,1],[165,17,165,18,1],[166,21,167,70,1],[167,70,167,104,1],[167,104,167,106,1],[166,21,167,106,1],[168,21,168,56,1],[169,21,169,22,0],[170,25,170,92,0],[171,21,171,22,0],[173,21,173,22,1],[174,25,174,99,1],[175,25,175,26,0],[176,29,176,105,0],[177,25,177,26,0],[179,25,179,26,1],[180,29,181,33,1],[181,33,181,98,1],[181,98,181,100,1],[180,29,181,100,1],[182,29,182,57,1],[183,29,183,30,1],[184,33,185,105,1],[186,33,186,34,0],[187,37,187,117,0],[188,33,188,34,0],[190,33,190,34,1],[192,37,200,39,1],[202,37,203,118,1],[205,37,205,77,1],[206,37,206,38,0],[207,41,207,80,0],[208,41,208,73,0],[209,37,209,38,0],[211,37,211,93,1],[212,33,212,34,1],[213,29,213,30,1],[214,25,214,26,1],[216,21,216,22,1],[218,17,218,18,1],[219,13,219,14,1],[221,13,221,41,1],[223,13,223,38,1],[224,13,224,14,0],[225,17,225,54,0],[227,17,227,77,0],[227,77,227,100,0],[227,100,227,102,0],[227,17,227,102,0],[229,17,229,49,0],[230,17,230,18,0],[231,21,231,110,0],[232,17,232,18,0],[234,17,234,18,0],[235,21,235,74,0],[235,74,235,98,0],[235,98,235,100,0],[235,21,235,100,0],[237,21,237,46,0],[237,47,237,130,0],[238,17,238,18,0],[240,17,240,62,0],[242,17,242,29,0],[245,13,245,32,1],[246,9,246,10,1],[249,9,249,10,1],[250,13,250,56,1],[252,13,252,46,1],[253,13,253,96,1],[254,13,254,62,1],[255,13,255,62,1],[256,13,256,20,1],[256,22,256,44,1],[256,45,256,47,1],[256,48,256,79,1],[257,13,257,14,1],[258,17,262,20,1],[263,13,263,14,1],[265,13,265,33,1],[266,9,266,10,1],[270,9,270,10,0],[271,13,271,38,0],[272,9,272,10,0]]);
+    </script>
+  </body>
+</html>

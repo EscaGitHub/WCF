@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Layout\Extentions.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Media3D;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
+namespace Xceed.Wpf.AvalonDock.Layout
+{
+    public static class Extensions
+    {
+        public static IEnumerable&lt;ILayoutElement&gt; Descendents(this ILayoutElement element)
+        {
+            var container = element as ILayoutContainer;
+            if (container != null)
+            {
+                foreach (var childElement in container.Children)
+                {
+                    yield return childElement;
+                    foreach (var childChildElement in childElement.Descendents())
+                        yield return childChildElement;
+                }
+            }
+        }
+
+        public static T FindParent&lt;T&gt;(this ILayoutElement element) //where T : ILayoutContainer
+        { 
+            var parent = element.Parent;
+            while (parent != null &amp;&amp;
+                !(parent is T))
+                parent = parent.Parent;
+
+
+            return (T)parent;
+        }
+
+        public static ILayoutRoot GetRoot(this ILayoutElement element) //where T : ILayoutContainer
+        {
+            if (element is ILayoutRoot)
+                return element as ILayoutRoot;
+
+            var parent = element.Parent;
+            while (parent != null &amp;&amp;
+                !(parent is ILayoutRoot))
+                parent = parent.Parent;
+
+            return (ILayoutRoot)parent;
+        }
+
+        public static bool ContainsChildOfType&lt;T&gt;(this ILayoutContainer element)
+        {
+            foreach (var childElement in element.Descendents())
+                if (childElement is T)
+                    return true;
+
+            return false;
+        }
+
+        public static bool ContainsChildOfType&lt;T, S&gt;(this ILayoutContainer container)
+        {
+            foreach (var childElement in container.Descendents())
+                if (childElement is T || childElement is S)
+                    return true;
+
+            return false;
+        }
+
+        public static bool IsOfType&lt;T, S&gt;(this ILayoutContainer container)
+        {
+            return container is T || container is S;
+        }
+
+        public static AnchorSide GetSide(this ILayoutElement element)
+        {
+            var parentContainer = element.Parent as ILayoutOrientableGroup;
+            if (parentContainer != null)
+            {
+                if (!parentContainer.ContainsChildOfType&lt;LayoutDocumentPaneGroup, LayoutDocumentPane&gt;())
+                    return GetSide(parentContainer);
+
+                foreach (var childElement in parentContainer.Children)
+                {
+                    if (childElement == element ||
+                        childElement.Descendents().Contains(element))
+                        return parentContainer.Orientation == System.Windows.Controls.Orientation.Horizontal ?
+                            AnchorSide.Left : AnchorSide.Top;
+
+                    var childElementAsContainer = childElement as ILayoutContainer;
+                    if (childElementAsContainer != null &amp;&amp;
+                        (childElementAsContainer.IsOfType&lt;LayoutDocumentPane, LayoutDocumentPaneGroup&gt;() ||
+                        childElementAsContainer.ContainsChildOfType&lt;LayoutDocumentPane, LayoutDocumentPaneGroup&gt;()))
+                    {
+                        return parentContainer.Orientation == System.Windows.Controls.Orientation.Horizontal ?
+                           AnchorSide.Right : AnchorSide.Bottom;
+                    }
+                }
+            }
+
+           // Debug.Fail(&quot;Unable to find the side for an element, possible layout problem!&quot;);
+            return AnchorSide.Right;
+        }
+
+
+        internal static void KeepInsideNearestMonitor(this ILayoutElementForFloatingWindow paneInsideFloatingWindow)
+        {
+            Win32Helper.RECT r = new Win32Helper.RECT();
+            r.Left = (int)paneInsideFloatingWindow.FloatingLeft;
+            r.Top = (int)paneInsideFloatingWindow.FloatingTop;
+            r.Bottom = r.Top + (int)paneInsideFloatingWindow.FloatingHeight;
+            r.Right = r.Left + (int)paneInsideFloatingWindow.FloatingWidth;
+
+            uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+            uint MONITOR_DEFAULTTONULL = 0x00000000;
+
+            System.IntPtr monitor = Win32Helper.MonitorFromRect(ref r, MONITOR_DEFAULTTONULL);
+            if (monitor == System.IntPtr.Zero)
+            {
+                System.IntPtr nearestmonitor = Win32Helper.MonitorFromRect(ref r, MONITOR_DEFAULTTONEAREST);
+                if (nearestmonitor != System.IntPtr.Zero)
+                {
+                    Win32Helper.MonitorInfo monitorInfo = new Win32Helper.MonitorInfo();
+                    monitorInfo.Size = Marshal.SizeOf(monitorInfo);
+                    Win32Helper.GetMonitorInfo(nearestmonitor, monitorInfo);
+
+                    if (paneInsideFloatingWindow.FloatingLeft &lt; monitorInfo.Work.Left)
+                    {
+                        paneInsideFloatingWindow.FloatingLeft = monitorInfo.Work.Left + 10;
+                    }
+
+                    if (paneInsideFloatingWindow.FloatingLeft + paneInsideFloatingWindow.FloatingWidth &gt; monitorInfo.Work.Right)
+                    {
+                        paneInsideFloatingWindow.FloatingLeft = monitorInfo.Work.Right - (paneInsideFloatingWindow.FloatingWidth + 10);
+                    }
+
+                    if (paneInsideFloatingWindow.FloatingTop &lt; monitorInfo.Work.Top)
+                    {
+                        paneInsideFloatingWindow.FloatingTop = monitorInfo.Work.Top + 10;
+                    }
+
+                    if (paneInsideFloatingWindow.FloatingTop + paneInsideFloatingWindow.FloatingHeight &gt; monitorInfo.Work.Bottom)
+                    {
+                        paneInsideFloatingWindow.FloatingTop = monitorInfo.Work.Bottom - (paneInsideFloatingWindow.FloatingHeight + 10);
+                    }
+                }
+            }
+
+        }
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[32,9,32,10,0],[33,13,33,57,0],[34,13,34,35,0],[35,13,35,14,0],[36,17,36,24,0],[36,26,36,42,0],[36,43,36,45,0],[36,46,36,64,0],[37,17,37,18,0],[38,21,38,47,0],[39,21,39,28,0],[39,30,39,51,0],[39,52,39,54,0],[39,55,39,81,0],[40,25,40,56,0],[41,17,41,18,0],[42,13,42,14,0],[43,9,43,10,0],[46,9,46,10,0],[47,13,47,41,0],[48,13,49,32,0],[50,17,50,40,0],[53,13,53,30,0],[54,9,54,10,0],[57,9,57,10,0],[58,13,58,40,0],[59,17,59,47,0],[61,13,61,41,0],[62,13,63,42,0],[64,17,64,40,0],[66,13,66,40,0],[67,9,67,10,0],[70,9,70,10,0],[71,13,71,20,0],[71,22,71,38,0],[71,39,71,41,0],[71,42,71,63,0],[72,17,72,39,0],[73,21,73,33,0],[75,13,75,26,0],[76,9,76,10,0],[79,9,79,10,0],[80,13,80,20,0],[80,22,80,38,0],[80,39,80,41,0],[80,42,80,65,0],[81,17,81,60,0],[82,21,82,33,0],[84,13,84,26,0],[85,9,85,10,0],[88,9,88,10,0],[89,13,89,53,0],[90,9,90,10,0],[93,9,93,10,0],[94,13,94,76,0],[95,13,95,41,0],[96,13,96,14,0],[97,17,97,105,0],[98,21,98,53,0],[100,17,100,24,0],[100,26,100,42,0],[100,43,100,45,0],[100,46,100,70,0],[101,17,101,18,0],[102,21,103,70,0],[104,25,105,62,0],[107,21,107,84,0],[108,21,110,117,0],[111,21,111,22,0],[112,25,113,65,0],[115,17,115,18,0],[116,13,116,14,0],[119,13,119,37,0],[120,9,120,10,0],[124,9,124,10,0],[125,13,125,57,0],[126,13,126,65,0],[127,13,127,63,0],[128,13,128,77,0],[129,13,129,76,0],[131,13,131,56,0],[132,13,132,53,0],[134,13,134,95,0],[135,13,135,47,0],[136,13,136,14,0],[137,17,137,109,0],[138,17,138,58,0],[139,17,139,18,0],[140,21,140,89,0],[141,21,141,68,0],[142,21,142,77,0],[144,21,144,87,0],[145,21,145,22,0],[146,25,146,92,0],[147,21,147,22,0],[149,21,149,129,0],[150,21,150,22,0],[151,25,151,136,0],[152,21,152,22,0],[154,21,154,85,0],[155,21,155,22,0],[156,25,156,90,0],[157,21,157,22,0],[159,21,159,130,0],[160,21,160,22,0],[161,25,161,137,0],[162,21,162,22,0],[163,17,163,18,0],[164,13,164,14,0],[166,9,166,10,0]]);
+    </script>
+  </body>
+</html>

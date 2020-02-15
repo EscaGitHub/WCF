@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Commands\CheckSpecificationViewCommand.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using NLog;
+using Swr.Configurator.Common.Settings;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.Data.SpecificationModel;
+using Swr.Configurator.Logic.Commands;
+using SwrUI;
+
+namespace Swr.Configurator.View.Commands
+{
+	/// &lt;summary&gt;
+	/// ������� ���������� �������� ��������� ������������
+	/// &lt;/summary&gt;
+	public class CheckSpecificationViewCommand //: ViewCommandBase
+	{
+		private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
+		private readonly SharedSettings _settings;
+		private readonly IEnumerable&lt;IReference&gt; _references;
+		//private readonly SpecificationType _specificationType;
+		private bool _needClearOldError;
+		private readonly IProduct _product;
+
+        //public CheckSpecificationViewCommand(ICommandManager commandManager, SharedSettings settings, IEnumerable&lt;IReference&gt; references, SpecificationType specificationType,
+        //	bool needClearOldErrors, IProduct product)  : base(commandManager)
+        public CheckSpecificationViewCommand(Common.Settings.Settings settings, IEnumerable&lt;IReference&gt; references,
+            bool needClearOldErrors, IProduct product)
+           
+		{
+			_needClearOldError = needClearOldErrors;
+			_product = product ?? throw new ArgumentNullException(nameof(product));
+			//_settings = settings ?? throw new ArgumentNullException(&quot;settings&quot;);
+			_references = references ?? throw new ArgumentNullException(&quot;references&quot;);
+			//_specificationType = specificationType ?? throw new ArgumentNullException(&quot;specificationType&quot;);
+		}
+
+		public bool Execute()
+		{
+			try
+			{
+                foreach (var reference in _references)
+                {
+                    var design = reference.Child.GetProperty(&quot;�����������&quot;);
+
+                    if (string.IsNullOrWhiteSpace(design.Value)) reference.Errors.Add($&quot;���������� &#39;{design.Variable}&#39; ������&quot;);
+
+                    var count = reference.GetProperty(&quot;����������&quot;);
+
+                    if (count != null &amp;&amp; string.IsNullOrWhiteSpace(count.Value)) reference.Errors.Add($&quot;���������� &#39;{count.Variable}&#39; ������&quot;);
+                }
+                
+
+    //            var referencesForSpecificationType = _references.Where(x =&gt;
+			 //   {
+			 //       var isInDefaultTab = _settings.SpecificationTypes.DefaultType.Equals(_specificationType.Identifier);
+
+    //                var typeValue = x.GetProperty(_settings.SpecificationTypes.TypeVariable);
+			 //       if (typeValue == null)
+			 //       {
+			 //           // ���� ������ �� �������� ���������� �� ��������� ������������� ������������(�������� ��� ������� ������ ������) - ��������� � �� ������� �� ���������.
+    //                    return isInDefaultTab;
+			 //       }
+
+    //                // ���� ������ � ���������� ��������� ���������� ������������� ������������ - ��������� � �� ������� �� ���������.
+    //                if (!_settings.SpecificationTypes.Types.Select(t =&gt; t.TypeVariableValue).ContainsIgnoreCase(typeValue.Value))
+			 //           return isInDefaultTab;
+
+    //                return _specificationType.TypeVariableValue.EqualsIgnoreCase(typeValue.Value);
+			 //   });
+
+				//foreach (var reference in referencesForSpecificationType)
+				//{
+				//	if (_needClearOldError)
+				//		reference.Errors.Clear();
+
+				//	foreach (var column in _specificationType.Columns.Columns)
+				//	{
+				//		if (!column.Checks.SafeAny())
+				//			continue;
+
+				//		foreach (var check in column.Checks)
+				//		{
+				//			var implementor = CheckFactory.Create(check);
+
+				//			var result = string.Empty;
+				//			IProperty value = null;
+
+				//			switch (column.Source)
+				//			{
+				//				case VariableSource.Card:
+				//					{
+				//						value = reference.Child.GetProperty(column.Variable) ?? new Property(column.Variable);
+				//						break;
+				//					}
+
+				//				case VariableSource.Link:
+				//					{
+				//						value = reference.GetProperty(column.Variable) ?? new Property(column.Variable);
+				//						break;
+				//					}
+				//			}
+
+				//			result = implementor.DoCheck(_settings, ConfiguratorMainWindowVM.Instance.PdmVaultInfo, check, column.Header, value.Value, _product);
+
+				//			if (!string.IsNullOrWhiteSpace(result))
+				//			{
+				//				reference.Errors.Add(result);
+				//			}
+				//		}
+				//	}
+				//}
+
+				//SafeFinished(false);
+				return true;
+			}
+			catch (Exception e)
+			{
+				_logger.Error(e);
+
+				SwrMessageBox.Show(ConfiguratorMainWindow.Instance, e.Message, ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+
+				//SafeFinished(false);
+				return false;
+			}
+		}
+
+		//private void SafeFinished(bool result)
+		//{
+		//	try
+		//	{
+		//		OnFinished(result);
+		//	}
+		//	catch (Exception e)
+		//	{
+		//		_logger.Error(e);
+
+		//		ConfiguratorMainWindow.Instance.Dispatcher.Invoke(new Action(() =&gt; SwrMessageBox.Show(ConfiguratorMainWindow.Instance, e.Message, ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error)));
+		//	}
+		//}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[17,3,17,72,0],[27,9,28,55,0],[30,3,30,4,0],[31,4,31,44,0],[32,4,32,75,0],[34,4,34,78,0],[36,3,36,4,0],[39,3,39,4,0],[41,4,41,5,0],[42,17,42,24,0],[42,26,42,39,0],[42,40,42,42,0],[42,43,42,54,0],[43,17,43,18,0],[44,21,44,77,0],[46,21,46,65,0],[46,66,46,129,0],[48,21,48,69,0],[50,21,50,81,0],[50,82,50,144,0],[51,17,51,18,0],[115,5,115,17,0],[117,4,117,23,0],[118,4,118,5,0],[119,5,119,22,0],[121,5,121,165,0],[124,5,124,18,0],[126,3,126,4,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\WebApi\WebApiPaths.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Configuration;
+using System.Collections.Specialized;
+using Swr.Configurator.Data;
+
+
+namespace Swr.Configurator.WebApi
+{
+    class WebApiPaths
+    {
+        private const string MainPath = @&quot;rest/api/1&quot;;
+
+	    public const string CreateComponent = MainPath + @&quot;/component/create&quot;;
+        public const string SearchComponents = MainPath + @&quot;/component/search&quot;;
+		public const string UpdateComponent = MainPath + @&quot;/component/update&quot;;
+
+        public const string GetSettings = MainPath + @&quot;/settings/getsettings&quot;;
+        public const string SaveSettings = MainPath + @&quot;/settings/savesettings&quot;;
+        public const string AllowDeleteType = MainPath + @&quot;/settings/allowdeletetype&quot;;
+        public const string AllowDeleteAttribute = MainPath + @&quot;/settings/allowdeleteattribute&quot;;
+
+        public const string ReadSpecification = MainPath + @&quot;/specification/read&quot;;
+        public const string CreateSpecification = MainPath + @&quot;/specification/create&quot;;
+        public const string UpdateSpecification = MainPath + @&quot;/specification/update&quot;;
+        public const string CheckCycleReference = MainPath + @&quot;/specification/checkcyclereference&quot;;
+
+        public const string GetStructure = MainPath + @&quot;/structure/getchildren&quot;;
+        public const string ComponentHasChildren = MainPath + @&quot;/structure/componenthaschildren&quot;;
+
+        public static string GetBaseAddress()
+        {
+            return StaticConnectionSettings.BaseApiAddress;
+        }
+
+        public static string GetIdentityAddress()
+        {
+            return StaticConnectionSettings.IdentityAddress;
+        }
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[35,9,35,10,0],[36,13,36,60,0],[37,9,37,10,0],[40,9,40,10,1],[41,13,41,61,1],[42,9,42,10,1]]);
+    </script>
+  </body>
+</html>

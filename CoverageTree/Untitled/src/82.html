@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\OverlayWindowDropTarget.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Controls;
+using System.Windows;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public class OverlayWindowDropTarget : IOverlayWindowDropTarget
+    {
+        internal OverlayWindowDropTarget(IOverlayWindowArea overlayArea, OverlayWindowDropTargetType targetType, FrameworkElement element)
+        {
+            _overlayArea = overlayArea;
+            _type = targetType;
+            _screenDetectionArea = new Rect(element.TransformToDeviceDPI(new Point()), element.TransformActualSizeToAncestor());
+        }
+
+        IOverlayWindowArea _overlayArea;
+
+        Rect _screenDetectionArea;
+        Rect IOverlayWindowDropTarget.ScreenDetectionArea
+        {
+            get
+            {
+                return _screenDetectionArea;
+            }
+
+        }
+
+        OverlayWindowDropTargetType _type;
+        OverlayWindowDropTargetType IOverlayWindowDropTarget.Type
+        {
+            get { return _type; }
+        }
+
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[28,9,28,139,0],[29,9,29,10,0],[30,13,30,40,0],[31,13,31,32,0],[32,13,32,129,0],[33,9,33,10,0],[41,13,41,14,0],[42,17,42,45,0],[43,13,43,14,0],[50,17,50,18,0],[50,19,50,32,0],[50,33,50,34,0]]);
+    </script>
+  </body>
+</html>

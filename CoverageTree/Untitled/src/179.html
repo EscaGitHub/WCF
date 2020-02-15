@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Data\ObjectModel\AttributeObject.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Swr.Configurator.Common.Settings.Columns;
+
+namespace Swr.Configurator.Common.Data.ObjectModel
+{
+    /// &lt;summary&gt;
+    /// Атрибут
+    /// &lt;/summary&gt;
+    public class AttributeObject : IObjectStatus
+    {
+        /// &lt;summary&gt;
+        /// Имя атрибута
+        /// &lt;/summary&gt;
+        public string Name { get; set; }
+
+        /// &lt;summary&gt;
+        /// Имя атрибута на карте
+        /// &lt;/summary&gt;
+        //public string Alias { get; set; }
+
+        /// &lt;summary&gt;
+        /// Значение атрибута
+        /// &lt;/summary&gt;
+        //public string Value { get; set; }
+
+        /// &lt;summary&gt;
+        /// Удален
+        /// &lt;/summary&gt;
+        public bool IsDeleted { get; set; }
+
+        /// &lt;summary&gt;
+        /// Изменен
+        /// &lt;/summary&gt;
+        //public bool IsChanged { get; set; }
+
+        ///// &lt;summary&gt;
+        ///// Маска имени
+        ///// &lt;/summary&gt;
+        //public bool IsMask { get; set; }
+
+        /// &lt;summary&gt;
+        /// Обязательный
+        /// &lt;/summary&gt;
+        //public bool IsNecessary { get; set; }
+
+        //public int CardPosition { get; set; }
+
+        /// &lt;summary&gt;
+        /// Идентификатор атрибута в списке атрибутов типа компонента или типа спецификации. 
+        /// &lt;/summary&gt;
+        public Guid TypeAttributeId { get; set; }
+
+        public Guid DbAttributeId { get; set; }
+
+        public bool IsNew { get; set; }
+
+        public AttributeTypeEnum Type { get; set; }
+
+        
+
+        /// &lt;summary&gt;
+        /// Позиция столбца спецификации
+        /// &lt;/summary&gt;
+        public int TablePosition { get; set; }
+
+        /// &lt;summary&gt;
+        /// Униклаьность
+        /// &lt;/summary&gt;
+        public bool IsUnique { get; set; }
+
+
+        /// &lt;summary&gt;
+        /// Тип данных
+        /// &lt;/summary&gt;
+        public AttributeDataType DataType { get; set; }
+
+        public void Dispose()
+        {
+
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[16,30,16,34,1],[16,35,16,39,1],[31,33,31,37,1],[31,38,31,42,1],[53,39,53,43,1],[53,44,53,48,1],[55,37,55,41,1],[55,42,55,46,1],[57,29,57,33,1],[57,34,57,38,1],[59,41,59,45,1],[59,46,59,50,1],[66,36,66,40,1],[66,41,66,45,1],[71,32,71,36,1],[71,37,71,41,1],[77,45,77,49,1],[77,50,77,54,1],[80,9,80,10,0],[82,9,82,10,0]]);
+    </script>
+  </body>
+</html>

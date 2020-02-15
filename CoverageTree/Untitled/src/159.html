@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Settings\Settings.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using Microsoft.AspNetCore.Mvc.Internal;
+using Swr.Configurator.Common.Data.ObjectModel;
+
+namespace Swr.Configurator.Common.Settings
+{
+    /// &lt;summary&gt;
+    /// Класс настроек
+    /// &lt;/summary&gt;
+    public class Settings : IDisposable
+    {
+        public Settings()
+        {
+            ComponentTypes = new List&lt;ComponentTypeObject&gt;();
+            SpecificationTypes = new List&lt;SpecificationTypeObject&gt;();
+            Attributes = new List&lt;AttributeObject&gt;();
+
+            DbServerAddress = string.Empty;
+            AuthentificationServerAddress = string.Empty;
+            ElasticDefaultIndex = string.Empty;
+            ElasticUrl = string.Empty;
+            ElasticLogin = string.Empty;
+            ElasticPassword = string.Empty;
+        }
+
+        /// &lt;summary&gt;
+        /// Список типов компонентов
+        /// &lt;/summary&gt;
+        public List&lt;ComponentTypeObject&gt; ComponentTypes { get; set; }
+
+        /// &lt;summary&gt;
+        /// Тип компонента по-умолчанию
+        /// &lt;/summary&gt;
+        ///public ComponentTypeObject DefaultComponentTypeObject { get; set; }
+
+        /// &lt;summary&gt;
+        /// Список типов спецификаций
+        /// &lt;/summary&gt;
+        public List&lt;SpecificationTypeObject&gt; SpecificationTypes { get; set; }
+
+        /// &lt;summary&gt;
+        /// Список атрибутов
+        /// &lt;/summary&gt;
+        public List&lt;AttributeObject&gt; Attributes { get; set; }
+
+        /// &lt;summary&gt;
+        /// Адрес сервера приложения
+        /// &lt;/summary&gt;
+        public string DbServerAddress { get; set; }
+
+        /// &lt;summary&gt;
+        /// Адрес сервера аутентификации
+        /// &lt;/summary&gt;
+        public string AuthentificationServerAddress { get; set; }
+
+        public ComponentTypeObject GetDefaultComponentType()
+        {
+            if (ComponentTypes != null &amp;&amp; ComponentTypes.Count &gt; 0) return ComponentTypes[0];
+
+            return null;
+        }
+
+        /// &lt;summary&gt;
+        /// Адрес Elasticsearch
+        /// &lt;/summary&gt;
+        public string ElasticUrl { get; set; }
+
+
+        /// &lt;summary&gt;
+        /// Индекс по умолчанию для Elasticsearch
+        /// &lt;/summary&gt;
+        public string ElasticDefaultIndex { get; set; }
+
+        public string ElasticLogin { get; set; }
+
+        public string ElasticPassword { get; set; }
+
+        public void Dispose()
+        {
+           
+
+            if (Attributes != null)
+            {
+                foreach (var attrbute in Attributes)
+                {
+                    attrbute.Dispose();
+                }
+
+                Attributes.Clear();
+                Attributes = null;
+            }
+
+            if (ComponentTypes != null)
+            {
+                foreach (var componentTypeObject in ComponentTypes)
+                {
+                    componentTypeObject.Dispose();
+
+                }
+
+                ComponentTypes.Clear();
+                ComponentTypes = null;
+            }
+
+            if (SpecificationTypes != null)
+            {
+                foreach (var specificationTypeObject in SpecificationTypes)
+                {
+                    specificationTypeObject.Dispose();
+                }
+
+                SpecificationTypes.Clear();
+                SpecificationTypes = null;
+            }
+        }
+
+        public ComponentTypeObject GetDefaultComponentTypeBySpecificationName(string specificationName)
+        {
+            var specificationType = SpecificationTypes.FirstOrDefault(t =&gt; t.Name == specificationName);
+            if (specificationType != null)
+            {
+                var componentTypeNames = specificationType.AllowComponentTypeNames;
+                if (componentTypeNames != null &amp;&amp; componentTypeNames.Count != 0)
+                {
+                    return ComponentTypes.FirstOrDefault(t =&gt; t.Name == componentTypeNames[0]);
+                }
+            }
+
+            return null;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[16,9,16,26,1],[17,9,17,10,1],[18,13,18,62,1],[19,13,19,70,1],[20,13,20,54,1],[22,13,22,44,1],[23,13,23,58,1],[24,13,24,48,1],[25,13,25,39,1],[26,13,26,41,1],[27,13,27,44,1],[28,9,28,10,1],[33,59,33,63,1],[33,64,33,68,1],[43,67,43,71,1],[43,72,43,76,1],[48,51,48,55,1],[48,56,48,60,1],[53,41,53,45,1],[53,46,53,50,1],[58,55,58,59,1],[58,60,58,64,1],[61,9,61,10,0],[62,13,62,68,0],[62,69,62,94,0],[64,13,64,25,0],[65,9,65,10,0],[70,36,70,40,1],[70,41,70,45,1],[76,45,76,49,1],[76,50,76,54,1],[78,38,78,42,1],[78,43,78,47,1],[80,41,80,45,1],[80,46,80,50,1],[83,9,83,10,0],[86,13,86,36,0],[87,13,87,14,0],[88,17,88,24,0],[88,26,88,38,0],[88,39,88,41,0],[88,42,88,52,0],[89,17,89,18,0],[90,21,90,40,0],[91,17,91,18,0],[93,17,93,36,0],[94,17,94,35,0],[95,13,95,14,0],[97,13,97,40,0],[98,13,98,14,0],[99,17,99,24,0],[99,26,99,49,0],[99,50,99,52,0],[99,53,99,67,0],[100,17,100,18,0],[101,21,101,51,0],[103,17,103,18,0],[105,17,105,40,0],[106,17,106,39,0],[107,13,107,14,0],[109,13,109,44,0],[110,13,110,14,0],[111,17,111,24,0],[111,26,111,53,0],[111,54,111,56,0],[111,57,111,75,0],[112,17,112,18,0],[113,21,113,55,0],[114,17,114,18,0],[116,17,116,44,0],[117,17,117,43,0],[118,13,118,14,0],[119,9,119,10,0],[122,9,122,10,0],[123,13,123,76,0],[123,76,123,103,0],[123,103,123,105,0],[123,13,123,105,0],[124,13,124,43,0],[125,13,125,14,0],[126,17,126,84,0],[127,17,127,81,0],[128,17,128,18,0],[129,21,129,63,0],[129,63,129,94,0],[129,94,129,96,0],[129,21,129,96,0],[131,13,131,14,0],[133,13,133,25,0],[134,9,134,10,0]]);
+    </script>
+  </body>
+</html>

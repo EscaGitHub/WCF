@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Logic\SearchTextBoxControlDataGridPropertyMultyValueConverter.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Globalization;
+using System.Linq;
+using System.Windows.Data;
+
+namespace Swr.Configurator.View.Logic
+{
+	public class SearchTextBoxControlDataGridPropertyMultyValueConverter : IMultiValueConverter
+	{
+		public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+		{
+			//if (values == null || values.Count() != 2 || !(values[0] is ProductSimpleVM) || !(values[1] is string))
+			//	return null;
+
+			//var item = values[0] as ProductSimpleVM;
+			//var propertyName = values[1] as String ;
+
+			//var property = item.Product.Properties.FirstOrDefault(x =&gt; x.Variable == propertyName);
+
+			//if (property != null) return property.Value;
+
+			return Binding.DoNothing;
+		}
+
+		public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+		{
+			return new[] { Binding.DoNothing, Binding.DoNothing };
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[11,3,11,4,0],[22,4,22,29,0],[23,3,23,4,0],[26,3,26,4,0],[27,4,27,58,0],[28,3,28,4,0]]);
+    </script>
+  </body>
+</html>

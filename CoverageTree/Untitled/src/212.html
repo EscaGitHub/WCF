@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\DataViewModels\StructureVM.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.Logic;
+using Swr.Configurator.Logic.Card;
+using SWR_Tools.Extention;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Globalization;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using System.Windows.Data;
+using Swr.Configurator.WebApi;
+using SwrUI;
+
+namespace Swr.Configurator.View.DataViewModels
+{
+	public class StructureVM : INotifyPropertyChanged, IDisposable
+	{
+		private readonly ProductStructureContainer _productStructureContainer;
+		private readonly CardController _cardController;
+		private readonly bool _isTree;
+
+		public StructureVM(ProductStructureContainer productStructureContainer, CardController cardController, bool isTree)
+		{
+			_productStructureContainer = productStructureContainer;
+			_cardController = cardController;
+			_isTree = isTree;
+			_cardController.UpdateProductNameEvent += _cardController_UpdateProductNameEvent;
+			_productStructureContainer.ProductAdded += _productStructureContainer_ProductAdded;
+			_productStructureContainer.ProductClosed += _productStructureContainer_ProductClosed;
+
+			SelectedProducts = new ObservableCollection&lt;ProductVM&gt;();
+			SelectedProducts.CollectionChanged += SelectedProducts_CollectionChanged;
+			Products = new List&lt;ProductVM&gt;();
+
+			ProductsView = new ListCollectionView(Products);
+			if (isTree)
+			{
+				ProductsView.CustomSort = new ProductSorter();
+			}
+		}
+
+		private void _cardController_UpdateProductNameEvent(object sender, Configurator.Logic.EventArgs.ProductEventArgs e)
+		{
+			foreach (var product in e.Products)
+			{
+				var foundProductVM = Products.FirstOrDefault(t =&gt; t.Product == product);
+				if (foundProductVM != null)
+				{
+					foundProductVM.Name = product.Name;
+				}
+			}
+		}
+
+		private void _productStructureContainer_ProductClosed(object sender, Configurator.Logic.EventArgs.ProductEventArgs e)
+		{
+			ConfiguratorMainWindow.Instance.Dispatcher?.Invoke(() =&gt;
+			{
+                _cardController.ClearCard(); // #5273 тут, а не в конце так как дальше чистится коллекция product&#39;ов и получаем эксепшен на update идентификатора при сохранении
+
+                _clearSelection = true; // #5273 отрубаем срабатывание отображение карты в событии SelectedProducts_CollectionChanged. Селект постоянно скачет.
+
+                try
+                {
+                    var closedProducts = Products.Where(t =&gt; e.Products.Contains(t.Product)).ToList();
+
+                    foreach (var closedProduct in closedProducts)
+                    {
+                        closedProduct.IsSelected = false;
+
+                        Products.Remove(closedProduct);
+
+                        if (!_isTree) ConfiguratorMainWindowVM.Instance.SpecificationsController.CloseSpecification(closedProduct.Product);
+
+                        closedProduct.Dispose();
+                    }
+                }
+                finally
+                {
+                   _clearSelection = false; // возвращаем нормальную работу события
+                }
+
+                ProductsView.Refresh();
+			});
+		}
+
+		private bool _clearSelection;
+		public void ClearSelection()
+		{
+			_clearSelection = true;
+			var sel = SelectedProducts.ToArray();
+			foreach (var productVm in sel)
+			{
+				productVm.IsSelected = false;
+			}
+			_clearSelection = false;
+		}
+
+		private void SelectedProducts_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		{
+			if (!_clearSelection)
+			{
+				if (SelectedProducts.Count == 1)
+				{
+					_cardController.ShowCardItem(SelectedProducts[0].Product, SelectedProducts[0], this);
+				}
+				else
+				{
+					_cardController.SetEnable(false);
+				}
+			}
+		}
+
+		public bool ProductsAny
+		{
+			get { return Products.SafeAny(); }
+		}
+
+		private void _productStructureContainer_ProductAdded(object sender, Configurator.Logic.EventArgs.ProductEventArgs e)
+		{
+			ConfiguratorMainWindow.Instance.Dispatcher?.Invoke(() =&gt;
+			{
+				foreach (var product in e.Products)
+				{
+					var addedProduct = new ProductVM(product, _isTree);
+
+					if (product.HasRealChilds())
+					{
+						addedProduct.FillChildren();
+					}
+
+					Products.Add(addedProduct);
+					if (!e.FromSearch)
+					{
+						if (SelectedProducts.Count != 0)
+						{
+							for (int i = SelectedProducts.Count - 1; i &gt;= 0; i--)
+							{
+								var item = SelectedProducts[i];
+								item.IsSelected = false;
+							}
+						}
+
+						addedProduct.IsSelected = true;
+					}
+				}
+
+				ProductsView.Refresh();
+			});
+		}
+
+		public ObservableCollection&lt;ProductVM&gt; SelectedProducts { get; private set; }
+
+		public ListCollectionView ProductsView { get; set; }
+
+		public List&lt;ProductVM&gt; Products { get; private set; }
+
+		public event PropertyChangedEventHandler PropertyChanged;
+
+		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+		{
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+		}
+
+        public void Dispose()
+        {
+            _cardController.UpdateProductNameEvent -= _cardController_UpdateProductNameEvent;
+            _productStructureContainer.ProductAdded -= _productStructureContainer_ProductAdded;
+            _productStructureContainer.ProductClosed -= _productStructureContainer_ProductClosed;
+
+            if (SelectedProducts != null)
+            {
+                SelectedProducts.CollectionChanged -= SelectedProducts_CollectionChanged;
+
+                SelectedProducts.Clear();
+
+                SelectedProducts = null;
+            }
+
+            if (ProductsView != null)
+            {
+                ProductsView = null;
+            }
+
+            if (Products != null)
+            {
+                foreach (var productVm in Products)
+                {
+                    productVm.Dispose();
+                }
+
+                Products.Clear();
+                Products = null;
+            }
+
+            ProductsView = null;
+        }
+    }
+
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[27,3,27,118,0],[28,3,28,4,0],[29,4,29,59,0],[30,4,30,37,0],[31,4,31,21,0],[32,4,32,85,0],[33,4,33,87,0],[34,4,34,89,0],[36,4,36,61,0],[37,4,37,77,0],[38,4,38,37,0],[40,4,40,52,0],[41,4,41,15,0],[42,4,42,5,0],[43,5,43,51,0],[44,4,44,5,0],[45,3,45,4,0],[48,3,48,4,0],[49,4,49,11,0],[49,13,49,24,0],[49,25,49,27,0],[49,28,49,38,0],[50,4,50,5,0],[51,5,51,55,0],[51,55,51,75,0],[51,75,51,77,0],[51,5,51,77,0],[52,5,52,32,0],[53,5,53,6,0],[54,6,54,41,0],[55,5,55,6,0],[56,4,56,5,0],[57,3,57,4,0],[60,3,60,4,0],[61,4,62,4,0],[62,4,62,5,0],[62,5,63,17,0],[63,17,63,45,0],[63,45,65,17,0],[65,17,65,40,0],[65,40,68,17,0],[68,17,68,18,0],[68,18,69,21,0],[69,21,69,62,0],[69,62,69,92,0],[69,92,69,103,0],[69,21,69,103,0],[69,103,71,21,0],[71,21,71,28,0],[71,28,71,30,0],[71,30,71,47,0],[71,47,71,48,0],[71,48,71,50,0],[71,50,71,51,0],[71,51,71,65,0],[71,65,72,21,0],[72,21,72,22,0],[72,22,73,25,0],[73,25,73,58,0],[73,58,75,25,0],[75,25,75,56,0],[75,56,77,25,0],[77,25,77,38,0],[77,38,77,39,0],[77,39,77,140,0],[77,140,79,25,0],[79,25,79,49,0],[79,49,80,21,0],[80,21,80,22,0],[80,22,81,17,0],[81,17,81,18,0],[81,18,83,17,0],[83,17,83,18,0],[83,18,84,20,0],[84,20,84,44,0],[84,44,85,17,0],[85,17,85,18,0],[85,18,87,17,0],[87,17,87,40,0],[87,40,88,4,0],[88,4,88,5,0],[88,5,88,7,0],[61,4,88,7,0],[89,3,89,4,0],[93,3,93,4,0],[94,4,94,27,0],[95,4,95,41,0],[96,4,96,11,0],[96,13,96,26,0],[96,27,96,29,0],[96,30,96,33,0],[97,4,97,5,0],[98,5,98,34,0],[99,4,99,5,0],[100,4,100,28,0],[101,3,101,4,0],[104,3,104,4,0],[105,4,105,25,0],[106,4,106,5,0],[107,5,107,37,0],[108,5,108,6,0],[109,6,109,91,0],[110,5,110,6,0],[112,5,112,6,0],[113,6,113,39,0],[114,5,114,6,0],[115,4,115,5,0],[116,3,116,4,0],[120,8,120,9,0],[120,10,120,36,0],[120,37,120,38,0],[124,3,124,4,0],[125,4,126,4,0],[126,4,126,5,0],[126,5,127,5,0],[127,5,127,12,0],[127,12,127,14,0],[127,14,127,25,0],[127,25,127,26,0],[127,26,127,28,0],[127,28,127,29,0],[127,29,127,39,0],[127,39,128,5,0],[128,5,128,6,0],[128,6,129,6,0],[129,6,129,57,0],[129,57,131,6,0],[131,6,131,34,0],[131,34,132,6,0],[132,6,132,7,0],[132,7,133,7,0],[133,7,133,35,0],[133,35,134,6,0],[134,6,134,7,0],[134,7,136,6,0],[136,6,136,33,0],[136,33,137,6,0],[137,6,137,24,0],[137,24,138,6,0],[138,6,138,7,0],[138,7,139,7,0],[139,7,139,39,0],[139,39,140,7,0],[140,7,140,8,0],[140,8,141,13,0],[141,13,141,47,0],[141,47,141,49,0],[141,49,141,55,0],[141,55,141,57,0],[141,57,141,60,0],[141,60,142,8,0],[142,8,142,9,0],[142,9,143,9,0],[143,9,143,40,0],[143,40,144,9,0],[144,9,144,33,0],[144,33,145,8,0],[145,8,145,9,0],[145,9,146,7,0],[146,7,146,8,0],[146,8,148,7,0],[148,7,148,38,0],[148,38,149,6,0],[149,6,149,7,0],[149,7,150,5,0],[150,5,150,6,0],[150,6,152,5,0],[152,5,152,28,0],[152,28,153,4,0],[153,4,153,5,0],[153,5,153,7,0],[125,4,153,7,0],[154,3,154,4,0],[156,61,156,65,0],[156,66,156,78,0],[158,44,158,48,0],[158,49,158,53,0],[160,37,160,41,0],[160,42,160,54,0],[165,3,165,4,0],[166,4,166,78,0],[167,3,167,4,0],[170,9,170,10,0],[171,13,171,94,0],[172,13,172,96,0],[173,13,173,98,0],[175,13,175,42,0],[176,13,176,14,0],[177,17,177,90,0],[179,17,179,42,0],[181,17,181,41,0],[182,13,182,14,0],[184,13,184,38,0],[185,13,185,14,0],[186,17,186,37,0],[187,13,187,14,0],[189,13,189,34,0],[190,13,190,14,0],[191,17,191,24,0],[191,26,191,39,0],[191,40,191,42,0],[191,43,191,51,0],[192,17,192,18,0],[193,21,193,41,0],[194,17,194,18,0],[196,17,196,34,0],[197,17,197,33,0],[198,13,198,14,0],[200,13,200,33,0],[201,9,201,10,0]]);
+    </script>
+  </body>
+</html>

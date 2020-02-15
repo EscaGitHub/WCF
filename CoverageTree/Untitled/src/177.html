@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Settings\CommonSettingsController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Xml.Serialization;
+using NLog.Fluent;
+using Swr.Capital1C.Okei;
+using Swr.Capital1C.Service.Logger;
+using Swr.Capital1C.Service.Settings.Model;
+using Swr.Infrastructure.Mailing;
+
+namespace Swr.Capital1C.Service.Settings
+{
+    public static class CommonSettingsController
+    {
+        public static CommonSettings Settings =&gt; _settings ?? LoadCommonSettings();
+
+        private static readonly NLog.Logger Logger = LogHelper.Instance.GetLogger(&quot;Менеджер настроек&quot;);
+        private static CommonSettings _settings;
+
+        private const string RelativePath = @&quot;\SWR\SWR-Capital1C\&quot;;
+        private const string SettingsFileName = &quot;ServiceSettings.xml&quot;;
+
+        public static CommonSettings GetDefault()
+        {
+            var settings = new CommonSettings
+            {
+                PdmDbConnection = {Server = &quot;pdmwe46&quot;, DataBase = &quot;PDM&quot;, UserName = &quot;sa&quot;, Password = &quot;qwe123PDM&quot;},
+                ExportedDocumentsStatusDbConnection = { Server = &quot;(local)&quot;, DataBase = &quot;Capital&quot;, UserName = &quot;sa&quot;, Password = &quot;newtime&quot; },
+                IsServiceVariableName = &quot;спр_Служебная_запись&quot;,
+                ArticleVariableName = &quot;_Артикул_для_1С&quot;,
+                OkeiServiceConnection = new OkeiServiceConnection { Address = @&quot;http://localhost:5002/api/v2/okei/national-legends/&quot; },
+                EmailServiceSettings = new EmailServiceSettings
+                {
+                    Sender = &quot;swrgroup@bk.ru&quot;,
+                    UserName = &quot;swrgroup@bk.ru&quot;,
+                    Password = &quot;rOa3burY$OU2&quot;,
+                    ServerAddress = &quot;smtp.bk.ru&quot;,
+                    Port = 465,
+                    EnableSsl = true,
+                    EnableAuthentication = true,
+                    To = new List&lt;string&gt; { &quot;i.skobelev@swrgroup.ru&quot;}
+                },
+                NomenclatureDefinition =
+                {
+                    StatusVariableName = &quot;_Статус_передачи_номенклатуры&quot;,
+                    StatusVariableValue = &quot;Готова к передаче в 1С:УПП&quot;,
+                    FolderDefinitions = new List&lt;FolderDefinition&gt;
+                    {
+                        new FolderDefinition {Extensions = new List&lt;string&gt; {&quot;.sldprt&quot;, &quot;.sldasm&quot;, &quot;.swrmat.cvd&quot;}, FolderPaths = new List&lt;string&gt; {@&quot;\Проекты\&quot;}},
+                        new FolderDefinition {Extensions = new List&lt;string&gt; {&quot;.sldprt&quot;, &quot;.sldasm&quot;, &quot;.swrmat.cvd&quot;}, FolderPaths = new List&lt;string&gt; {@&quot;\Справочники\&quot;}},
+                    },
+                    VariableMaps = new List&lt;VariableMap&gt;
+                    {
+                        new VariableMap {AttributeName = &quot;Артикул&quot;, MessageAttributeName = &quot;ID&quot;},
+                        new VariableMap {AttributeName = &quot;Наименование номенклатуры&quot;, MessageAttributeName = &quot;NAME&quot;},
+                        new VariableMap {AttributeName = &quot;Единица измерения&quot;, MessageAttributeName = &quot;UOM&quot;},
+                        new VariableMap {AttributeName = &quot;Раздел спецификации&quot;, MessageAttributeName = &quot;BOM_PART&quot;},
+                        new VariableMap {AttributeName = &quot;Вид номенклатуры&quot;, MessageAttributeName = &quot;TYPE&quot;},
+                        new VariableMap {AttributeName = &quot;Признак готовой продукции&quot;, MessageAttributeName = &quot;IS_PRODUCT&quot;},
+                        new VariableMap {AttributeName = &quot;Вид воспроизводства&quot;, MessageAttributeName = &quot;PURCHASED&quot;},
+                        new VariableMap {AttributeName = &quot;Материал&quot;, MessageAttributeName = &quot;MATERIAL&quot;},
+                        new VariableMap {AttributeName = &quot;Плотность&quot;, MessageAttributeName = &quot;DENSITY&quot;},
+                        new VariableMap {AttributeName = &quot;Масса&quot;, MessageAttributeName = &quot;WEIGHT&quot;},
+                        new VariableMap {AttributeName = &quot;Площадь поверхности&quot;, MessageAttributeName = &quot;AREA&quot;},
+                        new VariableMap {AttributeName = &quot;Количество гибов&quot;, MessageAttributeName = &quot;BEND&quot;},
+                        new VariableMap {AttributeName = &quot;Общая длина&quot;, MessageAttributeName = &quot;LENGTH&quot;},
+                        new VariableMap {AttributeName = &quot;Общая ширина&quot;, MessageAttributeName = &quot;WIDTH&quot;},
+                        new VariableMap {AttributeName = &quot;Общая толщина&quot;, MessageAttributeName = &quot;THICK&quot;},
+                        new VariableMap {AttributeName = &quot;Длина реза&quot;, MessageAttributeName = &quot;LENGTH_CUT&quot;},
+                    }
+                },
+                BomDefinition =
+                {
+                    StatusVariableName = &quot;_Статус_передачи_спецификации&quot;,
+                    StatusVariableValue = &quot;Готова к передаче в 1С:УПП&quot;,
+                    FolderDefinitions = new List&lt;FolderDefinition&gt;
+                    {
+                        new FolderDefinition {Extensions = new List&lt;string&gt; {&quot;.sldprt&quot;, &quot;.sldasm&quot;, &quot;.swrmat.cvd&quot;}, FolderPaths = new List&lt;string&gt; {@&quot;\Проекты\&quot;}},
+                        new FolderDefinition {Extensions = new List&lt;string&gt; {&quot;.sldprt&quot;, &quot;.sldasm&quot;, &quot;.swrmat.cvd&quot;}, FolderPaths = new List&lt;string&gt; {@&quot;\Справочники\&quot;}},
+                    },
+                    VariableMaps = new List&lt;VariableMap&gt;
+                    {
+                        new VariableMap {AttributeName = &quot;Артикул родителя&quot;, MessageAttributeName = &quot;PARENT_ID&quot;},
+                        new VariableMap {AttributeName = &quot;Версия&quot;, MessageAttributeName = &quot;VERSION&quot;},
+                        new VariableMap {AttributeName = &quot;Наименование&quot;, MessageAttributeName = &quot;BOM_NAME&quot;},
+                        new VariableMap {AttributeName = &quot;Кол-во выходного изделия&quot;, MessageAttributeName = &quot;QTY_BOM&quot;},
+                        new VariableMap {AttributeName = &quot;Артикул&quot;, MessageAttributeName = &quot;CHILD_ID&quot;},
+                        new VariableMap {AttributeName = &quot;Количество&quot;, MessageAttributeName = &quot;QTY&quot;},
+                        new VariableMap {AttributeName = &quot;Единица измерения количества&quot;, MessageAttributeName = &quot;UOM&quot;},
+                    }
+                },
+                NomenclatureCatalogServiceConnection = new CatalogServiceConnection
+                {
+                    Address = &quot;http://localhost:5004/api/v2/nomenclatures/&quot;,
+                    IdentityAddress = &quot;http://localhost:5004/api/account&quot;,
+                    Login = &quot;clientuser&quot;,
+                    Password = &quot;12345&quot;
+                },
+                BomCatalogServiceConnection = new CatalogServiceConnection
+                {
+                    Address = &quot;http://localhost:5000/api/v2/engineering-boms/&quot;,
+                    IdentityAddress = &quot;http://localhost:5000/api/account&quot;,
+                    Login = &quot;clientuser&quot;,
+                    Password = &quot;12345&quot;
+                }
+            };
+
+            return settings;
+        }
+
+        private static CommonSettings LoadCommonSettings()
+        {
+            Logger.Debug(&quot;Загрузка настроек...&quot;);
+
+            var serviceSettings = LoadServiceSettings();
+
+            if (serviceSettings == null)
+            {
+                Logger.Warn(&quot;Не удалось прочитать настройки службы. Будут загружены настройки по умолчанию.&quot;);
+
+                serviceSettings = GetDefault();
+
+                SaveServiceSettings(serviceSettings);
+
+                Logger.Debug(&quot;Настройки по умолчанию загружены и сохранены в файл.&quot;);
+            }
+
+            Logger.Debug(&quot;Настройки загружены.&quot;);
+
+            _settings = serviceSettings;
+
+            return _settings;
+        }
+
+        private static CommonSettings LoadServiceSettings()
+        {
+            var folderPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + RelativePath;
+            var filePath = Path.Combine(folderPath, SettingsFileName);
+
+            if (!File.Exists(filePath))
+            {
+                Logger.Debug($&quot;Файл настроек не найден: {filePath}&quot;);
+
+                return null;
+            }
+
+            var settings = filePath.DeserializeFromFile&lt;CommonSettings&gt;();
+
+            return settings;
+        }
+
+        private static void SaveServiceSettings(CommonSettings settings, string path = null)
+        {
+            if (settings == null) throw new NullReferenceException(&quot;Настройки null.&quot;);
+
+            if (path == null) path = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + RelativePath;
+
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+
+            settings.SerializeToFile(Path.Combine(path, SettingsFileName));
+        }
+
+        private static T DeserializeFromFile&lt;T&gt;(this string file) where T : new()
+        {
+            if (!File.Exists(file)) throw new InvalidOperationException($&quot;Файл &#39;{file}&#39; не найден.&quot;);
+
+            using (var reader = new StreamReader(file))
+            {
+                var serializer = new XmlSerializer(typeof(T));
+                try
+                {
+                    return (T)serializer.Deserialize(reader);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(String.Format(&quot;Невозможно считать данные. Файл \&quot;{0}\&quot;. Ошибка &#39;{1}&#39;&quot;, file, ex.Message));
+                }
+            }
+        }
+
+        private static void SerializeToFile&lt;T&gt;(this T settings, string file)
+        {
+            if (file == null) throw new NullReferenceException(&quot;Имя файла null.&quot;);
+            if (settings == null) throw new NullReferenceException(&quot;Объект null.&quot;);
+
+            string folderPath = Path.GetDirectoryName(file);
+
+            if (!String.IsNullOrWhiteSpace(folderPath) &amp;&amp; !Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
+
+            using (var writer = new StreamWriter(file))
+            {
+                var serializer = new XmlSerializer(settings.GetType());
+
+                serializer.Serialize(writer, settings);
+            }
+        }
+
+        public static void Dispose()
+        {
+            _settings = null;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[15,50,15,83,1],[17,9,17,104,1],[24,9,24,10,1],[25,13,106,15,1],[108,13,108,29,1],[109,9,109,10,1],[112,9,112,10,1],[113,13,113,50,1],[115,13,115,57,1],[117,13,117,41,1],[118,13,118,14,0],[119,17,119,111,0],[121,17,121,48,0],[123,17,123,54,0],[125,17,125,86,0],[126,13,126,14,0],[128,13,128,50,1],[130,13,130,41,1],[132,13,132,30,1],[133,9,133,10,1],[136,9,136,10,1],[137,13,137,120,1],[138,13,138,71,1],[140,13,140,40,1],[141,13,141,14,0],[142,17,142,70,0],[144,17,144,29,0],[147,13,147,75,1],[149,13,149,29,1],[150,9,150,10,1],[153,9,153,10,0],[154,13,154,34,0],[154,35,154,87,0],[156,13,156,30,0],[156,31,156,128,0],[158,13,158,41,0],[158,42,158,74,0],[160,13,160,76,0],[161,9,161,10,0],[164,9,164,10,1],[165,13,165,36,1],[165,37,165,102,0],[167,20,167,55,1],[168,13,168,14,1],[169,17,169,63,1],[171,17,171,18,1],[172,21,172,62,1],[174,17,174,37,0],[175,17,175,18,0],[176,21,176,147,0],[179,9,179,10,1],[182,9,182,10,0],[183,13,183,30,0],[183,31,183,83,0],[184,13,184,34,0],[184,35,184,84,0],[186,13,186,61,0],[188,13,188,89,0],[189,17,189,55,0],[191,20,191,55,0],[192,13,192,14,0],[193,17,193,72,0],[195,17,195,56,0],[196,13,196,14,0],[197,9,197,10,0],[200,9,200,10,1],[201,13,201,30,1],[202,9,202,10,1]]);
+    </script>
+  </body>
+</html>

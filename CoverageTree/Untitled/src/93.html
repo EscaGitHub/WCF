@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\UnitTests\ItemsFactoryTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Moq;
+using Swr.Capital1C.Okei;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models.In;
+using Swr.Capital1C.Service.Settings;
+using Swr.Capital1C.Service.Settings.Model;
+using Xunit;
+using Attribute = Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models.In.Attribute;
+
+namespace UnitTests
+{
+    public class ItemsFactoryTest
+    {
+        [Fact]
+        public void Standard_Create_ShouldReturnItems()
+        {
+            var nomenclature = new Nomenclature
+            {
+                Attributes = new []
+                {
+                    new Attribute{Name = &quot;Артикул&quot;, Value = &quot;PB00001&quot; },
+                    new Attribute{Name = &quot;Наименование&quot;, Value = &quot;Деталь 1&quot; },
+                    new Attribute{Name = &quot;Обозначение&quot;, Value = &quot;SWR.000.001&quot; },
+                    new Attribute{Name = &quot;Единица измерения&quot;, Value = &quot;мм&quot; },
+                    new Attribute{Name = &quot;Раздел спецификации&quot;, Value = &quot;Детали&quot; },
+                    new Attribute{Name = &quot;Вид номенклатуры&quot;, Value = &quot;Ролики_2&quot; },
+                    new Attribute{Name = &quot;Признак готовой продукции&quot;, Value = &quot;11&quot; },
+                    new Attribute{Name = &quot;Вид воспроизводства&quot;, Value = &quot;Вид1&quot; },
+                    new Attribute{Name = &quot;Материал&quot;, Value = &quot;сталь&quot; },
+                    new Attribute{Name = &quot;Плотность&quot;, Value = &quot;0.5&quot; },
+                    new Attribute{Name = &quot;Масса&quot;, Value = &quot;13.2&quot; },
+                    new Attribute{Name = &quot;Площадь поверхности&quot;, Value = &quot;3.2&quot; },
+                    new Attribute{Name = &quot;Количество гибов&quot;, Value = &quot;3&quot; },
+                    new Attribute{Name = &quot;Общая длина&quot;, Value = &quot;44.7&quot; },
+                    new Attribute{Name = &quot;Общая ширина&quot;, Value = &quot;20.1&quot; },
+                    new Attribute{Name = &quot;Общая толщина&quot;, Value = &quot;4.7&quot; },
+                    new Attribute{Name = &quot;Длина реза&quot;, Value = &quot;1.7&quot; },
+                }
+            };
+
+            var okeiServiceMock = new Mock&lt;IOkeiService&gt;();
+            okeiServiceMock.Setup(t =&gt; t.GetOkeiCodeAsync(It.IsAny&lt;string&gt;())).ReturnsAsync(() =&gt; &quot;123&quot;);
+
+            var itemsFactory = new ItemsFactory(CommonSettingsController.GetDefault(), okeiServiceMock.Object);
+            var nomenclatures = new List&lt;Nomenclature&gt; {nomenclature};
+            var item = itemsFactory.Create(ref nomenclatures)[0];
+
+            Assert.Single(nomenclatures);
+
+            Assert.Equal(&quot;PB00001&quot;, item.ID);
+            Assert.Equal(&quot;Деталь 1 SWR.000.001&quot;, item.NAME);
+            Assert.Equal (&quot;123&quot;, item.UOM);
+            Assert.Equal(&quot;Детали&quot;, item.BOM_PART);
+            Assert.Equal(&quot;21 Полуфабрикат собствен&quot;, item.TYPE);
+            Assert.Equal(&quot;11&quot;, item.IS_PRODUCT);
+            Assert.Equal(&quot;Вид1&quot;, item.PURCHASED);
+            Assert.Equal(&quot;сталь&quot;, item.MATERIAL);
+            Assert.Equal(0.5f, item.DENSITY);
+            Assert.Equal(13.2f, item.WEIGHT);
+            Assert.Equal(3.2f, item.AREA);
+            Assert.Equal(3, item.BEND);
+            Assert.Equal(44.7f, item.LENGTH);
+            Assert.Equal(20.1f, item.WIDTH);
+            Assert.Equal(4.7f, item.THICK);
+            Assert.Equal(1.7f, item.LENGTH_CUT);
+        }
+
+        [Fact]
+        public void NomenclatureView_Create_ShouldChangeTypeAndName()
+        {
+            var nomenclature = new Nomenclature
+            {
+                Attributes = new[]
+                {
+                    new Attribute{Name = &quot;Артикул&quot;, Value = &quot;PB00001&quot; },
+                    new Attribute{Name = &quot;Наименование&quot;, Value = &quot;Деталь 1&quot; },
+                    new Attribute{Name = &quot;Обозначение&quot;, Value = &quot;SWR.000.001&quot; },
+                    new Attribute{Name = &quot;Раздел спецификации&quot;, Value = &quot;материалы&quot; },
+                    new Attribute{Name = &quot;Вид воспроизводства&quot;, Value = &quot;Покупное&quot; },
+                    new Attribute{Name = &quot;Вид номенклатуры&quot;, Value = &quot;Ролики_2&quot; },
+                    new Attribute{Name = &quot;Признак готовой продукции&quot;, Value = &quot;11&quot; },
+                }
+            };
+
+            var okeiServiceMock = new Mock&lt;IOkeiService&gt;();
+            okeiServiceMock.Setup(t =&gt; t.GetOkeiCodeAsync(It.IsAny&lt;string&gt;())).ReturnsAsync(() =&gt; &quot;123&quot;);
+
+            var itemsFactory = new ItemsFactory(CommonSettingsController.GetDefault(), okeiServiceMock.Object);
+            var nomenclatures = new List&lt;Nomenclature&gt; { nomenclature };
+            var item = itemsFactory.Create(ref nomenclatures)[0];
+
+            Assert.Equal(&quot;Деталь 1&quot;, item.NAME); // changed
+            Assert.Equal(&quot;материалы&quot;, item.BOM_PART);
+            Assert.Equal(&quot;10-01 Сырье и материалы&quot;, item.TYPE); // changed
+
+            nomenclature.Attributes[3].Value = &quot;материалы1&quot;; // реагирует на Покупное
+            itemsFactory = new ItemsFactory(CommonSettingsController.GetDefault(), okeiServiceMock.Object);
+            item = itemsFactory.Create(ref nomenclatures)[0];
+
+            Assert.Equal(&quot;Деталь 1&quot;, item.NAME); 
+            Assert.Equal(&quot;материалы1&quot;, item.BOM_PART);
+            Assert.Equal(&quot;10-01 Сырье и материалы&quot;, item.TYPE);
+
+            nomenclature.Attributes[3].Value = &quot;детали&quot;;
+            itemsFactory = new ItemsFactory(CommonSettingsController.GetDefault(), okeiServiceMock.Object);
+            item = itemsFactory.Create(ref nomenclatures)[0];
+
+            Assert.Equal(&quot;Деталь 1 SWR.000.001&quot;, item.NAME); // changed
+            Assert.Equal(&quot;детали&quot;, item.BOM_PART);
+            Assert.Equal(&quot;10-01 Сырье и материалы&quot;, item.TYPE);
+
+            nomenclature.Attributes[4].Value = &quot;Никакое&quot;;
+            nomenclature.Attributes[6].Value = &quot;1&quot;;
+            itemsFactory = new ItemsFactory(CommonSettingsController.GetDefault(), okeiServiceMock.Object);
+            item = itemsFactory.Create(ref nomenclatures)[0];
+
+            Assert.Equal(&quot;Деталь 1 SWR.000.001&quot;, item.NAME);
+            Assert.Equal(&quot;детали&quot;, item.BOM_PART);
+            Assert.Equal(&quot;43 Готовая продукция&quot;, item.TYPE); // changed
+        }
+
+        [Fact]
+        public void NameByBomPart_Create_ShouldChangeName()
+        {
+            var nomenclature = new Nomenclature
+            {
+                Attributes = new[]
+                {
+                    new Attribute{Name = &quot;Артикул&quot;, Value = &quot;PB00001&quot; },
+                    new Attribute{Name = &quot;Наименование&quot;, Value = &quot;Деталь 1&quot; },
+                    new Attribute{Name = &quot;Обозначение&quot;, Value = &quot;SWR.000.001&quot; },
+                    new Attribute{Name = &quot;Раздел спецификации&quot;, Value = &quot;сборочные единицы&quot; },
+                }
+            };
+
+            var okeiServiceMock = new Mock&lt;IOkeiService&gt;();
+            okeiServiceMock.Setup(t =&gt; t.GetOkeiCodeAsync(It.IsAny&lt;string&gt;())).ReturnsAsync(() =&gt; &quot;123&quot;);
+
+
+            var itemsFactory = new ItemsFactory(CommonSettingsController.GetDefault(), okeiServiceMock.Object);
+            var nomenclatures = new List&lt;Nomenclature&gt; { nomenclature };
+            var item = itemsFactory.Create(ref nomenclatures)[0];
+
+            Assert.Equal(&quot;Деталь 1 SWR.000.001&quot;, item.NAME);
+            Assert.Equal(&quot;сборочные единицы&quot;, item.BOM_PART);
+        }
+
+        [Fact]
+        public void EmptyArticle_Create_ShouldReturnEmpty()
+        {
+            var nomenclature = new Nomenclature
+            {
+                Attributes = new[]
+                {
+                    new Attribute{Name = &quot;Наименование&quot;, Value = &quot;Деталь 1&quot; },
+                    new Attribute{Name = &quot;Обозначение&quot;, Value = &quot;SWR.000.001&quot; },
+                    new Attribute{Name = &quot;Раздел спецификации&quot;, Value = &quot;сборочные единицы&quot; },
+                }
+            };
+
+            var okeiServiceMock = new Mock&lt;IOkeiService&gt;();
+            okeiServiceMock.Setup(t =&gt; t.GetOkeiCodeAsync(It.IsAny&lt;string&gt;())).ReturnsAsync(() =&gt; &quot;123&quot;);
+
+
+            var itemsFactory = new ItemsFactory(CommonSettingsController.GetDefault(), okeiServiceMock.Object);
+            var nomenclatures = new List&lt;Nomenclature&gt; { nomenclature };
+            var items = itemsFactory.Create(ref nomenclatures);
+
+            Assert.Empty(items);
+            Assert.Empty(nomenclatures);
+        }
+
+        [Fact]
+        public void WrongOkei_Create_ShouldReturnEmpty()
+        {
+            var nomenclature = new Nomenclature
+            {
+                Attributes = new[]
+                {
+                    new Attribute{Name = &quot;Артикул&quot;, Value = &quot;PB00001&quot; },
+                    new Attribute{Name = &quot;Наименование&quot;, Value = &quot;Деталь 1&quot; },
+                    new Attribute{Name = &quot;Обозначение&quot;, Value = &quot;SWR.000.001&quot; },
+                    new Attribute{Name = &quot;Раздел спецификации&quot;, Value = &quot;сборочные единицы&quot; },
+                    new Attribute{Name = &quot;Единица измерения&quot;, Value = &quot;WrongValue&quot; },
+                }
+            };
+
+            var okeiServiceMock = new Mock&lt;IOkeiService&gt;();
+            okeiServiceMock.Setup(t =&gt; t.GetOkeiCodeAsync(It.IsAny&lt;string&gt;())).Throws(new OkeiCodeNotFoundException(It.IsAny&lt;string&gt;()));
+
+
+            var itemsFactory = new ItemsFactory(CommonSettingsController.GetDefault(), okeiServiceMock.Object);
+            var nomenclatures = new List&lt;Nomenclature&gt; { nomenclature };
+            var items = itemsFactory.Create(ref nomenclatures);
+
+            Assert.Empty(items);
+            Assert.Empty(nomenclatures);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[21,9,21,10,1],[22,13,44,15,1],[46,13,46,60,1],[47,13,47,99,1],[47,99,47,104,1],[47,104,47,106,1],[47,13,47,106,1],[49,13,49,112,1],[50,13,50,71,1],[51,13,51,66,1],[53,13,53,42,1],[55,13,55,46,1],[56,13,56,61,1],[57,13,57,44,1],[58,13,58,51,1],[59,13,59,65,1],[60,13,60,49,1],[61,13,61,50,1],[62,13,62,50,1],[63,13,63,46,1],[64,13,64,46,1],[65,13,65,43,1],[66,13,66,40,1],[67,13,67,46,1],[68,13,68,45,1],[69,13,69,44,1],[70,13,70,49,1],[71,9,71,10,1],[75,9,75,10,1],[76,13,88,15,1],[90,13,90,60,1],[91,13,91,99,1],[91,99,91,104,0],[91,104,91,106,1],[91,13,91,106,1],[93,13,93,112,1],[94,13,94,73,1],[95,13,95,66,1],[97,13,97,49,1],[98,13,98,54,1],[99,13,99,64,1],[101,13,101,61,1],[102,13,102,108,1],[103,13,103,62,1],[105,13,105,49,1],[106,13,106,55,1],[107,13,107,64,1],[109,13,109,57,1],[110,13,110,108,1],[111,13,111,62,1],[113,13,113,61,1],[114,13,114,51,1],[115,13,115,64,1],[117,13,117,58,1],[118,13,118,52,1],[119,13,119,108,1],[120,13,120,62,1],[122,13,122,61,1],[123,13,123,51,1],[124,13,124,61,1],[125,9,125,10,1],[129,9,129,10,1],[130,13,139,15,1],[141,13,141,60,1],[142,13,142,99,1],[142,99,142,104,0],[142,104,142,106,1],[142,13,142,106,1],[145,13,145,112,1],[146,13,146,73,1],[147,13,147,66,1],[149,13,149,61,1],[150,13,150,62,1],[151,9,151,10,1],[155,9,155,10,1],[156,13,164,15,1],[166,13,166,60,1],[167,13,167,99,1],[167,99,167,104,0],[167,104,167,106,1],[167,13,167,106,1],[170,13,170,112,1],[171,13,171,73,1],[172,13,172,64,1],[174,13,174,33,1],[175,13,175,41,1],[176,9,176,10,1],[180,9,180,10,1],[181,13,191,15,1],[193,13,193,60,1],[194,13,194,138,1],[197,13,197,112,1],[198,13,198,73,1],[199,13,199,64,1],[201,13,201,33,1],[202,13,202,41,1],[203,9,203,10,1]]);
+    </script>
+  </body>
+</html>

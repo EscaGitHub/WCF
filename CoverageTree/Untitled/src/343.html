@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\LocalSettingsController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.IO;
+using Swr.Configurator.Data;
+using Swr.Configurator.View.Logic;
+using SWR_Tools.Serialization;
+
+namespace Swr.Configurator.Logic
+{
+    public class LocalSettingsController
+    {
+        private LocalSettings _settings;
+
+        public LocalSettingsController()
+        {
+            Settings = new LocalSettings();
+        }
+
+        private const string RelativePath = @&quot;\SWR\SWR-Редактор конфигураций\&quot;;
+        private const string SettingsFileName = &quot;UISettings.xml&quot;;
+
+        public void Load()
+        {
+            var folderPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + RelativePath;
+            var filePath = Path.Combine(folderPath, SettingsFileName);
+
+            try
+            {
+                if (!File.Exists(filePath))
+                    Settings =
+                        new LocalSettings(); //				throw new FileNotFoundException(&quot;Файл настроек интерфейса не найден&quot;, filePath);
+                else
+                    Settings = filePath.DeserializeFromFile&lt;LocalSettings&gt;();
+            }
+            catch
+            {
+                Settings = new LocalSettings();
+            }
+        }
+
+        public LocalSettings Settings
+        {
+            get { return _settings; }
+            set
+            {
+                _settings = value;
+                OnSettingsChanged();
+            }
+        }
+
+        public event EventHandler SettingsChanged;
+
+        private void OnSettingsChanged()
+        {
+            EventHandler handler = SettingsChanged;
+            if (handler != null) handler(this, new System.EventArgs());
+        }
+
+        public void Save(LocalSettings settings, string path = null)
+        {
+            if (settings == null)
+                throw new NullReferenceException(&quot;Настройки null.&quot;);
+
+            if (path == null)
+                path = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + RelativePath;
+
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+
+            settings.SerializeToFile(Path.Combine(path, SettingsFileName));
+        }
+
+        public void SetDefaultShortcuts(List&lt;ConfiguratorRelayCommand&gt; commands)
+        {
+            Settings.HotKeysMapping.Clear();
+
+            foreach (var command in commands)
+                Settings.HotKeysMapping.Add(new HotKeyForCommand(command.Type, command.DefaultShortcut));
+
+            OnSettingsChanged();
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,9,14,41,0],[15,9,15,10,0],[16,13,16,44,0],[17,9,17,10,0],[23,9,23,10,0],[24,13,24,119,0],[25,13,25,71,0],[28,13,28,14,0],[29,17,29,44,0],[30,21,31,45,0],[33,21,33,78,0],[34,13,34,14,0],[35,13,35,18,0],[36,13,36,14,0],[37,17,37,48,0],[38,13,38,14,0],[39,9,39,10,0],[43,17,43,18,0],[43,19,43,36,0],[43,37,43,38,0],[45,13,45,14,0],[46,17,46,35,0],[47,17,47,37,0],[48,13,48,14,0],[54,9,54,10,0],[55,13,55,52,0],[56,13,56,33,0],[56,34,56,72,0],[57,9,57,10,0],[60,9,60,10,0],[61,13,61,34,0],[62,17,62,69,0],[64,13,64,30,0],[65,17,65,113,0],[67,13,67,41,0],[68,17,68,49,0],[70,13,70,76,0],[71,9,71,10,0],[74,9,74,10,0],[75,13,75,45,0],[77,13,77,20,0],[77,22,77,33,0],[77,34,77,36,0],[77,37,77,45,0],[78,17,78,106,0],[80,13,80,33,0],[81,9,81,10,0]]);
+    </script>
+  </body>
+</html>

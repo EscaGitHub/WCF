@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Settings\ViewModels\ComponentTypeAttributeVM.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.ComponentModel;
+using System.Linq;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Common.Data.ObjectModel;
+using SwrUILogic.Data;
+
+namespace Swr.Configurator.View.Settings.ViewModels
+{
+    /// &lt;summary&gt;
+    /// Общий класс строк настроек для атрибутов компонентов и спецификаций
+    /// &lt;/summary&gt;
+    public class ComponentTypeAttributeVM : ErrorCollector, IDataErrorInfo
+    {
+        private AttributeForTypeObject _attribute;
+
+        private AttributeVm _attributeVm;
+        
+
+        public ComponentTypeAttributeVM(AttributeForTypeObject attribute, AttributeVm attributeVm)
+        {
+            _attribute = attribute;
+            _attributeVm = attributeVm;
+
+            if(attributeVm != null) _attributeVm.PropertyChanged += _attributeVm_PropertyChanged;
+
+            OnPropertyChanged(&quot;Attribute&quot;);
+            OnPropertyChanged(&quot;AttributeAlias&quot;);
+            OnPropertyChanged(&quot;IsNecessary&quot;);
+        }
+
+        private void _attributeVm_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(AttributeVm.IsDeleted) &amp;&amp; _attributeVm.IsDeleted)
+            {
+                Attribute = null;
+            }
+        }
+
+        public AttributeForTypeObject ComponentAttribute
+        {
+            get { return _attribute; }
+        }
+
+        private bool _isDuplicateVariable;
+
+        public bool IsDuplicateVariable
+        {
+            get =&gt; _isDuplicateVariable;
+            set
+            {
+                _isDuplicateVariable = value;
+                OnPropertyChanged(() =&gt; Attribute);
+            }
+        }
+
+        private bool _isDuplicateAlias;
+
+        public bool IsDuplicateAlias
+        {
+            get =&gt; _isDuplicateAlias;
+            set
+            {
+                _isDuplicateAlias = value;
+                OnPropertyChanged(() =&gt; AttributeAlias);
+                OnPropertyChanged(() =&gt; TableAlias);
+            }
+        }
+
+        public AttributeVm Attribute
+        {
+            get =&gt; _attributeVm;
+            set
+            {
+                if (_attributeVm != null) _attributeVm.PropertyChanged -= _attributeVm_PropertyChanged;
+
+                _attributeVm = value;
+
+                _attribute.Attribute = value?.Attribute;
+
+                if (_attributeVm != null) _attributeVm.PropertyChanged += _attributeVm_PropertyChanged;
+
+                IsNecessary = false; // сбросили флаг обязательности при смене атрибута, в конструкторе НЕ должен сбрасываться
+
+                OnPropertyChanged(&quot;Attribute&quot;);
+                OnPropertyChanged(() =&gt; IsNecessaryVisible);
+            }
+        }
+
+
+        public string AttributeAlias
+        {
+            get { return _attribute.CardAlias; }
+            set
+            {
+                _attribute.CardAlias = value;
+                OnPropertyChanged(() =&gt; AttributeAlias);
+            }
+        }
+
+        public string TableAlias
+        {
+            get { return _attribute.TableAlias; }
+            set
+            {
+                _attribute.TableAlias = value;
+                OnPropertyChanged(() =&gt; TableAlias);
+            }
+        }
+
+        //Обязательное поле
+        public bool IsNecessary
+        {
+            get { return _attribute.IsNecessary;}
+            set
+            {
+                _attribute.IsNecessary = value;
+                OnPropertyChanged(() =&gt; IsNecessary);
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// Видимость поля обязательный для спецификаций
+        /// &lt;/summary&gt;
+        public bool IsNecessaryVisible
+        {
+            get
+            {
+                if (_attributeVm == null || _attributeVm.Attribute == null) return false;
+
+                return _attributeVm.Attribute.Type == AttributeTypeEnum.Link;
+            }
+        }
+
+        private bool _isDeleted;
+
+        /// &lt;summary&gt;
+        /// Удален
+        /// &lt;/summary&gt;
+        public bool IsDeleted
+        {
+            get =&gt; _attribute.IsDeleted;
+            set
+            {
+                if (_isDeleted != value)
+                {
+                    _attribute.IsDeleted = value;
+
+                    OnPropertyChanged(() =&gt; IsDeleted);
+                }
+            }
+        }
+
+        public override void UpdateValidation()
+        {
+            CalculateErrors(null);
+        }
+
+        public string this[string propertyName]
+        {
+            get
+            {
+                CalculateErrors(propertyName);
+
+                if (string.IsNullOrWhiteSpace(propertyName))
+                {
+                    return String.Join(Environment.NewLine, Errors.Select(x =&gt; x.ErrorMessage));
+                }
+                else
+                {
+                    return String.Join(Environment.NewLine,
+                        Errors.Where(x =&gt; x.PropertyName == propertyName).Select(x =&gt; x.ErrorMessage));
+                }
+            }
+        }
+
+        public string Error =&gt; this[null];
+
+        private void CalculateErrors(string propertyName)
+        {
+            if (String.IsNullOrWhiteSpace(propertyName) || propertyName == &quot;Attribute&quot;)
+            {
+                var name = &quot;Attribute&quot;;
+
+                DeleteErrorsForProperty(this, name);
+
+                if (Attribute == null) AddError(this, name, &quot;Имя атрибута пустое&quot;);
+                else if (IsDuplicateVariable)
+                {
+                    AddError(this, name, (String.Format(&quot;Имя переменной должно быть уникальным&quot;)));
+                }
+            }
+
+            if (String.IsNullOrWhiteSpace(propertyName) || propertyName == &quot;AttributeAlias&quot;)
+            {
+                var name = &quot;AttributeAlias&quot;;
+
+                DeleteErrorsForProperty(this, name);
+
+                if (string.IsNullOrWhiteSpace(AttributeAlias)) AddError(this, name, &quot;Имя переменной на карте пустое&quot;);
+                else if (IsDuplicateAlias)
+                {
+                    AddError(this, name, (String.Format(&quot;Имя переменной на карте должно быть уникальным&quot;)));
+                }
+            }
+
+            if (String.IsNullOrWhiteSpace(propertyName) || propertyName == &quot;TableAlias&quot;)
+            {
+                var name = &quot;TableAlias&quot;;
+
+                DeleteErrorsForProperty(this, name);
+
+                if (string.IsNullOrWhiteSpace(TableAlias)) AddError(this, name, &quot;Имя переменной в спецификации пустое&quot;);
+                else if (IsDuplicateAlias)
+                {
+                    AddError(this, name, (String.Format(&quot;Имя переменной в спецификации должно быть уникальным&quot;)));
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            _attribute = null;
+            _attributeVm = null;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[20,9,20,99,0],[21,9,21,10,0],[22,13,22,36,0],[23,13,23,40,0],[25,13,25,36,0],[25,37,25,98,0],[27,13,27,44,0],[28,13,28,49,0],[29,13,29,46,0],[30,9,30,10,0],[33,9,33,10,0],[34,13,34,91,0],[35,13,35,14,0],[36,17,36,34,0],[37,13,37,14,0],[38,9,38,10,0],[42,17,42,18,0],[42,19,42,37,0],[42,38,42,39,0],[49,20,49,40,0],[51,13,51,14,0],[52,17,52,46,0],[53,17,53,52,0],[54,13,54,14,0],[61,20,61,37,0],[63,13,63,14,0],[64,17,64,43,0],[65,17,65,57,0],[66,17,66,53,0],[67,13,67,14,0],[72,20,72,32,0],[74,13,74,14,0],[75,17,75,42,0],[75,43,75,104,0],[77,17,77,38,0],[79,17,79,57,0],[81,17,81,42,0],[81,43,81,104,0],[83,17,83,37,0],[85,17,85,48,0],[86,17,86,61,0],[87,13,87,14,0],[93,17,93,18,0],[93,19,93,47,0],[93,48,93,49,0],[95,13,95,14,0],[96,17,96,46,0],[97,17,97,57,0],[98,13,98,14,0],[103,17,103,18,0],[103,19,103,48,0],[103,49,103,50,0],[105,13,105,14,0],[106,17,106,47,0],[107,17,107,53,0],[108,13,108,14,0],[114,17,114,18,0],[114,19,114,49,0],[114,49,114,50,0],[116,13,116,14,0],[117,17,117,48,0],[118,17,118,54,0],[119,13,119,14,0],[128,13,128,14,0],[129,17,129,76,0],[129,77,129,90,0],[131,17,131,78,0],[132,13,132,14,0],[142,20,142,40,0],[144,13,144,14,0],[145,17,145,41,0],[146,17,146,18,0],[147,21,147,50,0],[149,21,149,56,0],[150,17,150,18,0],[151,13,151,14,0],[155,9,155,10,0],[156,13,156,35,0],[157,9,157,10,0],[162,13,162,14,0],[163,17,163,47,0],[165,17,165,61,0],[166,17,166,18,0],[167,21,167,80,0],[167,80,167,94,0],[167,94,167,97,0],[167,21,167,97,0],[170,17,170,18,0],[171,21,172,43,0],[172,43,172,73,0],[172,73,172,87,0],[172,87,172,101,0],[172,101,172,104,0],[171,21,172,104,0],[174,13,174,14,0],[177,32,177,42,0],[180,9,180,10,0],[181,13,181,88,0],[182,13,182,14,0],[183,17,183,40,0],[185,17,185,53,0],[187,17,187,39,0],[187,40,187,84,0],[188,22,188,46,0],[189,17,189,18,0],[190,21,190,100,0],[191,17,191,18,0],[192,13,192,14,0],[194,13,194,93,0],[195,13,195,14,0],[196,17,196,45,0],[198,17,198,53,0],[200,17,200,63,0],[200,64,200,119,0],[201,22,201,43,0],[202,17,202,18,0],[203,21,203,109,0],[204,17,204,18,0],[205,13,205,14,0],[207,13,207,89,0],[208,13,208,14,0],[209,17,209,41,0],[211,17,211,53,0],[213,17,213,59,0],[213,60,213,121,0],[214,22,214,43,0],[215,17,215,18,0],[216,21,216,115,0],[217,17,217,18,0],[218,13,218,14,0],[219,9,219,10,0],[222,9,222,10,0],[223,13,223,31,0],[224,13,224,33,0],[225,9,225,10,0]]);
+    </script>
+  </body>
+</html>

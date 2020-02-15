@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.WindowsService\ServiceLogger.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Diagnostics;
+
+namespace Swr.Capital1C.WindowsService
+{
+	internal class ServiceLogger
+	{
+		private static ServiceLogger _instance;
+
+		public static ServiceLogger Instance
+		{
+			get { return _instance ?? (_instance = new ServiceLogger()); }
+		}
+
+		private string _serviceName;
+		public string ServiceName
+		{
+			get { return _serviceName; }
+			set
+			{
+				if (_serviceName == value)
+					return;
+
+				_serviceName = value;
+
+				var exist = EventLog.SourceExists(ServiceName);
+
+				if (!exist)
+					EventLog.CreateEventSource(ServiceName, ServiceName);
+			}
+		}
+
+		public void LogInformation(string log)
+		{
+			AddLog(log, EventLogEntryType.Information);
+		}
+
+		public void LogError(string log)
+		{
+			AddLog(log, EventLogEntryType.Error);
+		}
+
+		private void AddLog(string log, EventLogEntryType eventType)
+		{
+			try
+			{
+				if (string.IsNullOrWhiteSpace(ServiceName))
+					return;
+
+				var eventLog = new EventLog { Source = ServiceName };
+				eventLog.WriteEntry(log, eventType);
+			}
+			catch
+			{
+			}
+		}
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[11,8,11,9,0],[11,10,11,64,0],[11,65,11,66,0],[17,8,17,9,0],[17,10,17,30,0],[17,31,17,32,0],[19,4,19,5,0],[20,5,20,31,0],[21,6,21,13,0],[23,5,23,26,0],[25,5,25,52,0],[27,5,27,16,0],[28,6,28,59,0],[29,4,29,5,0],[33,3,33,4,0],[34,4,34,47,0],[35,3,35,4,0],[38,3,38,4,0],[39,4,39,41,0],[40,3,40,4,0],[43,3,43,4,0],[45,4,45,5,0],[46,5,46,48,0],[47,6,47,13,0],[49,5,49,58,0],[50,5,50,41,0],[51,4,51,5,0],[52,4,52,9,0],[53,4,53,5,0],[54,4,54,5,0],[55,3,55,4,0]]);
+    </script>
+  </body>
+</html>

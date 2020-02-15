@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-ConfiguratorAPI\Controllers\SettingsController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using SWR.ConfiguratorApi.Logic.Settings;
+using System;
+using System.Linq;
+using System.Net;
+using System.Security.Claims;
+using Microsoft.OpenApi.Extensions;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Common.Logic;
+using SWR.ConfiguratorApi.Data;
+using SWR.ConfiguratorApi.Logic;
+using SWR.ConfiguratorApi.Logic.Elastic;
+
+namespace SWR.ConfiguratorApi.Controllers
+{
+	[Route(RouteHelper.RoutePrefix + RouteHelper.RouteVersion + &quot;[controller]/[action]&quot;)]
+	public class SettingsController : ControllerBase
+	{
+        private readonly ISettingsService _settingService;
+
+        public SettingsController(ISettingsService settingsService)
+        {
+            _settingService = settingsService;
+        }
+
+        /// &lt;summary&gt;
+        /// Чтение настроек
+        /// &lt;/summary&gt;
+        /// &lt;response code=&quot;200&quot;&gt;Настройки получены&lt;/response&gt;
+        /// &lt;response code=&quot;404&quot;&gt;Настройки не найдены&lt;/response&gt;
+        /// &lt;response code=&quot;400&quot;&gt;Ошибка при получении настроек&lt;/response&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public IActionResult GetSettings()
+        {
+            Log(LogTypeEnum.Info, EventEnum.Read, null, &quot;Settings get started&quot;);
+
+            var settingsManager = new SettingsManager();
+            var settingsXml = settingsManager.ReadSettings();
+
+            if (!string.IsNullOrEmpty(settingsXml))
+            {
+                Log(LogTypeEnum.Info, EventEnum.Read, true, &quot;Settings received&quot;);
+
+                return new JsonResult(settingsXml);
+            }
+
+            Log(LogTypeEnum.Warning, EventEnum.Read, false, &quot;Settings are empty&quot;);
+
+            return NotFound();
+        }
+
+        /// &lt;summary&gt;
+        /// Сохранение настроек
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;settings&quot;&gt;xml строка настроек&lt;/param&gt;
+        /// &lt;response code=&quot;200&quot;&gt;Настройки сохранены&lt;/response&gt;
+        /// &lt;response code=&quot;404&quot;&gt;Компонент не найден&lt;/response&gt;
+        /// &lt;response code=&quot;400&quot;&gt;Ошибка поиска компонента по id&lt;/response&gt;
+        /// &lt;returns&gt;Ок&lt;/returns&gt;
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public IActionResult SaveSettings([FromBody] string settings)
+        {
+            if(string.IsNullOrWhiteSpace(settings)) throw new NullReferenceException(&quot;Settings are null&quot;);
+
+            var settingsManager = new SettingsManager();
+
+            var result = settingsManager.SaveSettings(settings);
+
+            if (result)
+            {
+                Log(LogTypeEnum.Info, EventEnum.Create, true, &quot;Settings have been saved&quot;);
+
+                if(!_settingService.Reload()) return new BadRequestObjectResult(new ErrorDetails { StatusCode = (int)HttpStatusCode.BadRequest, Message = &quot;Settings not reload&quot; });
+
+                return new OkResult();
+            }
+
+            var message = string.Join(&quot;; &quot;, settingsManager.Errors);
+
+            Log(LogTypeEnum.Warning, EventEnum.Create, false, &quot;Settings not saved: &quot; + message);
+
+            return new BadRequestObjectResult(new ErrorDetails {StatusCode = (int) HttpStatusCode.BadRequest, Message = message });
+        }
+
+        /// &lt;summary&gt;
+        /// Проверка возможности удаления типа компонентов или типа спецификации
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;typeId&quot;&gt;Идентификатор типа&lt;/param&gt;
+        /// &lt;param name=&quot;typeName&quot;&gt;Наименование типа&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public IActionResult AllowDeleteType([FromBody] TypeCheckParams param)
+        {
+            Log(LogTypeEnum.Info, EventEnum.Read, null, &quot;Allow delete type started&quot;);
+
+
+            var settingsManager = new SettingsManager();
+
+            var result = false;
+            if (param.TypeName == &quot;Component&quot;)
+            {
+                result = settingsManager.IsAllowDeleteComponentType(param.TypeId);
+            }
+
+            if (param.TypeName == &quot;Specification&quot;)
+            {
+                result = settingsManager.IsAllowDeleteSpecificationType(param.TypeId);
+            }
+
+            Log(LogTypeEnum.Info, EventEnum.Create, false, &quot;Allow delete type finished&quot;);
+
+            return new JsonResult(result);
+
+
+        }
+
+
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public IActionResult AllowDeleteAttribute(Guid attributeId)
+        {
+            Log(LogTypeEnum.Info, EventEnum.Read, null, &quot;Allow delete attribute started&quot;);
+
+            var settingsManager = new SettingsManager();
+
+            var result = false;
+
+            result = settingsManager.IsAllowDeleteAttribute(attributeId); 
+
+            Log(LogTypeEnum.Info, EventEnum.Read, null, &quot;Allow delete attribute started&quot;);
+
+            return new JsonResult(result);
+        }
+
+        private void Log(LogTypeEnum logType, EventEnum eventEnum, bool? result, string message)
+        {
+            ElasticLogController.Log(logType, eventEnum, ObjectTypeEnum.Settings, User.GetUserId(), result, this.GetIp(), message);
+        }
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[23,9,23,68,1],[24,9,24,10,1],[25,13,25,47,1],[26,9,26,10,1],[40,9,40,10,0],[41,13,41,81,0],[43,13,43,57,0],[44,13,44,62,0],[46,13,46,52,0],[47,13,47,14,0],[48,17,48,82,0],[50,17,50,52,0],[53,13,53,83,0],[55,13,55,31,0],[56,9,56,10,0],[71,9,71,10,0],[72,13,72,52,0],[72,53,72,107,0],[74,13,74,57,0],[76,13,76,65,0],[78,13,78,24,0],[79,13,79,14,0],[80,17,80,91,0],[82,17,82,46,0],[82,47,82,180,0],[84,17,84,39,0],[87,13,87,69,0],[89,13,89,97,0],[91,13,91,132,0],[92,9,92,10,0],[105,9,105,10,0],[106,13,106,86,0],[109,13,109,57,0],[111,13,111,32,0],[112,13,112,47,0],[113,13,113,14,0],[114,17,114,83,0],[115,13,115,14,0],[117,13,117,51,0],[118,13,118,14,0],[119,17,119,87,0],[120,13,120,14,0],[122,13,122,90,0],[124,13,124,43,0],[127,9,127,10,0],[135,9,135,10,0],[136,13,136,91,0],[138,13,138,57,0],[140,13,140,32,0],[142,13,142,74,0],[144,13,144,91,0],[146,13,146,43,0],[147,9,147,10,0],[150,9,150,10,0],[151,13,151,132,0],[152,9,152,10,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\DbGetTests.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Dapper;
+using Nest;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Common.Data.Api;
+using Swr.Configurator.Test.WebApiControllers;
+using SWR.ConfiguratorApi.Data;
+using SWR.ConfiguratorApi.Data.Db;
+using SWR.ConfiguratorApi.Logic;
+using SWR.ConfiguratorApi.Logic.Converters;
+using Xunit;
+using Attribute = SWR.ConfiguratorApi.Data.Db.Attribute;
+
+namespace Swr.Configurator.Test
+{
+    public class DbGetTests
+    {
+        private void SetTestSettingsConnection()
+        {
+            var settings = new DBSettings { DatabaseName = &quot;swr_configurator&quot;, Host = &quot;192.168.0.109&quot;, UserName = &quot;postgres&quot;, Password = &quot;newtime&quot;, Port = 5432 };
+
+            DbSettingsSingleton.Instance.SetValues(settings);
+        }
+
+        [Fact]
+        public void GetComponentByIdTest()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                var component = new Component();
+                component.SetEmpty();
+                component.Name = &quot;Компонент 1&quot;;
+                component.Code = &quot;1&quot;;
+                component.TypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                component.StateEnum = StateEnum.Locked;
+
+                var componentAttribute = new ComponentAttribute();
+                componentAttribute.ComponentId = component.Id;
+                componentAttribute.ComponentTypeAttributeId = Guid.Parse(&quot;0F255A2C-6B7D-4466-A7E9-9B3EBEA41002&quot;);
+                componentAttribute.Value = &quot;Наименование компонента&quot;;
+
+                var componentAttribute1 = new ComponentAttribute();
+                componentAttribute1.ComponentId = component.Id;
+                componentAttribute1.ComponentTypeAttributeId = Guid.Parse(&quot;22F7AAFB-AF68-4D07-AEF6-787549E7FCDA&quot;);
+                componentAttribute1.Value = &quot;Обозначение компонента&quot;;
+
+                var componentAttribute2 = new ComponentAttribute();
+                componentAttribute2.ComponentId = component.Id;
+                componentAttribute2.ComponentTypeAttributeId = Guid.Parse(&quot;ADC6B211-4CD7-4128-B8C7-92B6846E8F6D&quot;);
+                componentAttribute2.Value = &quot;Примечание 1&quot;;
+
+                component.ComponentAttributes.Add(componentAttribute);
+                component.ComponentAttributes.Add(componentAttribute1);
+                component.ComponentAttributes.Add(componentAttribute2);
+
+                dbController.AddComponents(new List&lt;Component&gt;(){component});
+
+                var foundComponent = dbController.GetComponentById(component.Id);
+
+                dbController.DeleteComponent(component.Id);
+                dbController.SaveClose();
+
+                Assert.NotNull(foundComponent);
+                Assert.Equal(component.Id, foundComponent.Id);
+                Assert.Equal(3, component.ComponentAttributes.Count);
+            }
+        }
+
+        [Fact]
+        public void GetSpecificationByIdTest()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                var components = TestHelper.FillComponentsWithAttributes(11);
+				dbController.AddComponents(components);
+
+				var componentsWithAttributes = new List&lt;Component&gt;();
+                for (int i = 0; i &lt; 10; i++)
+                {
+                    var component = dbController.GetComponentById(components[i].Id);
+                    componentsWithAttributes.Add(component);
+                }
+
+                var specification = CreateSpecification(componentsWithAttributes);
+
+                specification.ParentComponentId = components[10].Id;
+
+                dbController.CreateSpecifications(new List&lt;Specification&gt;() {specification});
+				var foundSpecification = dbController.GetSpecificationById(specification.Id);
+
+				dbController.DeleteSpecification(foundSpecification.Id);
+
+                Assert.NotNull(foundSpecification);
+                Assert.Equal(specification.Id, foundSpecification.Id);
+                Assert.Equal(10, foundSpecification.Relations.Count);
+                Assert.Equal(5, foundSpecification.Relations[0].RelationAttributes.Count);
+                Assert.NotNull(foundSpecification.Relations[0].Component);
+                Assert.Equal(5, foundSpecification.Relations[0].Component.ComponentAttributes.Count);
+
+                dbController.DeleteComponents(components.Select(t=&gt;t.Id).ToArray());
+
+				dbController.SaveClose();
+            }
+        }
+
+        private Specification CreateSpecification(List&lt;Component&gt; components)
+        {
+            var specification = new Specification();
+            specification.SetEmpty();
+            //specification.Id = Guid.Parse(&quot;A6E1B11F-F593-4388-BD70-8719DFEB8BB4&quot;);
+            specification.Name = &quot;Спецификация1&quot;;
+            specification.Revision = 1;
+            specification.Version = 1;
+            specification.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+            specification.StateEnum = StateEnum.Locked;
+
+            for (int i = 0; i &lt; 10; i++)
+            {
+                var relation = new Relation();
+                relation.SpecificationId = specification.Id;
+                relation.RelationTypeId = Guid.Parse(&quot;a670463c-89db-4fe1-9885-163b4e3e647d&quot;);
+                relation.ComponentId = components[i].Id;//Guid.Parse(&quot;aef37e48-43cd-4baa-a95a-92a676f0d2d0&quot;);
+                relation.Component = components[i];
+                relation.RelationAttributes = FillRelationAttributes(relation, i + 1);
+                specification.Relations.Add(relation);
+            }
+
+            return specification;
+        }
+
+        private List&lt;RelationAttribute&gt; FillRelationAttributes(Relation relation, int i)
+        {
+            var result = new List&lt;RelationAttribute&gt;();
+            var relationAttribute = new RelationAttribute();
+            relationAttribute.RelationId = relation.Id;
+            relationAttribute.SpecificationTypeAttrId = Guid.Parse(&quot;b4bbb607-bfaa-4d69-a314-b67e0af28bfa&quot;);
+            relationAttribute.Value = i + &quot;-Наименование&quot;;
+            result.Add(relationAttribute);
+
+            relationAttribute = new RelationAttribute();
+            relationAttribute.RelationId = relation.Id;
+            relationAttribute.SpecificationTypeAttrId = Guid.Parse(&quot;652BFE09-ED9F-4D77-AD67-BB0E15E4CC35&quot;);
+            relationAttribute.Value = i + &quot;-Обозначение&quot;;
+            result.Add(relationAttribute);
+
+            relationAttribute = new RelationAttribute();
+            relationAttribute.RelationId = relation.Id;
+            relationAttribute.SpecificationTypeAttrId = Guid.Parse(&quot;9FEE73C3-D0DE-416C-B876-605EC543A92A&quot;);
+            relationAttribute.Value = i + &quot;-Количество&quot;;
+            result.Add(relationAttribute);
+
+            relationAttribute = new RelationAttribute();
+            relationAttribute.RelationId = relation.Id;
+            relationAttribute.SpecificationTypeAttrId = Guid.Parse(&quot;FA192BAE-9C02-4C99-85CE-06D643A18FA7&quot;);
+            relationAttribute.Value = i + &quot;-Схемное обозначение&quot;;
+            result.Add(relationAttribute);
+
+            relationAttribute = new RelationAttribute();
+            relationAttribute.RelationId = relation.Id;
+            relationAttribute.SpecificationTypeAttrId = Guid.Parse(&quot;410D5F81-48CF-4935-8FEA-FDBB9F94A902&quot;);
+            relationAttribute.Value = i + &quot;-Позиция&quot;;
+            result.Add(relationAttribute);
+
+            return result;
+        }
+
+
+        [Fact]
+        public void SearchComponentsTest()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                var component = new Component();
+                component.SetEmpty();
+                component.Name = &quot;Компонент 1&quot;;
+                component.Code = &quot;1&quot;;
+                component.TypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                component.StateEnum = StateEnum.Locked;
+
+                var componentAttribute = new ComponentAttribute();
+                componentAttribute.ComponentId = component.Id;
+                componentAttribute.ComponentTypeAttributeId = Guid.Parse(&quot;0F255A2C-6B7D-4466-A7E9-9B3EBEA41002&quot;);
+                componentAttribute.Value = &quot;Ручка1 длинная&quot;;
+
+                var componentAttribute1 = new ComponentAttribute();
+                componentAttribute1.ComponentId = component.Id;
+                componentAttribute1.ComponentTypeAttributeId = Guid.Parse(&quot;22F7AAFB-AF68-4D07-AEF6-787549E7FCDA&quot;);
+                componentAttribute1.Value = &quot;АБВГ.001&quot;;
+
+                var componentAttribute2 = new ComponentAttribute();
+                componentAttribute2.ComponentId = component.Id;
+                componentAttribute2.ComponentTypeAttributeId = Guid.Parse(&quot;ADC6B211-4CD7-4128-B8C7-92B6846E8F6D&quot;);
+                componentAttribute2.Value = &quot;Примечание 1&quot;;
+
+                component.ComponentAttributes.Add(componentAttribute);
+                component.ComponentAttributes.Add(componentAttribute1);
+                component.ComponentAttributes.Add(componentAttribute2);
+
+                var component2 = new Component();
+                component2.SetEmpty();
+                component2.Name = &quot;Компонент 1&quot;;
+                component2.Code = &quot;1&quot;;
+                component2.TypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                component2.StateEnum = StateEnum.Locked;
+
+                var componentAttribute3 = new ComponentAttribute();
+                componentAttribute3.ComponentId = component2.Id;
+                componentAttribute3.ComponentTypeAttributeId = Guid.Parse(&quot;0F255A2C-6B7D-4466-A7E9-9B3EBEA41002&quot;);
+                componentAttribute3.Value = &quot;Кожух&quot;;
+
+                var componentAttribute4 = new ComponentAttribute();
+                componentAttribute4.ComponentId = component2.Id;
+                componentAttribute4.ComponentTypeAttributeId = Guid.Parse(&quot;22F7AAFB-AF68-4D07-AEF6-787549E7FCDA&quot;);
+                componentAttribute4.Value = &quot;АБВГ.002&quot;;
+
+                var componentAttribute5 = new ComponentAttribute();
+                componentAttribute5.ComponentId = component2.Id;
+                componentAttribute5.ComponentTypeAttributeId = Guid.Parse(&quot;ADC6B211-4CD7-4128-B8C7-92B6846E8F6D&quot;);
+                componentAttribute5.Value = &quot;Примечание 1&quot;;
+
+                component2.ComponentAttributes.Add(componentAttribute3);
+                component2.ComponentAttributes.Add(componentAttribute4);
+                component2.ComponentAttributes.Add(componentAttribute5);
+
+                dbController.AddComponents(new List&lt;Component&gt;() {component, component2});
+
+                var paramList = new List&lt;SearchParam&gt;();
+                paramList.Add(new SearchParam{Name = &quot;Наименование&quot;, Value = &quot;Ручка1&quot;});
+                paramList.Add(new SearchParam{Name = &quot;Обозначение&quot;, Value = &quot;АБВГ&quot;});
+                var foundComponents = dbController.SearchComponents(new SearchParams {Count = 10, SearchAttributes = paramList}, out var errors);
+
+                dbController.DeleteComponent(component.Id);
+                dbController.DeleteComponent(component2.Id);
+                dbController.SaveClose();
+
+                Assert.Empty(errors);
+                Assert.NotNull(foundComponents);
+                Assert.Equal(1, foundComponents.Components.Count);
+                Assert.Equal(component.Id, foundComponents.Components[0].Id);
+            }
+        }
+
+        [Fact]
+        public void GetComponentTypeTest()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+                var componentTypes = dbController.GetComponentTypes().ToList();
+
+                Assert.NotNull(componentTypes);
+                Assert.Equal(4, componentTypes.Count);
+                var partComponentType = componentTypes.FirstOrDefault(t =&gt; t.Name == &quot;Деталь&quot;);
+                Assert.NotNull(partComponentType);
+                Assert.Equal(13, partComponentType.ComponentTypeAttributes.Count);
+                dbController.SaveClose();
+            }
+        }
+
+        [Fact]
+        public void GetComponentTypeIdByNameTest()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+                var componentTypeId = dbController.GetComponentTypeIdByName(&quot;Деталь&quot;);
+
+                Assert.NotNull(componentTypeId);
+                Assert.Equal(Guid.Parse(&quot;7e071f58-7a80-4cc3-8d9a-8482e4a1c63e&quot;), componentTypeId);
+                dbController.SaveClose();
+            }
+        }
+
+
+
+        [Fact]
+        public void GetComponentTypeAttributeIdTest()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+                var componentTypeAttributeId = dbController.GetComponentTypeAttributeId(Guid.Parse(&quot;7e071f58-7a80-4cc3-8d9a-8482e4a1c63e&quot;), &quot;Наименование&quot;);
+
+                Assert.NotNull(componentTypeAttributeId);
+                Assert.Equal(Guid.Parse(&quot;0f255a2c-6b7d-4466-a7e9-9b3ebea41002&quot;), componentTypeAttributeId);
+                dbController.SaveClose();
+            }
+        }
+
+        [Fact]
+        public void GetComponentTypeNameByIdTest()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+                var componentTypeName =
+                    dbController.GetComponentTypeNameById(Guid.Parse(&quot;7e071f58-7a80-4cc3-8d9a-8482e4a1c63e&quot;));
+
+                Assert.NotNull(componentTypeName);
+                Assert.Equal(&quot;Деталь&quot;, componentTypeName);
+                dbController.SaveClose();
+            }
+        }
+
+
+        [Fact]
+        public void GetCreateDateByComponentIdTest()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                var componentApiNew = new ComponentApiNew();
+                componentApiNew.TypeName = &quot;Деталь&quot;;
+                componentApiNew.Attributes = new List&lt;AttributeApi&gt;();
+                componentApiNew.Attributes.Add(new AttributeApi {Name = &quot;Обозначение&quot;, Value = &quot;CreateDateTestPart&quot;});
+
+                string errorMessage;
+                var settingsService = new SettingsService();
+                var converter = new ComponentConverter(dbController, settingsService);
+                var dbComponent = converter.ApiInToDbNew(componentApiNew, out errorMessage);
+
+                Assert.NotNull(dbComponent);
+                Assert.NotNull(errorMessage);
+                Assert.Empty(errorMessage);
+
+
+                dbController.AddComponents(new List&lt;Component&gt;() {dbComponent});
+                dbController.SaveClose();
+
+                dbController.Connect();
+
+                var dateTime =
+                    dbController.GetCreateDateByComponentId(dbComponent.Id);
+
+                dbController.SaveClose();
+
+                dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+                Assert.NotNull(dateTime);
+                Assert.Equal(dbComponent.CreateDate.ToString(&quot;dd.MM.yyyy hh:mm:ss.ffffff&quot;), dateTime.ToString(&quot;dd.MM.yyyy hh:mm:ss.ffffff&quot;));
+
+                //удаляем компонент
+                dbController.Connect();
+
+                dbController.DeleteComponent(dbComponent.Id);
+
+                dbController.SaveClose();
+            }
+        }
+
+        [Fact]
+        public void GetSpecificationOfExistComponentTest()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                var specifications = dbController.GetSpecificationsByComponent(new Guid(&quot;acd581fa-6791-48d3-b93a-e56597ffc303&quot;),
+                    new string[] { });
+
+                dbController.SaveClose();
+            }
+        }
+    }
+}
+
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[21,9,21,10,1],[22,13,22,163,1],[24,13,24,62,1],[25,9,25,10,1],[29,9,29,10,1],[30,13,30,41,1],[32,20,32,57,1],[33,13,33,14,1],[34,17,34,40,1],[36,17,36,49,1],[37,17,37,38,1],[38,17,38,48,1],[39,17,39,38,1],[40,17,40,87,1],[41,17,41,56,1],[43,17,43,67,1],[44,17,44,63,1],[45,17,45,114,1],[46,17,46,70,1],[48,17,48,68,1],[49,17,49,64,1],[50,17,50,115,1],[51,17,51,70,1],[53,17,53,68,1],[54,17,54,64,1],[55,17,55,115,1],[56,17,56,60,1],[58,17,58,71,1],[59,17,59,72,1],[60,17,60,72,1],[62,17,62,78,1],[64,17,64,82,1],[66,17,66,60,1],[67,17,67,42,1],[69,17,69,48,1],[70,17,70,63,1],[71,17,71,70,1],[72,13,72,14,1],[73,9,73,10,1],[77,9,77,10,1],[78,13,78,41,1],[80,20,80,57,1],[81,13,81,14,1],[82,17,82,40,1],[84,17,84,78,1],[85,5,85,44,1],[87,5,87,58,1],[88,22,88,31,1],[88,33,88,39,1],[88,41,88,44,1],[89,17,89,18,1],[90,21,90,85,1],[91,21,91,61,1],[92,17,92,18,1],[94,17,94,83,1],[96,17,96,69,1],[98,17,98,94,1],[99,5,99,82,1],[101,5,101,61,1],[103,17,103,52,1],[104,17,104,71,1],[105,17,105,70,1],[106,17,106,91,1],[107,17,107,75,1],[108,17,108,102,1],[110,17,110,68,1],[110,68,110,72,1],[110,72,110,85,1],[110,17,110,85,1],[112,5,112,30,1],[113,13,113,14,1],[114,9,114,10,1],[117,9,117,10,1],[118,13,118,53,1],[119,13,119,38,1],[121,13,121,50,1],[122,13,122,40,1],[123,13,123,39,1],[124,13,124,100,1],[125,13,125,56,1],[127,18,127,27,1],[127,29,127,35,1],[127,37,127,40,1],[128,13,128,14,1],[129,17,129,47,1],[130,17,130,61,1],[131,17,131,94,1],[132,17,132,57,1],[133,17,133,52,1],[134,17,134,87,1],[135,17,135,55,1],[136,13,136,14,1],[138,13,138,34,1],[139,9,139,10,1],[142,9,142,10,1],[143,13,143,56,1],[144,13,144,61,1],[145,13,145,56,1],[146,13,146,108,1],[147,13,147,59,1],[148,13,148,43,1],[150,13,150,57,1],[151,13,151,56,1],[152,13,152,108,1],[153,13,153,58,1],[154,13,154,43,1],[156,13,156,57,1],[157,13,157,56,1],[158,13,158,108,1],[159,13,159,57,1],[160,13,160,43,1],[162,13,162,57,1],[163,13,163,56,1],[164,13,164,108,1],[165,13,165,66,1],[166,13,166,43,1],[168,13,168,57,1],[169,13,169,56,1],[170,13,170,108,1],[171,13,171,54,1],[172,13,172,43,1],[174,13,174,27,1],[175,9,175,10,1],[180,9,180,10,1],[181,13,181,41,1],[183,20,183,57,1],[184,13,184,14,1],[185,17,185,40,1],[187,17,187,49,1],[188,17,188,38,1],[189,17,189,48,1],[190,17,190,38,1],[191,17,191,87,1],[192,17,192,56,1],[194,17,194,67,1],[195,17,195,63,1],[196,17,196,114,1],[197,17,197,61,1],[199,17,199,68,1],[200,17,200,64,1],[201,17,201,115,1],[202,17,202,56,1],[204,17,204,68,1],[205,17,205,64,1],[206,17,206,115,1],[207,17,207,60,1],[209,17,209,71,1],[210,17,210,72,1],[211,17,211,72,1],[213,17,213,50,1],[214,17,214,39,1],[215,17,215,49,1],[216,17,216,39,1],[217,17,217,88,1],[218,17,218,57,1],[220,17,220,68,1],[221,17,221,65,1],[222,17,222,115,1],[223,17,223,53,1],[225,17,225,68,1],[226,17,226,65,1],[227,17,227,115,1],[228,17,228,56,1],[230,17,230,68,1],[231,17,231,65,1],[232,17,232,115,1],[233,17,233,60,1],[235,17,235,73,1],[236,17,236,73,1],[237,17,237,73,1],[239,17,239,91,1],[241,17,241,57,1],[242,17,242,89,1],[243,17,243,86,1],[244,17,244,146,1],[246,17,246,60,1],[247,17,247,61,1],[248,17,248,42,1],[250,17,250,38,1],[251,17,251,49,1],[252,17,252,67,1],[253,17,253,78,1],[254,13,254,14,1],[255,9,255,10,1],[259,9,259,10,1],[260,13,260,41,1],[262,20,262,57,1],[263,13,263,14,1],[264,17,264,40,1],[265,17,265,80,1],[267,17,267,48,1],[268,17,268,55,1],[269,17,269,76,1],[269,76,269,94,1],[269,94,269,96,1],[269,17,269,96,1],[270,17,270,51,1],[271,17,271,83,1],[272,17,272,42,1],[273,13,273,14,1],[274,9,274,10,1],[278,9,278,10,1],[279,13,279,41,1],[281,20,281,57,1],[282,13,282,14,1],[283,17,283,40,1],[284,17,284,87,1],[286,17,286,49,1],[287,17,287,99,1],[288,17,288,42,1],[289,13,289,14,1],[290,9,290,10,1],[296,9,296,10,1],[297,13,297,41,1],[299,20,299,57,1],[300,13,300,14,1],[301,17,301,40,1],[302,17,302,157,1],[304,17,304,58,1],[305,17,305,108,1],[306,17,306,42,1],[307,13,307,14,1],[308,9,308,10,1],[312,9,312,10,1],[313,13,313,41,1],[315,20,315,57,1],[316,13,316,14,1],[317,17,317,40,1],[318,17,319,111,1],[321,17,321,51,1],[322,17,322,59,1],[323,17,323,42,1],[324,13,324,14,1],[325,9,325,10,1],[330,9,330,10,1],[331,13,331,41,1],[333,20,333,57,1],[334,13,334,14,1],[335,17,335,40,1],[337,17,337,61,1],[338,17,338,53,1],[339,17,339,71,1],[340,17,340,119,1],[343,17,343,61,1],[344,17,344,87,1],[345,17,345,93,1],[347,17,347,45,1],[348,17,348,46,1],[349,17,349,44,1],[352,17,352,81,1],[353,17,353,42,1],[355,17,355,40,1],[357,17,358,77,1],[360,17,360,42,1],[362,17,362,77,1],[363,17,363,42,1],[364,17,364,142,1],[367,17,367,40,1],[369,17,369,62,1],[371,17,371,42,1],[372,13,372,14,1],[373,9,373,10,1],[377,9,377,10,1],[378,13,378,41,1],[380,20,380,57,1],[381,13,381,14,1],[382,17,382,40,1],[384,17,385,39,1],[387,17,387,42,1],[388,13,388,14,1],[389,9,389,10,1]]);
+    </script>
+  </body>
+</html>

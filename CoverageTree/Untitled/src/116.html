@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\LayoutFloatingWindowControl.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
+using System.Windows.Input;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Media;
+using SwrUI.Shell;
+using Xceed.Wpf.AvalonDock.Layout;
+using System.Diagnostics;
+using System.Windows.Documents;
+using Xceed.Wpf.AvalonDock.Themes;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public abstract class LayoutFloatingWindowControl : Window, ILayoutControl
+    {
+        static LayoutFloatingWindowControl()
+        {
+            LayoutFloatingWindowControl.ContentProperty.OverrideMetadata(typeof(LayoutFloatingWindowControl), new FrameworkPropertyMetadata(null, null, new CoerceValueCallback(CoerceContentValue)));
+            AllowsTransparencyProperty.OverrideMetadata(typeof(LayoutFloatingWindowControl), new FrameworkPropertyMetadata(false));
+            ShowInTaskbarProperty.OverrideMetadata(typeof(LayoutFloatingWindowControl), new FrameworkPropertyMetadata(false));
+        } 
+
+        static object CoerceContentValue(DependencyObject sender, object content)
+        {
+            return new FloatingWindowContentHost(sender as LayoutFloatingWindowControl) { Content = content as UIElement };
+        }
+
+        protected class FloatingWindowContentHost : HwndHost
+        {
+            LayoutFloatingWindowControl _owner;
+            public FloatingWindowContentHost(LayoutFloatingWindowControl owner)
+            {
+                _owner = owner;
+                var manager = _owner.Model.Root.Manager;
+            }
+
+
+            HwndSource _wpfContentHost = null;
+            Border _rootPresenter = null;
+            DockingManager _manager = null;
+
+            protected override System.Runtime.InteropServices.HandleRef BuildWindowCore(System.Runtime.InteropServices.HandleRef hwndParent)
+            {
+                _wpfContentHost = new HwndSource(new HwndSourceParameters()
+                {
+                    ParentWindow = hwndParent.Handle,
+                    WindowStyle = Win32Helper.WS_CHILD | Win32Helper.WS_VISIBLE | Win32Helper.WS_CLIPSIBLINGS | Win32Helper.WS_CLIPCHILDREN,
+                    Width = 1,
+                    Height = 1
+                });
+
+                _rootPresenter = new Border() { Child = new AdornerDecorator() { Child = Content }, Focusable = true };
+                _rootPresenter.SetBinding(Border.BackgroundProperty, new Binding(&quot;Background&quot;) { Source = _owner });
+                _wpfContentHost.RootVisual = _rootPresenter;
+                _wpfContentHost.SizeToContent = SizeToContent.Manual;
+                _manager = _owner.Model.Root.Manager;
+                _manager.InternalAddLogicalChild(_rootPresenter);
+
+                return new HandleRef(this, _wpfContentHost.Handle);
+            }
+
+
+            protected override void OnGotKeyboardFocus(KeyboardFocusChangedEventArgs e)
+            {
+                Trace.WriteLine(&quot;FloatingWindowContentHost.GotKeyboardFocus&quot;);
+                base.OnGotKeyboardFocus(e);
+            }
+            protected override void DestroyWindowCore(HandleRef hwnd)
+            {
+                _manager.InternalRemoveLogicalChild(_rootPresenter);
+                if (_wpfContentHost != null)
+                {
+                    _wpfContentHost.Dispose();
+                    _wpfContentHost = null;
+                }
+            }
+            protected override IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+            {
+                switch (msg)
+                {
+                    case Win32Helper.WM_SETFOCUS:
+                        Trace.WriteLine(&quot;FloatingWindowContentHost.WM_SETFOCUS&quot;);
+                        break;
+                    case Win32Helper.WM_KILLFOCUS:
+                        Trace.WriteLine(&quot;FloatingWindowContentHost.WM_KILLFOCUS&quot;);
+                        break;
+                }                
+                return base.WndProc(hwnd, msg, wParam, lParam, ref handled);
+            }
+
+            public Visual RootVisual
+            {
+                get { return _rootPresenter; }
+            }
+
+            protected override Size MeasureOverride(Size constraint)
+            {
+                if (Content == null)
+                    return base.MeasureOverride(constraint);
+
+                Content.Measure(constraint);
+                return Content.DesiredSize;
+            }
+
+            #region Content
+
+            /// &lt;summary&gt;
+            /// Content Dependency Property
+            /// &lt;/summary&gt;
+            public static readonly DependencyProperty ContentProperty =
+                DependencyProperty.Register(&quot;Content&quot;, typeof(UIElement), typeof(FloatingWindowContentHost),
+                    new FrameworkPropertyMetadata((UIElement)null,
+                        new PropertyChangedCallback(OnContentChanged)));
+
+            /// &lt;summary&gt;
+            /// Gets or sets the Content property.  This dependency property 
+            /// indicates ....
+            /// &lt;/summary&gt;
+            public UIElement Content
+            {
+                get { return (UIElement)GetValue(ContentProperty); }
+                set { SetValue(ContentProperty, value); }
+            }
+
+            /// &lt;summary&gt;
+            /// Handles changes to the Content property.
+            /// &lt;/summary&gt;
+            private static void OnContentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+            {
+                ((FloatingWindowContentHost)d).OnContentChanged(e);
+            }
+
+            /// &lt;summary&gt;
+            /// Provides derived classes an opportunity to handle changes to the Content property.
+            /// &lt;/summary&gt;
+            protected virtual void OnContentChanged(DependencyPropertyChangedEventArgs e)
+            {
+                if (_rootPresenter != null)
+                    _rootPresenter.Child = Content;
+            }
+
+            #endregion
+        }
+
+        ILayoutElement _model;
+
+        protected LayoutFloatingWindowControl(ILayoutElement model)
+        {
+            this.Loaded += new RoutedEventHandler(OnLoaded);
+            this.Unloaded += new RoutedEventHandler(OnUnloaded);
+            _model = model;
+            UpdateThemeResources();
+        }
+
+        internal virtual void UpdateThemeResources(Theme oldTheme = null)
+        {
+            if (oldTheme != null)
+            {
+                var resourceDictionaryToRemove =
+                    Resources.MergedDictionaries.FirstOrDefault(r =&gt; r.Source == oldTheme.GetResourceUri());
+                if (resourceDictionaryToRemove != null)
+                    Resources.MergedDictionaries.Remove(
+                        resourceDictionaryToRemove);
+            }
+
+            var manager = _model.Root.Manager;
+            if (manager.Theme != null)
+            {
+                Resources.MergedDictionaries.Add(new ResourceDictionary() { Source = manager.Theme.GetResourceUri() });
+            }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            if (Content != null)
+            {
+                var host = Content as FloatingWindowContentHost;
+                host.Dispose();
+
+                if (_hwndSrc != null)
+                {
+                    _hwndSrc.RemoveHook(_hwndSrcHook);
+                    _hwndSrc.Dispose();
+                    _hwndSrc = null;
+                }
+            }
+
+            base.OnClosed(e);
+        }
+
+        bool _attachDrag = false;
+        internal void AttachDrag(bool onActivated = true)
+        {
+            if (onActivated)
+            {
+                _attachDrag = true;
+                this.Activated += new EventHandler(OnActivated);
+            }
+            else
+            {
+                IntPtr windowHandle = new WindowInteropHelper(this).Handle;
+                IntPtr lParam = new IntPtr(((int)Left &amp; (int)0xFFFF) | (((int)Top) &lt;&lt; 16));
+                Win32Helper.SendMessage(windowHandle, Win32Helper.WM_NCLBUTTONDOWN, new IntPtr(Win32Helper.HT_CAPTION), lParam);
+            }
+        }
+
+        HwndSource _hwndSrc;
+        HwndSourceHook _hwndSrcHook;
+
+        void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            this.Loaded -= new RoutedEventHandler(OnLoaded);
+
+            this.SetParentToMainWindowOf(Model.Root.Manager);
+
+
+            _hwndSrc = HwndSource.FromDependencyObject(this) as HwndSource;
+            _hwndSrcHook = new HwndSourceHook(FilterMessage);
+            _hwndSrc.AddHook(_hwndSrcHook);
+        }
+
+        void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            this.Unloaded -= new RoutedEventHandler(OnUnloaded);
+
+            if (_hwndSrc != null)
+            {
+                _hwndSrc.RemoveHook(_hwndSrcHook);
+                _hwndSrc.Dispose();
+                _hwndSrc = null;
+            }
+        }
+
+        void OnActivated(object sender, EventArgs e)
+        {
+            this.Activated -= new EventHandler(OnActivated);
+
+            if (_attachDrag &amp;&amp; Mouse.LeftButton == MouseButtonState.Pressed)
+            {
+                IntPtr windowHandle = new WindowInteropHelper(this).Handle;
+                var mousePosition = this.PointToScreenDPI(Mouse.GetPosition(this));
+                var clientArea = Win32Helper.GetClientRect(windowHandle);
+                var windowArea = Win32Helper.GetWindowRect(windowHandle);
+
+                Left = mousePosition.X - windowArea.Width / 2.0;
+                Top = mousePosition.Y - (windowArea.Height - clientArea.Height) / 2.0;
+                _attachDrag = false;
+
+                IntPtr lParam = new IntPtr(((int)mousePosition.X &amp; (int)0xFFFF) | (((int)mousePosition.Y) &lt;&lt; 16));
+                Win32Helper.SendMessage(windowHandle, Win32Helper.WM_NCLBUTTONDOWN, new IntPtr(Win32Helper.HT_CAPTION), lParam);
+            }
+        }
+
+
+        protected override void OnInitialized(EventArgs e)
+        {
+            CommandBindings.Add(new CommandBinding(SystemCommands.CloseWindowCommand,
+                new ExecutedRoutedEventHandler((s, args) =&gt; SystemCommands.CloseWindow((Window)args.Parameter))));
+            CommandBindings.Add(new CommandBinding(SystemCommands.MaximizeWindowCommand,
+                new ExecutedRoutedEventHandler((s, args) =&gt; SystemCommands.MaximizeWindow((Window)args.Parameter))));
+            CommandBindings.Add(new CommandBinding(SystemCommands.MinimizeWindowCommand,
+                new ExecutedRoutedEventHandler((s, args) =&gt; SystemCommands.MinimizeWindow((Window)args.Parameter))));
+            CommandBindings.Add(new CommandBinding(SystemCommands.RestoreWindowCommand,
+                new ExecutedRoutedEventHandler((s, args) =&gt; SystemCommands.RestoreWindow((Window)args.Parameter))));
+            //Debug.Assert(this.Owner != null);
+            base.OnInitialized(e);
+        }
+
+        public abstract ILayoutElement Model { get; }
+
+
+        #region IsDragging
+
+        /// &lt;summary&gt;
+        /// IsDragging Read-Only Dependency Property
+        /// &lt;/summary&gt;
+        private static readonly DependencyPropertyKey IsDraggingPropertyKey
+            = DependencyProperty.RegisterReadOnly(&quot;IsDragging&quot;, typeof(bool), typeof(LayoutFloatingWindowControl),
+                new FrameworkPropertyMetadata((bool)false,
+                    new PropertyChangedCallback(OnIsDraggingChanged)));
+
+        public static readonly DependencyProperty IsDraggingProperty
+            = IsDraggingPropertyKey.DependencyProperty;
+
+        /// &lt;summary&gt;
+        /// Gets the IsDragging property.  This dependency property 
+        /// indicates that this floating window is being dragged.
+        /// &lt;/summary&gt;
+        public bool IsDragging
+        {
+            get { return (bool)GetValue(IsDraggingProperty); }
+        }
+
+        /// &lt;summary&gt;
+        /// Provides a secure method for setting the IsDragging property.  
+        /// This dependency property indicates that this floating window is being dragged.
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;value&quot;&gt;The new value for the property.&lt;/param&gt;
+        protected void SetIsDragging(bool value)
+        {
+            SetValue(IsDraggingPropertyKey, value);
+        }
+
+        /// &lt;summary&gt;
+        /// Handles changes to the IsDragging property.
+        /// &lt;/summary&gt;
+        private static void OnIsDraggingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((LayoutFloatingWindowControl)d).OnIsDraggingChanged(e);
+        }
+
+        /// &lt;summary&gt;
+        /// Provides derived classes an opportunity to handle changes to the IsDragging property.
+        /// &lt;/summary&gt;
+        protected virtual void OnIsDraggingChanged(DependencyPropertyChangedEventArgs e)
+        {
+          //Trace.WriteLine(&quot;IsDragging={0}&quot;, e.NewValue);
+        }
+
+        #endregion
+
+
+
+        DragService _dragService = null;
+
+        void UpdatePositionAndSizeOfPanes()
+        {
+            foreach (var posElement in Model.Descendents().OfType&lt;ILayoutElementForFloatingWindow&gt;())
+            {
+                posElement.FloatingLeft = Left;
+                posElement.FloatingTop = Top;
+                posElement.FloatingWidth = Width;
+                posElement.FloatingHeight = Height;
+            }
+        }
+
+        void UpdateMaximizedState( bool isMaximized )
+        {
+          foreach( var posElement in Model.Descendents().OfType&lt;ILayoutElementForFloatingWindow&gt;() )
+          {
+            posElement.IsMaximized = isMaximized;
+          }
+        }
+
+
+        protected virtual IntPtr FilterMessage(
+            IntPtr hwnd,
+            int msg,
+            IntPtr wParam,
+            IntPtr lParam,
+            ref bool handled
+            )
+        {
+            handled = false;
+
+            switch (msg)
+            {
+                case Win32Helper.WM_ACTIVATE:
+                    if (((int)wParam &amp; 0xFFFF) == Win32Helper.WA_INACTIVE)
+                    {
+                        if (lParam == this.GetParentWindowHandle())
+                        {
+                            Win32Helper.SetActiveWindow(_hwndSrc.Handle);
+                            handled = true;
+                        }
+                    }
+                    break;
+                case Win32Helper.WM_EXITSIZEMOVE:
+                    UpdatePositionAndSizeOfPanes();
+
+                    if (_dragService != null)
+                    {
+                        bool dropFlag;
+                        var mousePosition = this.TransformToDeviceDPI(Win32Helper.GetMousePosition());
+                        _dragService.Drop(mousePosition, out dropFlag);
+                        _dragService = null;
+                        SetIsDragging(false);
+
+                        if (dropFlag)
+                            InternalClose();
+                    }
+
+                    break;
+                case Win32Helper.WM_MOVING:
+                    {
+                        UpdateDragPosition();
+                    }
+                    break;
+                case Win32Helper.WM_LBUTTONUP: //set as handled right button click on title area (after showing context menu)
+                    if (_dragService != null &amp;&amp; Mouse.LeftButton == MouseButtonState.Released)
+                    {
+                        _dragService.Abort();
+                        _dragService = null;
+                        SetIsDragging(false);
+                    }
+                    break;
+              case Win32Helper.WM_SYSCOMMAND:
+                    IntPtr wMaximize = new IntPtr( Win32Helper.SC_MAXIMIZE );
+                    IntPtr wRestore = new IntPtr( Win32Helper.SC_RESTORE );
+                    if( wParam == wMaximize || wParam == wRestore )
+                    {
+                      UpdateMaximizedState( wParam == wMaximize );
+                    }
+                    break;
+            }
+
+
+
+            return IntPtr.Zero;
+        }
+
+        private void UpdateDragPosition()
+        {
+            if (_dragService == null)
+            {
+                _dragService = new DragService(this);
+                SetIsDragging(true);
+            }
+
+            var mousePosition = this.TransformToDeviceDPI(Win32Helper.GetMousePosition());
+            _dragService.UpdateMouseLocation(mousePosition);
+        }
+
+        bool _internalCloseFlag = false;
+
+        internal void InternalClose()
+        {
+            _internalCloseFlag = true;
+            Close();
+        }
+
+
+        protected bool CloseInitiatedByUser
+        {
+            get { return !_internalCloseFlag; }
+        }
+
+        internal bool KeepContentVisibleOnClose
+        {
+            get;
+            set;
+        }
+
+        protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonUp(e);
+        }
+
+        #region IsMaximized
+
+        /// &lt;summary&gt;
+        /// IsMaximized Read-Only Dependency Property
+        /// &lt;/summary&gt;
+        private static readonly DependencyPropertyKey IsMaximizedPropertyKey
+            = DependencyProperty.RegisterReadOnly(&quot;IsMaximized&quot;, typeof(bool), typeof(LayoutFloatingWindowControl),
+                new FrameworkPropertyMetadata((bool)false));
+
+        public static readonly DependencyProperty IsMaximizedProperty
+            = IsMaximizedPropertyKey.DependencyProperty;
+
+        /// &lt;summary&gt;
+        /// Gets the IsMaximized property.  This dependency property 
+        /// indicates if the window is maximized.
+        /// &lt;/summary&gt;
+        public bool IsMaximized
+        {
+            get { return (bool)GetValue(IsMaximizedProperty); }
+        }
+
+        /// &lt;summary&gt;
+        /// Provides a secure method for setting the IsMaximized property.  
+        /// This dependency property indicates if the window is maximized.
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;value&quot;&gt;The new value for the property.&lt;/param&gt;
+        protected void SetIsMaximized(bool value)
+        {
+            SetValue(IsMaximizedPropertyKey, value);
+        }
+
+        protected override void OnStateChanged(EventArgs e)
+        {
+            SetIsMaximized(WindowState == System.Windows.WindowState.Maximized);
+            base.OnStateChanged(e);
+        }
+
+        #endregion
+
+
+
+
+
+
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[39,9,39,10,0],[40,13,40,199,0],[41,13,41,132,0],[42,13,42,127,0],[43,9,43,10,0],[46,9,46,10,0],[47,13,47,124,0],[48,9,48,10,0],[53,13,53,80,0],[54,13,54,14,0],[55,17,55,32,0],[56,17,56,57,0],[57,13,57,14,0],[60,13,60,47,0],[61,13,61,42,0],[62,13,62,44,0],[65,13,65,14,0],[66,17,72,20,0],[74,17,74,120,0],[75,17,75,117,0],[76,17,76,61,0],[77,17,77,70,0],[78,17,78,54,0],[79,17,79,66,0],[81,17,81,68,0],[82,13,82,14,0],[86,13,86,14,0],[88,17,88,44,0],[89,13,89,14,0],[91,13,91,14,0],[92,17,92,69,0],[93,17,93,45,0],[94,17,94,18,0],[95,21,95,47,0],[96,21,96,44,0],[97,17,97,18,0],[98,13,98,14,0],[100,13,100,14,0],[101,17,101,29,0],[105,25,105,31,0],[108,25,108,31,0],[110,17,110,77,0],[111,13,111,14,0],[115,21,115,22,0],[115,23,115,45,0],[115,46,115,47,0],[119,13,119,14,0],[120,17,120,37,0],[121,21,121,61,0],[123,17,123,45,0],[124,17,124,44,0],[125,13,125,14,0],[132,13,135,73,0],[143,21,143,22,0],[143,23,143,67,0],[143,68,143,69,0],[144,21,144,22,0],[144,23,144,56,0],[144,57,144,58,0],[151,13,151,14,0],[152,17,152,68,0],[153,13,153,14,0],[159,13,159,14,0],[160,17,160,44,0],[161,21,161,52,0],[162,13,162,14,0],[169,9,169,68,0],[170,9,170,10,0],[171,13,171,61,0],[172,13,172,65,0],[173,13,173,28,0],[174,13,174,36,0],[175,9,175,10,0],[178,9,178,10,0],[179,13,179,34,0],[180,13,180,14,0],[181,17,182,70,0],[182,70,182,107,0],[182,107,182,109,0],[181,17,182,109,0],[183,17,183,56,0],[184,21,185,53,0],[186,13,186,14,0],[188,13,188,47,0],[189,13,189,39,0],[190,13,190,14,0],[191,17,191,120,0],[192,13,192,14,0],[193,9,193,10,0],[196,9,196,10,0],[197,13,197,33,0],[198,13,198,14,0],[199,17,199,65,0],[200,17,200,32,0],[202,17,202,38,0],[203,17,203,18,0],[204,21,204,55,0],[205,21,205,40,0],[206,21,206,37,0],[207,17,207,18,0],[208,13,208,14,0],[210,13,210,30,0],[211,9,211,10,0],[213,9,213,34,0],[215,9,215,10,0],[216,13,216,29,0],[217,13,217,14,0],[218,17,218,36,0],[219,17,219,65,0],[220,13,220,14,0],[222,13,222,14,0],[223,17,223,76,0],[224,17,224,92,0],[225,17,225,129,0],[226,13,226,14,0],[227,9,227,10,0],[233,9,233,10,0],[234,13,234,61,0],[236,13,236,62,0],[239,13,239,76,0],[240,13,240,62,0],[241,13,241,44,0],[242,9,242,10,0],[245,9,245,10,0],[246,13,246,65,0],[248,13,248,34,0],[249,13,249,14,0],[250,17,250,51,0],[251,17,251,36,0],[252,17,252,33,0],[253,13,253,14,0],[254,9,254,10,0],[257,9,257,10,0],[258,13,258,61,0],[260,13,260,77,0],[261,13,261,14,0],[262,17,262,76,0],[263,17,263,84,0],[264,17,264,74,0],[265,17,265,74,0],[267,17,267,65,0],[268,17,268,87,0],[269,17,269,37,0],[271,17,271,115,0],[272,17,272,129,0],[273,13,273,14,0],[274,9,274,10,0],[278,9,278,10,0],[279,13,280,61,0],[280,61,280,111,0],[280,111,280,115,0],[279,13,280,115,0],[281,13,282,61,0],[282,61,282,114,0],[282,114,282,118,0],[281,13,282,118,0],[283,13,284,61,0],[284,61,284,114,0],[284,114,284,118,0],[283,13,284,118,0],[285,13,286,61,0],[286,61,286,113,0],[286,113,286,117,0],[285,13,286,117,0],[288,13,288,35,0],[289,9,289,10,0],[299,9,302,72,0],[304,9,305,56,0],[313,17,313,18,0],[313,19,313,61,0],[313,62,313,63,0],[322,9,322,10,0],[323,13,323,52,0],[324,9,324,10,0],[330,9,330,10,0],[331,13,331,69,0],[332,9,332,10,0],[338,9,338,10,0],[340,9,340,10,0],[346,9,346,41,0],[349,9,349,10,0],[350,13,350,20,0],[350,22,350,36,0],[350,37,350,39,0],[350,40,350,101,0],[351,13,351,14,0],[352,17,352,48,0],[353,17,353,46,0],[354,17,354,50,0],[355,17,355,52,0],[356,13,356,14,0],[357,9,357,10,0],[360,9,360,10,0],[361,11,361,18,0],[361,20,361,34,0],[361,35,361,37,0],[361,38,361,99,0],[362,11,362,12,0],[363,13,363,50,0],[364,11,364,12,0],[365,9,365,10,0],[375,9,375,10,0],[376,13,376,29,0],[378,13,378,25,0],[381,21,381,75,0],[382,21,382,22,0],[383,25,383,68,0],[384,25,384,26,0],[385,29,385,74,0],[386,29,386,44,0],[387,25,387,26,0],[388,21,388,22,0],[389,21,389,27,0],[391,21,391,52,0],[393,21,393,46,0],[394,21,394,22,0],[396,25,396,103,0],[397,25,397,72,0],[398,25,398,45,0],[399,25,399,46,0],[401,25,401,38,0],[402,29,402,45,0],[403,21,403,22,0],[405,21,405,27,0],[407,21,407,22,0],[408,25,408,46,0],[409,21,409,22,0],[410,21,410,27,0],[412,21,412,95,0],[413,21,413,22,0],[414,25,414,46,0],[415,25,415,45,0],[416,25,416,46,0],[417,21,417,22,0],[418,21,418,27,0],[420,21,420,78,0],[421,21,421,76,0],[422,21,422,68,0],[423,21,423,22,0],[424,23,424,67,0],[425,21,425,22,0],[426,21,426,27,0],[431,13,431,32,0],[432,9,432,10,0],[435,9,435,10,0],[436,13,436,38,0],[437,13,437,14,0],[438,17,438,54,0],[439,17,439,37,0],[440,13,440,14,0],[442,13,442,91,0],[443,13,443,61,0],[444,9,444,10,0],[446,9,446,41,0],[449,9,449,10,0],[450,13,450,39,0],[451,13,451,21,0],[452,9,452,10,0],[457,17,457,18,0],[457,19,457,46,0],[457,47,457,48,0],[462,13,462,17,0],[463,13,463,17,0],[467,9,467,10,0],[468,13,468,41,0],[469,9,469,10,0],[476,9,478,61,0],[480,9,481,57,0],[489,17,489,18,0],[489,19,489,62,0],[489,63,489,64,0],[498,9,498,10,0],[499,13,499,53,0],[500,9,500,10,0],[503,9,503,10,0],[504,13,504,81,0],[505,13,505,36,0],[506,9,506,10,0]]);
+    </script>
+  </body>
+</html>

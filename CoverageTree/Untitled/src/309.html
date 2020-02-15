@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Controls\StructureTreeUC.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Data;
+using Swr.Configurator.View.DataViewModels;
+
+namespace Swr.Configurator.View.Controls
+{
+	public class StructureTreeUC : ComponentTreeUC
+	{
+		public StructureTreeUC()
+		{
+			Binding b = new Binding(&quot;DataContext&quot;)
+			{
+				Source = ConfiguratorMainWindowVM.Instance,
+				Path = new PropertyPath(&quot;StructureVM&quot;),
+				Mode = BindingMode.OneWay
+			};
+			this.SetBinding(DataContextProperty, b);
+		}
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,3,14,27,0],[15,3,15,4,0],[16,4,21,6,0],[22,4,22,44,0],[23,3,23,4,0]]);
+    </script>
+  </body>
+</html>

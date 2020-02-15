@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Data\SearchParam.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Data.SqlTypes;
+using System.Text;
+using Newtonsoft.Json;
+
+namespace Swr.Configurator.Common.Data
+{
+    /// &lt;summary&gt;
+    /// Параметр поиска
+    /// &lt;/summary&gt;
+    public class SearchParam
+    {
+        /// &lt;summary&gt;
+        /// Имя переменной
+        /// &lt;/summary&gt;
+        [Required(ErrorMessage = &quot;Field &#39;Name&#39; is required.&quot;)]
+        public string Name { get; set; }
+
+        [Required(ErrorMessage = &quot;Field &#39;Value&#39; is required.&quot;, AllowEmptyStrings = true)]
+        public string Value { get; set; }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[19,30,19,34,1],[19,35,19,39,1],[22,31,22,35,1],[22,36,22,40,1]]);
+    </script>
+  </body>
+</html>

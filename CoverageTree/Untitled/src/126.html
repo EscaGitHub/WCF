@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\OverlayWindow.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
+using Xceed.Wpf.AvalonDock.Layout;
+using System.Diagnostics;
+using Xceed.Wpf.AvalonDock.Themes;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public class OverlayWindow : Window, IOverlayWindow
+    {
+        static OverlayWindow()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(OverlayWindow), new FrameworkPropertyMetadata(typeof(OverlayWindow)));
+
+            OverlayWindow.AllowsTransparencyProperty.OverrideMetadata(typeof(OverlayWindow), new FrameworkPropertyMetadata(true));
+            OverlayWindow.WindowStyleProperty.OverrideMetadata(typeof(OverlayWindow), new FrameworkPropertyMetadata(WindowStyle.None));
+            OverlayWindow.ShowInTaskbarProperty.OverrideMetadata(typeof(OverlayWindow), new FrameworkPropertyMetadata(false));
+            OverlayWindow.ShowActivatedProperty.OverrideMetadata(typeof(OverlayWindow), new FrameworkPropertyMetadata(false));
+            OverlayWindow.VisibilityProperty.OverrideMetadata(typeof(OverlayWindow), new FrameworkPropertyMetadata(Visibility.Hidden));
+        }
+
+
+        internal OverlayWindow(IOverlayWindowHost host)
+        {
+            _host = host;
+            UpdateThemeResources();
+        }
+
+
+        internal void UpdateThemeResources(Theme oldTheme = null)
+        {
+            if (oldTheme != null)
+            {
+                var resourceDictionaryToRemove =
+                    Resources.MergedDictionaries.FirstOrDefault(r =&gt; r.Source == oldTheme.GetResourceUri());
+                if (resourceDictionaryToRemove != null)
+                    Resources.MergedDictionaries.Remove(
+                        resourceDictionaryToRemove);
+            }
+
+            if (_host.Manager.Theme != null)
+            {
+                Resources.MergedDictionaries.Add(new ResourceDictionary() { Source = _host.Manager.Theme.GetResourceUri() });
+            }
+        }
+
+
+        Canvas _mainCanvasPanel;
+        Grid _gridDockingManagerDropTargets;
+        Grid _gridAnchorablePaneDropTargets;
+        Grid _gridDocumentPaneDropTargets;
+        Grid _gridDocumentPaneFullDropTargets;
+
+        FrameworkElement _dockingManagerDropTargetBottom;
+        FrameworkElement _dockingManagerDropTargetTop;
+        FrameworkElement _dockingManagerDropTargetLeft;
+        FrameworkElement _dockingManagerDropTargetRight;
+
+        FrameworkElement _anchorablePaneDropTargetBottom;
+        FrameworkElement _anchorablePaneDropTargetTop;
+        FrameworkElement _anchorablePaneDropTargetLeft;
+        FrameworkElement _anchorablePaneDropTargetRight;
+        FrameworkElement _anchorablePaneDropTargetInto;
+
+        FrameworkElement _documentPaneDropTargetBottom;
+        FrameworkElement _documentPaneDropTargetTop;
+        FrameworkElement _documentPaneDropTargetLeft;
+        FrameworkElement _documentPaneDropTargetRight;
+        FrameworkElement _documentPaneDropTargetInto;
+
+        FrameworkElement _documentPaneDropTargetBottomAsAnchorablePane;
+        FrameworkElement _documentPaneDropTargetTopAsAnchorablePane;
+        FrameworkElement _documentPaneDropTargetLeftAsAnchorablePane;
+        FrameworkElement _documentPaneDropTargetRightAsAnchorablePane;
+
+        FrameworkElement _documentPaneFullDropTargetBottom;
+        FrameworkElement _documentPaneFullDropTargetTop;
+        FrameworkElement _documentPaneFullDropTargetLeft;
+        FrameworkElement _documentPaneFullDropTargetRight;
+        FrameworkElement _documentPaneFullDropTargetInto;
+
+        Path _previewBox;
+
+        public override void OnApplyTemplate()
+        {
+            base.OnApplyTemplate();
+
+            _mainCanvasPanel = GetTemplateChild(&quot;PART_DropTargetsContainer&quot;) as Canvas;
+            _gridDockingManagerDropTargets = GetTemplateChild(&quot;PART_DockingManagerDropTargets&quot;) as Grid;
+            _gridAnchorablePaneDropTargets = GetTemplateChild(&quot;PART_AnchorablePaneDropTargets&quot;) as Grid;
+            _gridDocumentPaneDropTargets = GetTemplateChild(&quot;PART_DocumentPaneDropTargets&quot;) as Grid;
+            _gridDocumentPaneFullDropTargets = GetTemplateChild(&quot;PART_DocumentPaneFullDropTargets&quot;) as Grid;
+
+            _gridDockingManagerDropTargets.Visibility = System.Windows.Visibility.Hidden;
+            _gridAnchorablePaneDropTargets.Visibility = System.Windows.Visibility.Hidden;
+            _gridDocumentPaneDropTargets.Visibility = System.Windows.Visibility.Hidden;
+            if (_gridDocumentPaneFullDropTargets != null)
+                _gridDocumentPaneFullDropTargets.Visibility = System.Windows.Visibility.Hidden;
+
+            _dockingManagerDropTargetBottom = GetTemplateChild(&quot;PART_DockingManagerDropTargetBottom&quot;) as FrameworkElement;
+            _dockingManagerDropTargetTop = GetTemplateChild(&quot;PART_DockingManagerDropTargetTop&quot;) as FrameworkElement;
+            _dockingManagerDropTargetLeft = GetTemplateChild(&quot;PART_DockingManagerDropTargetLeft&quot;) as FrameworkElement;
+            _dockingManagerDropTargetRight = GetTemplateChild(&quot;PART_DockingManagerDropTargetRight&quot;) as FrameworkElement;
+
+            _anchorablePaneDropTargetBottom = GetTemplateChild(&quot;PART_AnchorablePaneDropTargetBottom&quot;) as FrameworkElement;
+            _anchorablePaneDropTargetTop = GetTemplateChild(&quot;PART_AnchorablePaneDropTargetTop&quot;) as FrameworkElement;
+            _anchorablePaneDropTargetLeft = GetTemplateChild(&quot;PART_AnchorablePaneDropTargetLeft&quot;) as FrameworkElement;
+            _anchorablePaneDropTargetRight = GetTemplateChild(&quot;PART_AnchorablePaneDropTargetRight&quot;) as FrameworkElement;
+            _anchorablePaneDropTargetInto = GetTemplateChild(&quot;PART_AnchorablePaneDropTargetInto&quot;) as FrameworkElement;
+
+            _documentPaneDropTargetBottom = GetTemplateChild(&quot;PART_DocumentPaneDropTargetBottom&quot;) as FrameworkElement;
+            _documentPaneDropTargetTop = GetTemplateChild(&quot;PART_DocumentPaneDropTargetTop&quot;) as FrameworkElement;
+            _documentPaneDropTargetLeft = GetTemplateChild(&quot;PART_DocumentPaneDropTargetLeft&quot;) as FrameworkElement;
+            _documentPaneDropTargetRight = GetTemplateChild(&quot;PART_DocumentPaneDropTargetRight&quot;) as FrameworkElement;
+            _documentPaneDropTargetInto = GetTemplateChild(&quot;PART_DocumentPaneDropTargetInto&quot;) as FrameworkElement;
+
+            _documentPaneDropTargetBottomAsAnchorablePane = GetTemplateChild(&quot;PART_DocumentPaneDropTargetBottomAsAnchorablePane&quot;) as FrameworkElement;
+            _documentPaneDropTargetTopAsAnchorablePane = GetTemplateChild(&quot;PART_DocumentPaneDropTargetTopAsAnchorablePane&quot;) as FrameworkElement;
+            _documentPaneDropTargetLeftAsAnchorablePane = GetTemplateChild(&quot;PART_DocumentPaneDropTargetLeftAsAnchorablePane&quot;) as FrameworkElement;
+            _documentPaneDropTargetRightAsAnchorablePane = GetTemplateChild(&quot;PART_DocumentPaneDropTargetRightAsAnchorablePane&quot;) as FrameworkElement;
+
+            _documentPaneFullDropTargetBottom = GetTemplateChild(&quot;PART_DocumentPaneFullDropTargetBottom&quot;) as FrameworkElement;
+            _documentPaneFullDropTargetTop = GetTemplateChild(&quot;PART_DocumentPaneFullDropTargetTop&quot;) as FrameworkElement;
+            _documentPaneFullDropTargetLeft = GetTemplateChild(&quot;PART_DocumentPaneFullDropTargetLeft&quot;) as FrameworkElement;
+            _documentPaneFullDropTargetRight = GetTemplateChild(&quot;PART_DocumentPaneFullDropTargetRight&quot;) as FrameworkElement;
+            _documentPaneFullDropTargetInto = GetTemplateChild(&quot;PART_DocumentPaneFullDropTargetInto&quot;) as FrameworkElement;
+
+            _previewBox = GetTemplateChild(&quot;PART_PreviewBox&quot;) as Path;
+        }
+
+
+        internal void EnableDropTargets()
+        {
+          //Trace.WriteLine(&quot;EnableDropTargets()&quot;);
+            if (_mainCanvasPanel != null)
+                _mainCanvasPanel.Visibility = System.Windows.Visibility.Visible;
+        }
+
+        internal void HideDropTargets()
+        {
+          //Trace.WriteLine(&quot;HideDropTargets()&quot;);
+            if (_mainCanvasPanel != null)
+                _mainCanvasPanel.Visibility = System.Windows.Visibility.Hidden;
+
+        }
+
+        IOverlayWindowHost _host;
+
+        IEnumerable&lt;IDropTarget&gt; IOverlayWindow.GetTargets()
+        {
+            foreach (var visibleArea in _visibleAreas)
+            {
+                switch (visibleArea.Type)
+                {
+                    case DropAreaType.DockingManager:
+                        {
+                            var dropAreaDockingManager = visibleArea as DropArea&lt;DockingManager&gt;;
+                            yield return new DockingManagerDropTarget(dropAreaDockingManager.AreaElement, _dockingManagerDropTargetLeft.GetScreenArea(), DropTargetType.DockingManagerDockLeft);
+                            yield return new DockingManagerDropTarget(dropAreaDockingManager.AreaElement, _dockingManagerDropTargetTop.GetScreenArea(), DropTargetType.DockingManagerDockTop);
+                            yield return new DockingManagerDropTarget(dropAreaDockingManager.AreaElement, _dockingManagerDropTargetBottom.GetScreenArea(), DropTargetType.DockingManagerDockBottom);
+                            yield return new DockingManagerDropTarget(dropAreaDockingManager.AreaElement, _dockingManagerDropTargetRight.GetScreenArea(), DropTargetType.DockingManagerDockRight);
+                        }
+                        break;
+                    case DropAreaType.AnchorablePane:
+                        {
+                            var dropAreaAnchorablePane = visibleArea as DropArea&lt;LayoutAnchorablePaneControl&gt;;
+                            yield return new AnchorablePaneDropTarget(dropAreaAnchorablePane.AreaElement, _anchorablePaneDropTargetLeft.GetScreenArea(), DropTargetType.AnchorablePaneDockLeft);
+                            yield return new AnchorablePaneDropTarget(dropAreaAnchorablePane.AreaElement, _anchorablePaneDropTargetTop.GetScreenArea(), DropTargetType.AnchorablePaneDockTop);
+                            yield return new AnchorablePaneDropTarget(dropAreaAnchorablePane.AreaElement, _anchorablePaneDropTargetRight.GetScreenArea(), DropTargetType.AnchorablePaneDockRight);
+                            yield return new AnchorablePaneDropTarget(dropAreaAnchorablePane.AreaElement, _anchorablePaneDropTargetBottom.GetScreenArea(), DropTargetType.AnchorablePaneDockBottom);
+                            yield return new AnchorablePaneDropTarget(dropAreaAnchorablePane.AreaElement, _anchorablePaneDropTargetInto.GetScreenArea(), DropTargetType.AnchorablePaneDockInside);
+
+                            var parentPaneModel = dropAreaAnchorablePane.AreaElement.Model as LayoutAnchorablePane;
+                            LayoutAnchorableTabItem lastAreaTabItem = null;
+                            foreach (var dropAreaTabItem in dropAreaAnchorablePane.AreaElement.FindVisualChildren&lt;LayoutAnchorableTabItem&gt;())
+                            {
+                                var tabItemModel = dropAreaTabItem.Model as LayoutAnchorable;
+                                lastAreaTabItem = lastAreaTabItem == null || lastAreaTabItem.GetScreenArea().Right &lt; dropAreaTabItem.GetScreenArea().Right ?
+                                    dropAreaTabItem : lastAreaTabItem;
+                                int tabIndex = parentPaneModel.Children.IndexOf(tabItemModel);
+                                yield return new AnchorablePaneDropTarget(dropAreaAnchorablePane.AreaElement, dropAreaTabItem.GetScreenArea(), DropTargetType.AnchorablePaneDockInside, tabIndex);
+                            }
+
+                            if (lastAreaTabItem != null)
+                            {
+                                var lastAreaTabItemScreenArea = lastAreaTabItem.GetScreenArea();
+                                var newAreaTabItemScreenArea = new Rect(lastAreaTabItemScreenArea.TopRight, new Point(lastAreaTabItemScreenArea.Right + lastAreaTabItemScreenArea.Width, lastAreaTabItemScreenArea.Bottom));
+                                if (newAreaTabItemScreenArea.Right &lt; dropAreaAnchorablePane.AreaElement.GetScreenArea().Right)
+                                    yield return new AnchorablePaneDropTarget(dropAreaAnchorablePane.AreaElement, newAreaTabItemScreenArea, DropTargetType.AnchorablePaneDockInside, parentPaneModel.Children.Count);
+                            }
+
+                            var dropAreaTitle = dropAreaAnchorablePane.AreaElement.FindVisualChildren&lt;AnchorablePaneTitle&gt;().FirstOrDefault();
+                            if (dropAreaTitle != null)
+                                yield return new AnchorablePaneDropTarget(dropAreaAnchorablePane.AreaElement, dropAreaTitle.GetScreenArea(), DropTargetType.AnchorablePaneDockInside);
+                        }
+                        break;
+                    case DropAreaType.DocumentPane:
+                        {
+                            bool isDraggingAnchorables = _floatingWindow.Model is LayoutAnchorableFloatingWindow;
+                            if (isDraggingAnchorables &amp;&amp; _gridDocumentPaneFullDropTargets != null)
+                            {
+                                var dropAreaDocumentPane = visibleArea as DropArea&lt;LayoutDocumentPaneControl&gt;;
+                                if (_documentPaneFullDropTargetLeft.IsVisible)
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, _documentPaneFullDropTargetLeft.GetScreenArea(), DropTargetType.DocumentPaneDockLeft);
+                                if (_documentPaneFullDropTargetTop.IsVisible)
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, _documentPaneFullDropTargetTop.GetScreenArea(), DropTargetType.DocumentPaneDockTop);
+                                if (_documentPaneFullDropTargetRight.IsVisible)
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, _documentPaneFullDropTargetRight.GetScreenArea(), DropTargetType.DocumentPaneDockRight);
+                                if (_documentPaneFullDropTargetBottom.IsVisible)
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, _documentPaneFullDropTargetBottom.GetScreenArea(), DropTargetType.DocumentPaneDockBottom);
+                                if (_documentPaneFullDropTargetInto.IsVisible)
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, _documentPaneFullDropTargetInto.GetScreenArea(), DropTargetType.DocumentPaneDockInside);
+
+                                var parentPaneModel = dropAreaDocumentPane.AreaElement.Model as LayoutDocumentPane;
+                                LayoutDocumentTabItem lastAreaTabItem = null;
+                                foreach (var dropAreaTabItem in dropAreaDocumentPane.AreaElement.FindVisualChildren&lt;LayoutDocumentTabItem&gt;())
+                                {
+                                    var tabItemModel = dropAreaTabItem.Model;
+                                    lastAreaTabItem = lastAreaTabItem == null || lastAreaTabItem.GetScreenArea().Right &lt; dropAreaTabItem.GetScreenArea().Right ?
+                                        dropAreaTabItem : lastAreaTabItem;
+                                    int tabIndex = parentPaneModel.Children.IndexOf(tabItemModel);
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, dropAreaTabItem.GetScreenArea(), DropTargetType.DocumentPaneDockInside, tabIndex);
+                                }
+
+                                if (lastAreaTabItem != null)
+                                {
+                                    var lastAreaTabItemScreenArea = lastAreaTabItem.GetScreenArea();
+                                    var newAreaTabItemScreenArea = new Rect(lastAreaTabItemScreenArea.TopRight, new Point(lastAreaTabItemScreenArea.Right + lastAreaTabItemScreenArea.Width, lastAreaTabItemScreenArea.Bottom));
+                                    if (newAreaTabItemScreenArea.Right &lt; dropAreaDocumentPane.AreaElement.GetScreenArea().Right)
+                                        yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, newAreaTabItemScreenArea, DropTargetType.DocumentPaneDockInside, parentPaneModel.Children.Count);
+                                }
+
+                                if (_documentPaneDropTargetLeftAsAnchorablePane.IsVisible)
+                                    yield return new DocumentPaneDropAsAnchorableTarget(dropAreaDocumentPane.AreaElement, _documentPaneDropTargetLeftAsAnchorablePane.GetScreenArea(), DropTargetType.DocumentPaneDockAsAnchorableLeft);
+                                if (_documentPaneDropTargetTopAsAnchorablePane.IsVisible)
+                                    yield return new DocumentPaneDropAsAnchorableTarget(dropAreaDocumentPane.AreaElement, _documentPaneDropTargetTopAsAnchorablePane.GetScreenArea(), DropTargetType.DocumentPaneDockAsAnchorableTop);
+                                if (_documentPaneDropTargetRightAsAnchorablePane.IsVisible)
+                                    yield return new DocumentPaneDropAsAnchorableTarget(dropAreaDocumentPane.AreaElement, _documentPaneDropTargetRightAsAnchorablePane.GetScreenArea(), DropTargetType.DocumentPaneDockAsAnchorableRight);
+                                if (_documentPaneDropTargetBottomAsAnchorablePane.IsVisible)
+                                    yield return new DocumentPaneDropAsAnchorableTarget(dropAreaDocumentPane.AreaElement, _documentPaneDropTargetBottomAsAnchorablePane.GetScreenArea(), DropTargetType.DocumentPaneDockAsAnchorableBottom);
+                            }
+                            else
+                            {
+
+                                var dropAreaDocumentPane = visibleArea as DropArea&lt;LayoutDocumentPaneControl&gt;;
+                                if (_documentPaneDropTargetLeft.IsVisible)
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, _documentPaneDropTargetLeft.GetScreenArea(), DropTargetType.DocumentPaneDockLeft);
+                                if (_documentPaneDropTargetTop.IsVisible)
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, _documentPaneDropTargetTop.GetScreenArea(), DropTargetType.DocumentPaneDockTop);
+                                if (_documentPaneDropTargetRight.IsVisible)
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, _documentPaneDropTargetRight.GetScreenArea(), DropTargetType.DocumentPaneDockRight);
+                                if (_documentPaneDropTargetBottom.IsVisible)
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, _documentPaneDropTargetBottom.GetScreenArea(), DropTargetType.DocumentPaneDockBottom);
+                                if (_documentPaneDropTargetInto.IsVisible)
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, _documentPaneDropTargetInto.GetScreenArea(), DropTargetType.DocumentPaneDockInside);
+
+                                var parentPaneModel = dropAreaDocumentPane.AreaElement.Model as LayoutDocumentPane;
+                                LayoutDocumentTabItem lastAreaTabItem = null;
+                                foreach (var dropAreaTabItem in dropAreaDocumentPane.AreaElement.FindVisualChildren&lt;LayoutDocumentTabItem&gt;())
+                                {
+                                    var tabItemModel = dropAreaTabItem.Model;
+                                    lastAreaTabItem = lastAreaTabItem == null || lastAreaTabItem.GetScreenArea().Right &lt; dropAreaTabItem.GetScreenArea().Right ?
+                                        dropAreaTabItem : lastAreaTabItem;
+                                    int tabIndex = parentPaneModel.Children.IndexOf(tabItemModel);
+                                    yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, dropAreaTabItem.GetScreenArea(), DropTargetType.DocumentPaneDockInside, tabIndex);
+                                }
+
+                                if (lastAreaTabItem != null)
+                                {
+                                    var lastAreaTabItemScreenArea = lastAreaTabItem.GetScreenArea();
+                                    var newAreaTabItemScreenArea = new Rect(lastAreaTabItemScreenArea.TopRight, new Point(lastAreaTabItemScreenArea.Right + lastAreaTabItemScreenArea.Width, lastAreaTabItemScreenArea.Bottom));
+                                    if (newAreaTabItemScreenArea.Right &lt; dropAreaDocumentPane.AreaElement.GetScreenArea().Right)
+                                        yield return new DocumentPaneDropTarget(dropAreaDocumentPane.AreaElement, newAreaTabItemScreenArea, DropTargetType.DocumentPaneDockInside, parentPaneModel.Children.Count);
+                                }
+                            }
+                        }
+                        break;
+                    case DropAreaType.DocumentPaneGroup:
+                        {
+                            var dropAreaDocumentPane = visibleArea as DropArea&lt;LayoutDocumentPaneGroupControl&gt;;
+                            if (_documentPaneDropTargetInto.IsVisible)
+                                yield return new DocumentPaneGroupDropTarget(dropAreaDocumentPane.AreaElement, _documentPaneDropTargetInto.GetScreenArea(), DropTargetType.DocumentPaneGroupDockInside);
+                        }
+                        break;
+                }
+
+            }
+            yield break;
+        }
+
+        LayoutFloatingWindowControl _floatingWindow = null;
+        void IOverlayWindow.DragEnter(LayoutFloatingWindowControl floatingWindow)
+        {
+            _floatingWindow = floatingWindow;
+            EnableDropTargets();
+        }
+
+        void IOverlayWindow.DragLeave(LayoutFloatingWindowControl floatingWindow)
+        {
+            Visibility = System.Windows.Visibility.Hidden;
+            _floatingWindow = null;
+        }
+
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            base.OnClosing(e);
+        }
+
+
+        List&lt;IDropArea&gt; _visibleAreas = new List&lt;IDropArea&gt;();
+        void IOverlayWindow.DragEnter(IDropArea area)
+        {
+            _visibleAreas.Add(area);
+
+            FrameworkElement areaElement;
+            switch (area.Type)
+            {
+                case DropAreaType.DockingManager:
+                    areaElement = _gridDockingManagerDropTargets;
+                    break;
+                case DropAreaType.AnchorablePane:
+                    areaElement = _gridAnchorablePaneDropTargets;
+                    break;
+                case DropAreaType.DocumentPaneGroup:
+                    {
+                        areaElement = _gridDocumentPaneDropTargets;
+                        var dropAreaDocumentPaneGroup = area as DropArea&lt;LayoutDocumentPaneGroupControl&gt;;
+                        var layoutDocumentPane = (dropAreaDocumentPaneGroup.AreaElement.Model as LayoutDocumentPaneGroup).Children.First() as LayoutDocumentPane;
+                        var parentDocumentPaneGroup = layoutDocumentPane.Parent as LayoutDocumentPaneGroup;
+
+                        _documentPaneDropTargetLeft.Visibility = Visibility.Hidden;
+                        _documentPaneDropTargetRight.Visibility = Visibility.Hidden;
+                        _documentPaneDropTargetTop.Visibility = Visibility.Hidden;
+                        _documentPaneDropTargetBottom.Visibility = Visibility.Hidden;
+                    }
+                    break;
+                case DropAreaType.DocumentPane:
+                default:
+                    {
+                        bool isDraggingAnchorables = _floatingWindow.Model is LayoutAnchorableFloatingWindow;
+                        if (isDraggingAnchorables &amp;&amp; _gridDocumentPaneFullDropTargets != null)
+                        {
+                            areaElement = _gridDocumentPaneFullDropTargets;
+                            var dropAreaDocumentPaneGroup = area as DropArea&lt;LayoutDocumentPaneControl&gt;;
+                            var layoutDocumentPane = dropAreaDocumentPaneGroup.AreaElement.Model as LayoutDocumentPane;
+                            var parentDocumentPaneGroup = layoutDocumentPane.Parent as LayoutDocumentPaneGroup;
+
+                            if (parentDocumentPaneGroup != null &amp;&amp;
+                                parentDocumentPaneGroup.Children.Where(c =&gt; c.IsVisible).Count() &gt; 1)
+                            {
+                                var manager = parentDocumentPaneGroup.Root.Manager;
+                                if (!manager.AllowMixedOrientation)
+                                {
+                                    _documentPaneFullDropTargetLeft.Visibility = parentDocumentPaneGroup.Orientation == Orientation.Horizontal ? Visibility.Visible : Visibility.Hidden;
+                                    _documentPaneFullDropTargetRight.Visibility = parentDocumentPaneGroup.Orientation == Orientation.Horizontal ? Visibility.Visible : Visibility.Hidden;
+                                    _documentPaneFullDropTargetTop.Visibility = parentDocumentPaneGroup.Orientation == Orientation.Vertical ? Visibility.Visible : Visibility.Hidden;
+                                    _documentPaneFullDropTargetBottom.Visibility = parentDocumentPaneGroup.Orientation == Orientation.Vertical ? Visibility.Visible : Visibility.Hidden;
+                                }
+                                else
+                                {
+                                    _documentPaneFullDropTargetLeft.Visibility = Visibility.Visible;
+                                    _documentPaneFullDropTargetRight.Visibility = Visibility.Visible;
+                                    _documentPaneFullDropTargetTop.Visibility = Visibility.Visible;
+                                    _documentPaneFullDropTargetBottom.Visibility = Visibility.Visible;
+                                }
+                            }
+                            else if (parentDocumentPaneGroup == null &amp;&amp;
+                                layoutDocumentPane != null &amp;&amp;
+                                layoutDocumentPane.ChildrenCount == 0)
+                            {
+                                _documentPaneFullDropTargetLeft.Visibility = Visibility.Hidden;
+                                _documentPaneFullDropTargetRight.Visibility = Visibility.Hidden;
+                                _documentPaneFullDropTargetTop.Visibility = Visibility.Hidden;
+                                _documentPaneFullDropTargetBottom.Visibility = Visibility.Hidden;
+                            }
+                            else
+                            {
+                                _documentPaneFullDropTargetLeft.Visibility = Visibility.Visible;
+                                _documentPaneFullDropTargetRight.Visibility = Visibility.Visible;
+                                _documentPaneFullDropTargetTop.Visibility = Visibility.Visible;
+                                _documentPaneFullDropTargetBottom.Visibility = Visibility.Visible;
+                            }
+
+                            if (parentDocumentPaneGroup != null &amp;&amp;
+                                parentDocumentPaneGroup.Children.Where(c =&gt; c.IsVisible).Count() &gt; 1)
+                            {
+                                int indexOfDocumentPane = parentDocumentPaneGroup.Children.Where(ch =&gt; ch.IsVisible).ToList().IndexOf(layoutDocumentPane);
+                                bool isFirstChild = indexOfDocumentPane == 0;
+                                bool isLastChild = indexOfDocumentPane == parentDocumentPaneGroup.ChildrenCount - 1;
+
+                                var manager = parentDocumentPaneGroup.Root.Manager;
+                                if (!manager.AllowMixedOrientation)
+                                {
+                                    _documentPaneDropTargetBottomAsAnchorablePane.Visibility =
+                                    parentDocumentPaneGroup.Orientation == Orientation.Vertical ?
+                                        (isLastChild ? System.Windows.Visibility.Visible : System.Windows.Visibility.Hidden) :
+                                        System.Windows.Visibility.Hidden;
+                                    _documentPaneDropTargetTopAsAnchorablePane.Visibility =
+                                        parentDocumentPaneGroup.Orientation == Orientation.Vertical ?
+                                            (isFirstChild ? System.Windows.Visibility.Visible : System.Windows.Visibility.Hidden) :
+                                            System.Windows.Visibility.Hidden;
+
+                                    _documentPaneDropTargetLeftAsAnchorablePane.Visibility =
+                                        parentDocumentPaneGroup.Orientation == Orientation.Horizontal ?
+                                            (isFirstChild ? System.Windows.Visibility.Visible : System.Windows.Visibility.Hidden) :
+                                            System.Windows.Visibility.Hidden;
+
+
+                                    _documentPaneDropTargetRightAsAnchorablePane.Visibility =
+                                        parentDocumentPaneGroup.Orientation == Orientation.Horizontal ?
+                                            (isLastChild ? System.Windows.Visibility.Visible : System.Windows.Visibility.Hidden) :
+                                            System.Windows.Visibility.Hidden;
+                                }
+                                else
+                                {
+                                    _documentPaneDropTargetBottomAsAnchorablePane.Visibility = System.Windows.Visibility.Visible;
+                                    _documentPaneDropTargetLeftAsAnchorablePane.Visibility = System.Windows.Visibility.Visible;
+                                    _documentPaneDropTargetRightAsAnchorablePane.Visibility = System.Windows.Visibility.Visible;
+                                    _documentPaneDropTargetTopAsAnchorablePane.Visibility = System.Windows.Visibility.Visible;
+                                }
+                            }
+                            else
+                            {
+                                _documentPaneDropTargetBottomAsAnchorablePane.Visibility = System.Windows.Visibility.Visible;
+                                _documentPaneDropTargetLeftAsAnchorablePane.Visibility = System.Windows.Visibility.Visible;
+                                _documentPaneDropTargetRightAsAnchorablePane.Visibility = System.Windows.Visibility.Visible;
+                                _documentPaneDropTargetTopAsAnchorablePane.Visibility = System.Windows.Visibility.Visible;
+                            }
+                        }
+                        else
+                        {
+                            areaElement = _gridDocumentPaneDropTargets;
+                            var dropAreaDocumentPaneGroup = area as DropArea&lt;LayoutDocumentPaneControl&gt;;
+                            var layoutDocumentPane = dropAreaDocumentPaneGroup.AreaElement.Model as LayoutDocumentPane;
+                            var parentDocumentPaneGroup = layoutDocumentPane.Parent as LayoutDocumentPaneGroup;
+
+                            if (parentDocumentPaneGroup != null &amp;&amp;
+                                parentDocumentPaneGroup.Children.Where(c =&gt; c.IsVisible).Count() &gt; 1)
+                            {
+                                var manager = parentDocumentPaneGroup.Root.Manager;
+                                if (!manager.AllowMixedOrientation)
+                                {
+                                    _documentPaneDropTargetLeft.Visibility = parentDocumentPaneGroup.Orientation == Orientation.Horizontal ? Visibility.Visible : Visibility.Hidden;
+                                    _documentPaneDropTargetRight.Visibility = parentDocumentPaneGroup.Orientation == Orientation.Horizontal ? Visibility.Visible : Visibility.Hidden;
+                                    _documentPaneDropTargetTop.Visibility = parentDocumentPaneGroup.Orientation == Orientation.Vertical ? Visibility.Visible : Visibility.Hidden;
+                                    _documentPaneDropTargetBottom.Visibility = parentDocumentPaneGroup.Orientation == Orientation.Vertical ? Visibility.Visible : Visibility.Hidden;
+                                }
+                                else
+                                {
+                                    _documentPaneDropTargetLeft.Visibility = Visibility.Visible;
+                                    _documentPaneDropTargetRight.Visibility = Visibility.Visible;
+                                    _documentPaneDropTargetTop.Visibility = Visibility.Visible;
+                                    _documentPaneDropTargetBottom.Visibility = Visibility.Visible;
+                                }
+
+                            }
+                            else if (parentDocumentPaneGroup == null &amp;&amp;
+                                layoutDocumentPane != null &amp;&amp;
+                                layoutDocumentPane.ChildrenCount == 0)
+                            {
+                                _documentPaneDropTargetLeft.Visibility = Visibility.Hidden;
+                                _documentPaneDropTargetRight.Visibility = Visibility.Hidden;
+                                _documentPaneDropTargetTop.Visibility = Visibility.Hidden;
+                                _documentPaneDropTargetBottom.Visibility = Visibility.Hidden;
+                            }
+                            else
+                            {
+                                _documentPaneDropTargetLeft.Visibility = Visibility.Visible;
+                                _documentPaneDropTargetRight.Visibility = Visibility.Visible;
+                                _documentPaneDropTargetTop.Visibility = Visibility.Visible;
+                                _documentPaneDropTargetBottom.Visibility = Visibility.Visible;
+                            }
+                        }
+                    }
+                    break;
+            }
+
+            Canvas.SetLeft(areaElement, area.DetectionRect.Left - Left);
+            Canvas.SetTop(areaElement, area.DetectionRect.Top - Top);
+            areaElement.Width = area.DetectionRect.Width;
+            areaElement.Height = area.DetectionRect.Height;
+            areaElement.Visibility = System.Windows.Visibility.Visible;
+        }
+
+        void IOverlayWindow.DragLeave(IDropArea area)
+        {
+            _visibleAreas.Remove(area);
+
+            FrameworkElement areaElement;
+            switch (area.Type)
+            {
+                case DropAreaType.DockingManager:
+                    areaElement = _gridDockingManagerDropTargets;
+                    break;
+                case DropAreaType.AnchorablePane:
+                    areaElement = _gridAnchorablePaneDropTargets;
+                    break;
+                case DropAreaType.DocumentPaneGroup:
+                    areaElement = _gridDocumentPaneDropTargets;
+                    break;
+                case DropAreaType.DocumentPane:
+                default:
+                    {
+                        bool isDraggingAnchorables = _floatingWindow.Model is LayoutAnchorableFloatingWindow;
+                        if (isDraggingAnchorables &amp;&amp; _gridDocumentPaneFullDropTargets != null)
+                            areaElement = _gridDocumentPaneFullDropTargets;
+                        else
+                            areaElement = _gridDocumentPaneDropTargets;
+                    }
+                    break;
+            }
+
+            areaElement.Visibility = System.Windows.Visibility.Hidden;
+        }
+
+        void IOverlayWindow.DragEnter(IDropTarget target)
+        {
+            var previewBoxPath = target.GetPreviewPath(this, _floatingWindow.Model as LayoutFloatingWindow);
+            if (previewBoxPath != null)
+            {
+                _previewBox.Data = previewBoxPath;
+                _previewBox.Visibility = System.Windows.Visibility.Visible;
+            }
+        }
+
+        void IOverlayWindow.DragLeave(IDropTarget target)
+        {
+            _previewBox.Visibility = System.Windows.Visibility.Hidden;
+        }
+
+        void IOverlayWindow.DragDrop(IDropTarget target)
+        {
+            target.Drop(_floatingWindow.Model as LayoutFloatingWindow);
+        }
+
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[34,9,34,10,0],[35,13,35,131,0],[37,13,37,131,0],[38,13,38,136,0],[39,13,39,127,0],[40,13,40,127,0],[41,13,41,136,0],[42,9,42,10,0],[45,9,45,56,0],[46,9,46,10,0],[47,13,47,26,0],[48,13,48,36,0],[49,9,49,10,0],[53,9,53,10,0],[54,13,54,34,0],[55,13,55,14,0],[56,17,57,70,0],[57,70,57,107,0],[57,107,57,109,0],[56,17,57,109,0],[58,17,58,56,0],[59,21,60,53,0],[61,13,61,14,0],[63,13,63,45,0],[64,13,64,14,0],[65,17,65,126,0],[66,13,66,14,0],[67,9,67,10,0],[107,9,107,10,0],[108,13,108,36,0],[110,13,110,88,0],[111,13,111,105,0],[112,13,112,105,0],[113,13,113,101,0],[114,13,114,109,0],[116,13,116,90,0],[117,13,117,90,0],[118,13,118,88,0],[119,13,119,58,0],[120,17,120,96,0],[122,13,122,123,0],[123,13,123,117,0],[124,13,124,119,0],[125,13,125,121,0],[127,13,127,123,0],[128,13,128,117,0],[129,13,129,119,0],[130,13,130,121,0],[131,13,131,119,0],[133,13,133,119,0],[134,13,134,113,0],[135,13,135,115,0],[136,13,136,117,0],[137,13,137,115,0],[139,13,139,151,0],[140,13,140,145,0],[141,13,141,147,0],[142,13,142,149,0],[144,13,144,127,0],[145,13,145,121,0],[146,13,146,123,0],[147,13,147,125,0],[148,13,148,123,0],[150,13,150,71,0],[151,9,151,10,0],[155,9,155,10,0],[157,13,157,42,0],[158,17,158,81,0],[159,9,159,10,0],[162,9,162,10,0],[164,13,164,42,0],[165,17,165,80,0],[167,9,167,10,0],[172,9,172,10,0],[173,13,173,20,0],[173,22,173,37,0],[173,38,173,40,0],[173,41,173,54,0],[174,13,174,14,0],[175,17,175,42,0],[178,25,178,26,0],[179,29,179,98,0],[180,29,180,193,0],[181,29,181,191,0],[182,29,182,197,0],[183,29,183,195,0],[184,25,184,26,0],[185,25,185,31,0],[187,25,187,26,0],[188,29,188,111,0],[189,29,189,193,0],[190,29,190,191,0],[191,29,191,195,0],[192,29,192,197,0],[193,29,193,195,0],[195,29,195,116,0],[196,29,196,76,0],[197,29,197,36,0],[197,38,197,57,0],[197,58,197,60,0],[197,61,197,141,0],[198,29,198,30,0],[199,33,199,94,0],[200,33,201,71,0],[202,33,202,95,0],[203,33,203,195,0],[204,29,204,30,0],[206,29,206,57,0],[207,29,207,30,0],[208,33,208,97,0],[209,33,209,221,0],[210,33,210,127,0],[211,37,211,214,0],[212,29,212,30,0],[214,29,214,143,0],[215,29,215,55,0],[216,33,216,183,0],[217,25,217,26,0],[218,25,218,31,0],[220,25,220,26,0],[221,29,221,114,0],[222,29,222,99,0],[223,29,223,30,0],[224,33,224,111,0],[225,33,225,79,0],[226,37,226,197,0],[227,33,227,78,0],[228,37,228,195,0],[229,33,229,80,0],[230,37,230,199,0],[231,33,231,81,0],[232,37,232,201,0],[233,33,233,79,0],[234,37,234,199,0],[236,33,236,116,0],[237,33,237,78,0],[238,33,238,40,0],[238,42,238,61,0],[238,62,238,64,0],[238,65,238,141,0],[239,33,239,34,0],[240,37,240,78,0],[241,37,242,75,0],[243,37,243,99,0],[244,37,244,193,0],[245,33,245,34,0],[247,33,247,61,0],[248,33,248,34,0],[249,37,249,101,0],[250,37,250,225,0],[251,37,251,129,0],[252,41,252,212,0],[253,33,253,34,0],[255,33,255,91,0],[256,37,256,233,0],[257,33,257,90,0],[258,37,258,231,0],[259,33,259,92,0],[260,37,260,235,0],[261,33,261,93,0],[262,37,262,237,0],[263,29,263,30,0],[265,29,265,30,0],[267,33,267,111,0],[268,33,268,75,0],[269,37,269,193,0],[270,33,270,74,0],[271,37,271,191,0],[272,33,272,76,0],[273,37,273,195,0],[274,33,274,77,0],[275,37,275,197,0],[276,33,276,75,0],[277,37,277,195,0],[279,33,279,116,0],[280,33,280,78,0],[281,33,281,40,0],[281,42,281,61,0],[281,62,281,64,0],[281,65,281,141,0],[282,33,282,34,0],[283,37,283,78,0],[284,37,285,75,0],[286,37,286,99,0],[287,37,287,193,0],[288,33,288,34,0],[290,33,290,61,0],[291,33,291,34,0],[292,37,292,101,0],[293,37,293,225,0],[294,37,294,129,0],[295,41,295,212,0],[296,33,296,34,0],[297,29,297,30,0],[298,25,298,26,0],[299,25,299,31,0],[301,25,301,26,0],[302,29,302,112,0],[303,29,303,71,0],[304,33,304,201,0],[305,25,305,26,0],[306,25,306,31,0],[309,13,309,14,0],[310,13,310,25,0],[313,9,313,60,0],[315,9,315,10,0],[316,13,316,46,0],[317,13,317,33,0],[318,9,318,10,0],[321,9,321,10,0],[322,13,322,59,0],[323,13,323,36,0],[324,9,324,10,0],[327,9,327,10,0],[328,13,328,31,0],[329,9,329,10,0],[332,9,332,63,0],[334,9,334,10,0],[335,13,335,37,0],[338,13,338,31,0],[341,21,341,66,0],[342,21,342,27,0],[344,21,344,66,0],[345,21,345,27,0],[347,21,347,22,0],[348,25,348,68,0],[349,25,349,106,0],[350,25,350,162,0],[351,25,351,108,0],[353,25,353,84,0],[354,25,354,85,0],[355,25,355,83,0],[356,25,356,86,0],[357,21,357,22,0],[358,21,358,27,0],[361,21,361,22,0],[362,25,362,110,0],[363,25,363,95,0],[364,25,364,26,0],[365,29,365,76,0],[366,29,366,105,0],[367,29,367,120,0],[368,29,368,112,0],[370,29,371,77,0],[371,77,371,88,0],[371,88,371,102,0],[370,29,371,102,0],[372,29,372,30,0],[373,33,373,84,0],[374,33,374,68,0],[375,33,375,34,0],[376,37,376,185,0],[377,37,377,186,0],[378,37,378,182,0],[379,37,379,185,0],[380,33,380,34,0],[382,33,382,34,0],[383,37,383,101,0],[384,37,384,102,0],[385,37,385,100,0],[386,37,386,103,0],[387,33,387,34,0],[388,29,388,30,0],[389,34,391,71,0],[392,29,392,30,0],[393,33,393,96,0],[394,33,394,97,0],[395,33,395,95,0],[396,33,396,98,0],[397,29,397,30,0],[399,29,399,30,0],[400,33,400,97,0],[401,33,401,98,0],[402,33,402,96,0],[403,33,403,99,0],[404,29,404,30,0],[406,29,407,77,0],[407,77,407,88,0],[407,88,407,102,0],[406,29,407,102,0],[408,29,408,30,0],[409,33,409,104,0],[409,104,409,116,0],[409,116,409,155,0],[409,33,409,155,0],[410,33,410,78,0],[411,33,411,117,0],[413,33,413,84,0],[414,33,414,68,0],[415,33,415,34,0],[416,37,419,74,0],[420,37,423,78,0],[425,37,428,78,0],[431,37,434,78,0],[435,33,435,34,0],[437,33,437,34,0],[438,37,438,130,0],[439,37,439,128,0],[440,37,440,129,0],[441,37,441,127,0],[442,33,442,34,0],[443,29,443,30,0],[445,29,445,30,0],[446,33,446,126,0],[447,33,447,124,0],[448,33,448,125,0],[449,33,449,123,0],[450,29,450,30,0],[451,25,451,26,0],[453,25,453,26,0],[454,29,454,72,0],[455,29,455,105,0],[456,29,456,120,0],[457,29,457,112,0],[459,29,460,77,0],[460,77,460,88,0],[460,88,460,102,0],[459,29,460,102,0],[461,29,461,30,0],[462,33,462,84,0],[463,33,463,68,0],[464,33,464,34,0],[465,37,465,181,0],[466,37,466,182,0],[467,37,467,178,0],[468,37,468,181,0],[469,33,469,34,0],[471,33,471,34,0],[472,37,472,97,0],[473,37,473,98,0],[474,37,474,96,0],[475,37,475,99,0],[476,33,476,34,0],[478,29,478,30,0],[479,34,481,71,0],[482,29,482,30,0],[483,33,483,92,0],[484,33,484,93,0],[485,33,485,91,0],[486,33,486,94,0],[487,29,487,30,0],[489,29,489,30,0],[490,33,490,93,0],[491,33,491,94,0],[492,33,492,92,0],[493,33,493,95,0],[494,29,494,30,0],[495,25,495,26,0],[496,21,496,22,0],[497,21,497,27,0],[500,13,500,73,0],[501,13,501,70,0],[502,13,502,58,0],[503,13,503,60,0],[504,13,504,72,0],[505,9,505,10,0],[508,9,508,10,0],[509,13,509,40,0],[512,13,512,31,0],[515,21,515,66,0],[516,21,516,27,0],[518,21,518,66,0],[519,21,519,27,0],[521,21,521,64,0],[522,21,522,27,0],[525,21,525,22,0],[526,25,526,110,0],[527,25,527,95,0],[528,29,528,76,0],[530,29,530,72,0],[531,21,531,22,0],[532,21,532,27,0],[535,13,535,71,0],[536,9,536,10,0],[539,9,539,10,0],[540,13,540,109,0],[541,13,541,40,0],[542,13,542,14,0],[543,17,543,51,0],[544,17,544,76,0],[545,13,545,14,0],[546,9,546,10,0],[549,9,549,10,0],[550,13,550,71,0],[551,9,551,10,0],[554,9,554,10,0],[555,13,555,72,0],[556,9,556,10,0]]);
+    </script>
+  </body>
+</html>

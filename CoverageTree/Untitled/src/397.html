@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\ConfiguratorMainWindowVM.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using NLog;
+using Swr.Configurator.Logic;
+using Swr.Configurator.UserUI;
+using Swr.Configurator.View.Logic;
+using SwrUI;
+using SwrUILogic.Data;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Web.Caching;
+using System.Windows.Media;
+using System.Windows.Navigation;
+using Swr.Configurator.Common.Logic;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.Logic.Card;
+using Swr.Configurator.Logic.Commands;
+using Swr.Configurator.Logic.Elastic;
+using Swr.Configurator.Logic.EventArgs;
+using Swr.Configurator.View.Commands;
+using Swr.Configurator.View.DataViewModels;
+using Swr.Configurator.WebApi;
+using SwrUILogic;
+using SettingsController = Swr.Configurator.Logic.SettingsController;
+
+namespace Swr.Configurator.View
+{
+    /// &lt;summary&gt;
+    /// Vm �������� ����
+    /// &lt;/summary&gt;
+	public class ConfiguratorMainWindowVM : NotifyBaseClass, IDisposable
+	{
+		private static ConfiguratorMainWindowVM _instance;
+		private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+		private double _fontSize;
+		private bool _isContentEnabled = true;
+		private double _progress;
+		private bool _progressBarVisibility;
+		private double _ribbonScale;
+		private ViewScale _scale;
+		private string _status;
+		private StructureVM _componentsVM;
+		private StructureVM _structureVM;
+        private string _loginName;
+
+
+        public ConfiguratorMainWindowVM()
+		{
+			_instance = this;
+
+			_scale = ViewScale.Medium;
+			OnPropertyChanged(() =&gt; Scale);
+			OnPropertyChanged(() =&gt; AntiScale);
+			UpdateUi();
+
+			ImageCache = new ImageCache();
+
+			LocalSettingsController = new LocalSettingsController();
+            SpecificationsController = new SpecificationsController();
+
+            SettingsController = new SettingsController();
+        }
+
+		public ImageCache ImageCache { get; private set; }
+
+        //public ProductCache Cache { get; private set; }
+
+        //public SharedSettingsController SharedSettingsController { get; set; }
+
+        public UICommandContainer UICommandContainer { get; set; }
+
+        public LocalSettingsController LocalSettingsController { get; set; }
+
+		public ProductStructureContainer ComponentsStructureContainer { get; set; }
+
+		public ProductStructureContainer ProductStructureContainer { get; set; }
+		
+		public SpecificationsController SpecificationsController { get; private set; }
+
+        public SettingsController SettingsController { get; set; }
+
+        public CommandManager CommandManager { get; private set; }
+
+        /// &lt;summary&gt;
+        /// VM ��� �������� ����������
+        /// &lt;/summary&gt;
+        public StructureVM ComponentsVM
+		{
+			get { return _componentsVM; }
+			private set
+			{
+				_componentsVM = value;
+				OnPropertyChanged(() =&gt; ComponentsVM);
+			}
+		}
+
+		/// &lt;summary&gt;
+		/// VM ��� �������� ���������
+		/// &lt;/summary&gt;
+        public StructureVM StructureVM
+        {
+	        get { return _structureVM; }
+	        private set
+	        {
+		        _structureVM = value;
+		        OnPropertyChanged(() =&gt; StructureVM);
+	        }
+        }
+
+		public CardController CardController { get; set; }
+
+		public LayoutController LayoutController
+		{
+			get { return _layoutController; }
+			set
+			{
+				_layoutController = value;
+                if (SpecificationsController != null)
+                {
+                    SpecificationsController.LayoutController = _layoutController;
+                }
+            }
+		}
+
+		public RibbonController RibbonController { get; set; }
+
+		public ViewScale Scale
+		{
+			get { return _scale; }
+			set
+			{
+				_scale = value;
+				OnPropertyChanged(&quot;Scale&quot;);
+				UpdateUi();
+			}
+		}
+
+		public static ConfiguratorMainWindowVM Instance
+		{
+			get { return _instance; }
+		}
+
+        public string WindowTitle
+        {
+            get =&gt; _title;
+            set { _title = value; OnPropertyChanged(&quot;WindowTitle&quot;); }
+        }
+
+        public string LoginName
+        {
+            get =&gt; _loginName;
+            set
+            {
+                _loginName = value;
+                OnPropertyChanged(&quot;LoginName&quot;);
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// ���� ������������
+        /// &lt;/summary&gt;
+        public string Role { get; set; }
+
+        public double Progress
+		{
+			get { return _progress; }
+			set
+			{
+				_progress = value;
+				OnPropertyChanged(() =&gt; Progress);
+			}
+		}
+
+		public string Status
+		{
+			get { return _status; }
+			set
+			{
+				_status = value;
+				OnPropertyChanged(() =&gt; Status);
+			}
+		}
+
+		public bool IsContentEnabled
+		{
+			get { return _isContentEnabled; }
+			set
+			{
+				_isContentEnabled = value;
+				OnPropertyChanged(() =&gt; IsContentEnabled);
+			}
+		}
+
+		public bool ProgressBarVisibility
+		{
+			get { return _progressBarVisibility; }
+			set
+			{
+				_progressBarVisibility = value;
+
+				if (LayoutController == null)
+					return;
+
+				if (!value)
+					LayoutController.ShowCardPanel();
+				else
+					LayoutController.HideCardPanel();
+
+				OnPropertyChanged(() =&gt; ProgressBarVisibility);
+			}
+		}
+
+		public double RibbonScale
+		{
+			get { return _ribbonScale; }
+			set
+			{
+				_ribbonScale = value;
+
+				SwrMessageBox.UiScale = _ribbonScale;
+
+				OnPropertyChanged(() =&gt; RibbonScale);
+				OnPropertyChanged(() =&gt; AntiScale);
+			}
+		}
+
+		public double AntiScale =&gt; 1 + (1 - RibbonScale);
+
+		public double FontSize
+		{
+			get { return _fontSize; }
+			set
+			{
+				_fontSize = value;
+				OnPropertyChanged(() =&gt; FontSize);
+			}
+		}
+
+		private void UpdateUi()
+		{
+			switch (Scale)
+			{
+				case ViewScale.Small:
+					FontSize = 10;
+					RibbonScale = 0.85;
+					return;
+
+				case ViewScale.Medium:
+					FontSize = 12;
+					RibbonScale = 1;
+					return;
+
+				case ViewScale.Large:
+					FontSize = 16;
+					RibbonScale = 1.3;
+					return;
+			}
+		}
+
+        public void LoadSettings(bool skipLocalView = false)
+        {
+            IsContentEnabled = true;
+            ProgressBarVisibility = true;
+            Status = &quot;�������� ��������...&quot;;
+            Progress = 101;
+            ConfiguratorMainWindow.Instance.OpenSettingsCommand = OpenSharedSettingsCommand;
+
+            LoadSettingsAsync();
+        }
+
+        private async void LoadSettingsAsync()
+        {
+            //��������� ���������
+
+            var result = false;
+
+            try
+            {
+                result = await Task.Run(() =&gt; SettingsController.Load());
+            }
+            catch (Exception e)
+            {
+                SwrMessageBox.Show(ConfiguratorMainWindow.Instance, &quot;��������� ��������. &quot; + e.Message, WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+
+                ElasticLogController.Log(LogTypeEnum.Error, e.Message + &quot;\n&quot; + e.StackTrace, EventEnum.None, false, ObjectTypeEnum.None, ConfiguratorMainWindowVM.Instance?.LoginName);
+
+                ConfiguratorMainWindow.Instance.CloseImmediately(); // ���� ���������
+            }
+
+            if (result)
+            {
+                CommandManager = new CommandManager();
+
+                ImageCache.Fill(SettingsController.Settings);
+                foreach (var settingsComponentType in SettingsController.Settings.ComponentTypes)
+                {
+                    settingsComponentType.ImageIcon = ImageCache.GetImage(settingsComponentType.ElementIcon);
+                }
+
+                //���� ��������� � ��������� �������
+                ComponentsStructureContainer = new ProductStructureContainer();
+                ProductStructureContainer = new ProductStructureContainer();
+                UICommandContainer = UICommandContainer.Instance();
+                UICommandContainer.UpdateProperties(ComponentsStructureContainer, ProductStructureContainer);
+                ProgressBarVisibility = false;
+                LayoutController.Configure();
+                RibbonController.Configure();
+                CardController = new CardController(LayoutController.CardControlControl, ClearStructureSelection);
+                SpecificationsController.CardController = CardController;
+                LayoutController.SearchControl.CardController = CardController;
+                UICommandContainer.CardController = CardController;
+
+                LayoutController.SearchControl.SetProductStructure(ComponentsStructureContainer);
+
+                ConfigureBindings();
+            }
+        }
+
+
+        public void ClearStructureSelection(object source)
+		{
+			if (StructureVM!=source)
+			{
+				StructureVM.ClearSelection();
+			}
+			if (ComponentsVM != source)
+			{
+				ComponentsVM.ClearSelection();
+			}
+		}
+
+		private void ConfigureBindings()
+		{
+			ConfiguratorMainWindow.Instance.Dispatcher?.Invoke(() =&gt;
+			{
+				ComponentsVM = new StructureVM(ComponentsStructureContainer, CardController, false);
+				StructureVM = new StructureVM(ProductStructureContainer, CardController, true);
+			});
+			
+		}
+
+		public event EventHandler LocalSettingsLoaded;
+
+		public void OnWindowClosing(CancelEventArgs cancelEventArgs)
+		{
+			try
+			{
+			}
+			catch (Exception e)
+			{
+				_logger.Error(e);
+				SwrMessageBox.Show(ConfiguratorMainWindow.Instance, e.Message, WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+			}
+		}
+
+		private LayoutController _layoutController;
+
+		public void Dispose()
+		{
+            if (IsSomethingChanged())
+            {
+                var dialogResult = SwrMessageBox.Show( &quot;��������� ��������� ���������?&quot;, &quot;&quot;,
+                    SwrMessageBoxButton.YesNo ,
+                    SwrMessageBoxImage.Question);
+                if (dialogResult == SwrDialogResult.Yes)
+                {
+                    var allProducts = AllProductsLinkContainer.Instance.GetAllProducts();
+                    CardController.SaveUpdatedValues();
+
+                    var errorMessages = new List&lt;string&gt;();
+                    foreach (var product in allProducts)
+                    {
+                        //UICommandContainer.CheckErrors(product);
+                        if (product.Errors.Count != 0 || product.References.Any(t =&gt; t.Errors.Count != 0))
+                        {
+                            var errorMessage = &quot;������ ���������� ������������.&quot;;
+                            foreach (var productError in product.Errors)
+                            {
+                                errorMessage += &quot;\n&quot; + $&quot;��� ��������� ��������� &#39;{productError}&#39;&quot;;
+                            }
+
+                            foreach (var productReference in product.References)
+                            {
+                                if (productReference.Errors.Count &gt; 0)
+                                    errorMessage += &quot;\n&quot; + $&quot;��� ��������� ���������� &#39;{productReference.Child.Name}&#39; ������ &quot; + string.Join(Environment.NewLine, productReference.Errors);
+                            }
+
+                            errorMessages.Add(errorMessage);
+                        }
+                    }
+
+                    if (errorMessages.Count != 0)
+                    {
+                        var errorMessage = string.Join(&quot;\n&quot;, errorMessages);
+                        SwrMessageBox.Show(ConfiguratorMainWindow.Instance, errorMessage, &quot;&quot;,
+                            SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+                        return;
+                    }
+
+                    var changedProducts = allProducts.Where(t =&gt; t.IsChanged || t.Properties.Any(l =&gt; l.IsChanged)).ToList();
+
+                    var changedSpecifications = allProducts.Where(t =&gt;
+                        t.References.Any(l =&gt; l.IsChanged) ||
+                        t.References.Where(k =&gt; k.Properties.Any(p =&gt; p.IsChanged)).ToList().Count != 0).ToList();
+
+                    if (changedProducts.Count != 0)
+                    {
+                        var newChangedProduct = changedProducts.Where(t =&gt; t.DbIdentificator == Guid.Empty).ToList();
+                        var updatedChangedProducts =
+                            changedProducts.Where(t =&gt; t.DbIdentificator != Guid.Empty).ToList();
+
+                        if (newChangedProduct.Count != 0)
+                        {
+                            foreach (var product in newChangedProduct)
+                            {
+                                if (product.Errors.Count == 0)
+                                {
+                                    ComponentApiCaller.Create(product);
+                                }
+                            }
+                        }
+
+                        
+                        if (updatedChangedProducts.Count != 0)
+                        {
+                            foreach (var updatedChangedProduct in updatedChangedProducts)
+                            {
+                                if (updatedChangedProduct.Errors.Count == 0) ComponentApiCaller.Update(updatedChangedProduct);
+                            }
+                        }
+                    }
+
+                    if (changedSpecifications.Count != 0)
+                    {
+                        foreach (var changedSpecification in changedSpecifications)
+                        {
+                            if (changedSpecification.Errors.Count == 0)
+                            {
+                                SpecificationApiCaller.Save(changedSpecification);
+                            }
+                        }
+                    }
+                }
+
+            }
+		}
+
+        private bool IsSomethingChanged()
+        {
+            var result = false;
+
+            var allProducts = AllProductsLinkContainer.Instance.GetAllProducts();
+
+            var changedProducts = allProducts.Where(t =&gt; t.IsChanged).ToList();
+            var changedProperties = allProducts.SelectMany(t =&gt; t.Properties).Where(t =&gt; t.IsChanged).ToList();
+            var changedReference = allProducts.SelectMany(t =&gt; t.References).Where(t =&gt; t.IsChanged).ToList();
+            var changedReferenceProperties = allProducts.SelectMany(t =&gt; t.References).SelectMany(t =&gt; t.Properties)
+                .Where(t =&gt; t.IsChanged).ToList();
+
+
+            return changedProducts.Count != 0 || changedProperties.Count != 0 || changedReference.Count != 0 || changedReferenceProperties.Count != 0;
+        }
+
+
+        private readonly SolidColorBrush _iconsBrush = (SolidColorBrush)(new BrushConverter().ConvertFrom(&quot;#249E89&quot;));
+
+        public SolidColorBrush IconsBrush
+        {
+            get { return _iconsBrush; }
+        }
+
+        private readonly SolidColorBrush _specificationIconsBrush = (SolidColorBrush)(new BrushConverter().ConvertFrom(&quot;#247BA0&quot;));
+        
+
+
+        public SolidColorBrush SpecificationIconsBrush
+        {
+            get { return _specificationIconsBrush; }
+        }
+
+		public SolidColorBrush StructureIconsBrush { get; } = (SolidColorBrush)(new BrushConverter().ConvertFrom(&quot;#249E89&quot;));
+
+		protected virtual void OnLocalSettingsLoaded()
+		{
+			LocalSettingsLoaded?.Invoke(this, EventArgs.Empty);
+		}
+
+
+        #region Open Settings Command
+
+        private RelayCommand _openSharedSettingsCommand;
+        private string _title;
+
+        public RelayCommand OpenSharedSettingsCommand
+        {
+            get { return _openSharedSettingsCommand ?? (_openSharedSettingsCommand = new RelayCommand(OpenSharedSettings, CanOpenSharedSettings)); }
+        }
+
+        private bool CanOpenSharedSettings(object parameter)
+        {
+            var result = true;
+
+            result = Role != null &amp;&amp; Role == &quot;�������������&quot;;
+
+            return result;
+
+            //if (!IsContentEnabled)
+            //    return false;
+
+            //if (VaultWrapper == null || VaultWrapper.Vault == null)
+            //    return false;
+
+            //if (CurrentUserRole != null &amp;&amp; !CurrentUserRole.Permissions.HasFlag(PermissionEnum.CanEditSettings))
+            //    return false;
+
+            //if (ProductStructureContainer != null &amp;&amp; ProductStructureContainer.Products.Any())
+            //    return false;
+
+            //if (Cache != null &amp;&amp; Cache.Products.Any())
+            //    return false;
+
+            return true;
+        }
+
+        private void OpenSharedSettings(object parameter)
+        {
+            var command = new OpenSharedSettingsViewCommand(CommandManager);
+            if (command.Execute())
+            {
+                //RestartApplication();
+
+                DisposeControllers();
+
+                LoadSettings(true);
+            }
+        }
+
+        private void DisposeControllers()
+        {
+            ComponentsStructureContainer = null; // components
+            ProductStructureContainer = null; // structures
+            UICommandContainer = null;
+            ProgressBarVisibility = false;
+
+            if (CardController != null)
+            {
+                CardController.ClearCard();
+                CardController.Dispose();
+                CardController = null;
+            }
+
+            ConfiguratorMainWindow.Instance.Dispatcher?.Invoke(() =&gt;
+            {
+                if (ComponentsVM != null)
+                {
+                    ComponentsVM.Dispose();
+                    ComponentsVM = null;
+                }
+
+                if (StructureVM != null)
+                {
+                    StructureVM.Dispose();
+                    StructureVM = null;
+                }
+            });
+        }
+
+        private void RestartApplication()
+        {
+            ConfiguratorMainWindow.Instance.RestartApplication();
+        }
+
+        #endregion
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[36,3,36,72,0],[38,3,38,41,0],[49,9,49,42,0],[50,3,50,4,0],[51,4,51,21,0],[53,4,53,30,0],[54,4,54,35,0],[55,4,55,39,0],[56,4,56,15,0],[58,4,58,34,0],[60,4,60,60,0],[61,13,61,71,0],[63,13,63,59,0],[64,9,64,10,0],[66,34,66,38,0],[66,39,66,51,0],[72,56,72,60,0],[72,61,72,65,0],[74,66,74,70,0],[74,71,74,75,0],[76,67,76,71,0],[76,72,76,76,0],[78,64,78,68,0],[78,69,78,73,0],[80,62,80,66,0],[80,67,80,79,0],[82,56,82,60,0],[82,61,82,65,0],[84,48,84,52,0],[84,53,84,65,0],[91,8,91,9,0],[91,10,91,31,0],[91,32,91,33,0],[93,4,93,5,0],[94,5,94,27,0],[95,5,95,43,0],[96,4,96,5,0],[104,14,104,15,0],[104,16,104,36,0],[104,37,104,38,0],[106,10,106,11,0],[107,11,107,32,0],[108,11,108,48,0],[109,10,109,11,0],[112,42,112,46,0],[112,47,112,51,0],[116,8,116,9,0],[116,10,116,35,0],[116,36,116,37,0],[118,4,118,5,0],[119,5,119,31,0],[120,17,120,54,0],[121,17,121,18,0],[122,21,122,83,0],[123,17,123,18,0],[124,13,124,14,0],[127,46,127,50,0],[127,51,127,55,0],[131,8,131,9,0],[131,10,131,24,0],[131,25,131,26,0],[133,4,133,5,0],[134,5,134,20,0],[135,5,135,32,0],[136,5,136,16,0],[137,4,137,5,0],[142,8,142,9,0],[142,10,142,27,0],[142,28,142,29,0],[147,20,147,26,0],[148,17,148,18,0],[148,19,148,34,0],[148,35,148,68,0],[148,69,148,70,0],[153,20,153,30,0],[155,13,155,14,0],[156,17,156,36,0],[157,17,157,48,0],[158,13,158,14,0],[164,30,164,34,0],[164,35,164,39,0],[168,8,168,9,0],[168,10,168,27,0],[168,28,168,29,0],[170,4,170,5,0],[171,5,171,23,0],[172,5,172,39,0],[173,4,173,5,0],[178,8,178,9,0],[178,10,178,25,0],[178,26,178,27,0],[180,4,180,5,0],[181,5,181,21,0],[182,5,182,37,0],[183,4,183,5,0],[188,8,188,9,0],[188,10,188,35,0],[188,36,188,37,0],[190,4,190,5,0],[191,5,191,31,0],[192,5,192,47,0],[193,4,193,5,0],[198,8,198,9,0],[198,10,198,40,0],[198,41,198,42,0],[200,4,200,5,0],[201,5,201,36,0],[203,5,203,34,0],[204,6,204,13,0],[206,5,206,16,0],[207,6,207,39,0],[209,6,209,39,0],[211,5,211,52,0],[212,4,212,5,0],[217,8,217,9,0],[217,10,217,30,0],[217,31,217,32,0],[219,4,219,5,0],[220,5,220,26,0],[222,5,222,42,0],[224,5,224,42,0],[225,5,225,40,0],[226,4,226,5,0],[229,30,229,51,0],[233,8,233,9,0],[233,10,233,27,0],[233,28,233,29,0],[235,4,235,5,0],[236,5,236,23,0],[237,5,237,39,0],[238,4,238,5,0],[242,3,242,4,0],[243,4,243,18,0],[246,6,246,20,0],[247,6,247,25,0],[248,6,248,13,0],[251,6,251,20,0],[252,6,252,22,0],[253,6,253,13,0],[256,6,256,20,0],[257,6,257,24,0],[258,6,258,13,0],[260,3,260,4,0],[263,9,263,10,0],[264,13,264,37,0],[265,13,265,42,0],[266,13,266,45,0],[267,13,267,28,0],[268,13,268,93,0],[270,13,270,33,0],[271,9,271,10,0],[274,9,274,10,0],[277,13,277,32,0],[280,13,280,14,0],[281,17,281,74,0],[281,47,281,72,0],[282,13,282,14,0],[283,13,283,32,0],[284,13,284,14,0],[285,17,285,168,0],[287,17,287,184,0],[289,17,289,68,0],[290,13,290,14,0],[292,13,292,24,0],[293,13,293,14,0],[294,17,294,55,0],[296,17,296,62,0],[297,17,297,24,0],[297,26,297,51,0],[297,52,297,54,0],[297,55,297,97,0],[298,17,298,18,0],[299,21,299,110,0],[300,17,300,18,0],[303,17,303,80,0],[304,17,304,77,0],[305,17,305,68,0],[306,17,306,110,0],[307,17,307,47,0],[308,17,308,46,0],[309,17,309,46,0],[310,17,310,115,0],[311,17,311,74,0],[312,17,312,80,0],[313,17,313,68,0],[315,17,315,98,0],[317,17,317,37,0],[318,13,318,14,0],[319,9,319,10,0],[323,3,323,4,0],[324,4,324,28,0],[325,4,325,5,0],[326,5,326,34,0],[327,4,327,5,0],[328,4,328,31,0],[329,4,329,5,0],[330,5,330,35,0],[331,4,331,5,0],[332,3,332,4,0],[335,3,335,4,0],[336,4,337,4,0],[337,4,337,5,0],[337,5,338,5,0],[338,5,338,89,0],[338,89,339,5,0],[339,5,339,84,0],[339,84,340,4,0],[340,4,340,5,0],[340,5,340,7,0],[336,4,340,7,0],[342,3,342,4,0],[347,3,347,4,0],[349,4,349,5,0],[350,4,350,5,0],[351,4,351,23,0],[352,4,352,5,0],[353,5,353,22,0],[354,5,354,131,0],[355,4,355,5,0],[356,3,356,4,0],[361,3,361,4,0],[362,13,362,38,0],[363,13,363,14,0],[364,17,366,50,0],[367,17,367,57,0],[368,17,368,18,0],[369,21,369,90,0],[370,21,370,56,0],[372,21,372,60,0],[373,21,373,28,0],[373,30,373,41,0],[373,42,373,44,0],[373,45,373,56,0],[374,21,374,22,0],[376,25,376,86,0],[376,86,376,105,0],[376,105,376,107,0],[376,25,376,107,0],[377,25,377,26,0],[378,29,378,82,0],[379,29,379,36,0],[379,38,379,54,0],[379,55,379,57,0],[379,58,379,72,0],[380,29,380,30,0],[381,33,381,100,0],[382,29,382,30,0],[384,29,384,36,0],[384,38,384,58,0],[384,59,384,61,0],[384,62,384,80,0],[385,29,385,30,0],[386,33,386,71,0],[387,37,387,188,0],[388,29,388,30,0],[390,29,390,61,0],[391,25,391,26,0],[392,21,392,22,0],[394,21,394,50,0],[395,21,395,22,0],[396,25,396,77,0],[397,25,398,79,0],[399,25,399,32,0],[402,21,402,66,0],[402,66,402,103,0],[402,103,402,114,0],[402,114,402,115,0],[402,66,402,115,0],[402,115,402,126,0],[402,21,402,126,0],[404,21,405,25,0],[405,25,405,47,0],[405,47,405,58,0],[405,58,406,49,0],[406,49,406,71,0],[406,71,406,82,0],[406,82,406,83,0],[406,49,406,83,0],[406,83,406,104,0],[405,25,406,104,0],[406,104,406,115,0],[404,21,406,115,0],[408,21,408,52,0],[409,21,409,22,0],[410,25,410,76,0],[410,76,410,107,0],[410,107,410,118,0],[410,25,410,118,0],[411,25,412,56,0],[412,56,412,87,0],[412,87,412,98,0],[411,25,412,98,0],[414,25,414,58,0],[415,25,415,26,0],[416,29,416,36,0],[416,38,416,49,0],[416,50,416,52,0],[416,53,416,70,0],[417,29,417,30,0],[418,33,418,63,0],[419,33,419,34,0],[420,37,420,72,0],[421,33,421,34,0],[422,29,422,30,0],[423,25,423,26,0],[426,25,426,63,0],[427,25,427,26,0],[428,29,428,36,0],[428,38,428,63,0],[428,64,428,66,0],[428,67,428,89,0],[429,29,429,30,0],[430,33,430,77,0],[430,78,430,127,0],[431,29,431,30,0],[432,25,432,26,0],[433,21,433,22,0],[435,21,435,58,0],[436,21,436,22,0],[437,25,437,32,0],[437,34,437,58,0],[437,59,437,61,0],[437,62,437,83,0],[438,25,438,26,0],[439,29,439,72,0],[440,29,440,30,0],[441,33,441,83,0],[442,29,442,30,0],[443,25,443,26,0],[444,21,444,22,0],[445,17,445,18,0],[447,13,447,14,0],[448,3,448,4,0],[451,9,451,10,0],[452,13,452,32,0],[454,13,454,82,0],[456,13,456,58,0],[456,58,456,69,0],[456,69,456,80,0],[456,13,456,80,0],[457,13,457,65,0],[457,65,457,77,0],[457,77,457,90,0],[457,90,457,101,0],[457,101,457,112,0],[457,13,457,112,0],[458,13,458,64,0],[458,64,458,76,0],[458,76,458,89,0],[458,89,458,100,0],[458,100,458,111,0],[458,13,458,111,0],[459,13,459,74,0],[459,74,459,86,0],[459,86,459,104,0],[459,104,459,116,0],[459,116,460,29,0],[460,29,460,40,0],[460,40,460,51,0],[459,13,460,51,0],[463,13,463,151,0],[464,9,464,10,0],[467,9,467,119,0],[471,17,471,18,0],[471,19,471,38,0],[471,39,471,40,0],[474,9,474,132,0],[480,17,480,18,0],[480,19,480,51,0],[480,52,480,53,0],[483,48,483,52,0],[483,57,483,119,0],[486,3,486,4,0],[487,4,487,55,0],[488,3,488,4,0],[498,17,498,18,0],[498,19,498,147,0],[498,148,498,149,0],[502,9,502,10,0],[503,13,503,31,0],[505,13,505,62,0],[507,13,507,27,0],[525,9,525,10,0],[528,9,528,10,0],[529,13,529,77,0],[530,13,530,35,0],[531,13,531,14,0],[534,17,534,38,0],[536,17,536,36,0],[537,13,537,14,0],[538,9,538,10,0],[541,9,541,10,0],[542,13,542,49,0],[543,13,543,46,0],[544,13,544,39,0],[545,13,545,43,0],[547,13,547,40,0],[548,13,548,14,0],[549,17,549,44,0],[550,17,550,42,0],[551,17,551,39,0],[552,13,552,14,0],[554,13,555,13,0],[555,13,555,14,0],[555,14,556,17,0],[556,17,556,42,0],[556,42,557,17,0],[557,17,557,18,0],[557,18,558,21,0],[558,21,558,44,0],[558,44,559,21,0],[559,21,559,41,0],[559,41,560,17,0],[560,17,560,18,0],[560,18,562,17,0],[562,17,562,41,0],[562,41,563,17,0],[563,17,563,18,0],[563,18,564,21,0],[564,21,564,43,0],[564,43,565,21,0],[565,21,565,40,0],[565,40,566,17,0],[566,17,566,18,0],[566,18,567,13,0],[567,13,567,14,0],[567,14,567,16,0],[554,13,567,16,0],[568,9,568,10,0],[571,9,571,10,0],[572,13,572,66,0],[573,9,573,10,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\SortableObservableCollection.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Swr.Configurator.Logic
+{
+	public class SortableObservableCollection&lt;T&gt; : ObservableCollection&lt;T&gt;
+	{
+		// Constructors
+		public SortableObservableCollection() : base() { }
+		public SortableObservableCollection(List&lt;T&gt; l) : base(l) { }
+		public SortableObservableCollection(IEnumerable&lt;T&gt; l) : base(l) { }
+
+		#region Sorting
+
+		/// &lt;summary&gt;
+		/// Sorts the items of the collection in ascending order according to a key.
+		/// &lt;/summary&gt;
+		/// &lt;typeparam name=&quot;TKey&quot;&gt;The type of the key returned by &lt;paramref name=&quot;keySelector&quot;/&gt;.&lt;/typeparam&gt;
+		/// &lt;param name=&quot;keySelector&quot;&gt;A function to extract a key from an item.&lt;/param&gt;
+		public void Sort&lt;TKey&gt;(Func&lt;T, TKey&gt; keySelector)
+		{
+			InternalSort(Items.OrderBy(keySelector));
+		}
+
+		/// &lt;summary&gt;
+		/// Sorts the items of the collection in descending order according to a key.
+		/// &lt;/summary&gt;
+		/// &lt;typeparam name=&quot;TKey&quot;&gt;The type of the key returned by &lt;paramref name=&quot;keySelector&quot;/&gt;.&lt;/typeparam&gt;
+		/// &lt;param name=&quot;keySelector&quot;&gt;A function to extract a key from an item.&lt;/param&gt;
+		public void SortDescending&lt;TKey&gt;(Func&lt;T, TKey&gt; keySelector)
+		{
+			InternalSort(Items.OrderByDescending(keySelector));
+		}
+
+		/// &lt;summary&gt;
+		/// Sorts the items of the collection in ascending order according to a key.
+		/// &lt;/summary&gt;
+		/// &lt;typeparam name=&quot;TKey&quot;&gt;The type of the key returned by &lt;paramref name=&quot;keySelector&quot;/&gt;.&lt;/typeparam&gt;
+		/// &lt;param name=&quot;keySelector&quot;&gt;A function to extract a key from an item.&lt;/param&gt;
+		/// &lt;param name=&quot;comparer&quot;&gt;An &lt;see cref=&quot;IComparer{T}&quot;/&gt; to compare keys.&lt;/param&gt;
+		public void Sort&lt;TKey&gt;(Func&lt;T, TKey&gt; keySelector, IComparer&lt;TKey&gt; comparer)
+		{
+			InternalSort(Items.OrderBy(keySelector, comparer));
+		}
+
+		/// &lt;summary&gt;
+		/// Moves the items of the collection so that their orders are the same as those of the items provided.
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;sortedItems&quot;&gt;An &lt;see cref=&quot;IEnumerable{T}&quot;/&gt; to provide item orders.&lt;/param&gt;
+		private void InternalSort(IEnumerable&lt;T&gt; sortedItems)
+		{
+			var sortedItemsList = sortedItems.ToList();
+
+			foreach (var item in sortedItemsList)
+			{
+				Move(IndexOf(item), sortedItemsList.IndexOf(item));
+			}
+		}
+
+		#endregion // Sorting
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[13,43,13,49,0],[13,50,13,51,0],[13,52,13,53,0],[14,52,14,59,0],[14,60,14,61,0],[14,62,14,63,0],[15,59,15,66,0],[15,67,15,68,0],[15,69,15,70,0],[25,3,25,4,0],[26,4,26,45,0],[27,3,27,4,0],[35,3,35,4,0],[36,4,36,55,0],[37,3,37,4,0],[46,3,46,4,0],[47,4,47,55,0],[48,3,48,4,0],[55,3,55,4,0],[56,4,56,47,0],[58,4,58,11,0],[58,13,58,21,0],[58,22,58,24,0],[58,25,58,40,0],[59,4,59,5,0],[60,5,60,56,0],[61,4,61,5,0],[62,3,62,4,0]]);
+    </script>
+  </body>
+</html>

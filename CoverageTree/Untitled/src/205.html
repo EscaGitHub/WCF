@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Data\PageElement.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Collections.Generic;
+using System.Linq;
+using Swr.Configurator.Common.Data;
+
+namespace Swr.Configurator.Data
+{
+	internal class PageElement
+	{
+		public IEnumerable&lt;INameElement&gt; Elements { get; }
+
+		public PageElement(IEnumerable&lt;INameElement&gt; elements, int startNumber)
+		{
+			Elements = elements;
+			StartNumber = startNumber;
+		}
+
+		public int StartNumber { get; }
+
+		public int EndNumber
+		{
+			get =&gt; StartNumber + Elements.Count() - 1;
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[9,47,9,51,0],[11,3,11,74,0],[12,3,12,4,0],[13,4,13,24,0],[14,4,14,30,0],[15,3,15,4,0],[17,28,17,32,0],[21,11,21,45,0]]);
+    </script>
+  </body>
+</html>

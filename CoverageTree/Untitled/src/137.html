@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Repositories\ChangedDocumentsRepository.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Service.Domain;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures;
+using Swr.Capital1C.Service.Infrastructure;
+using Swr.Capital1C.Service.Logger;
+using Swr.Capital1C.Service.Settings.Model;
+
+namespace Swr.Capital1C.Service.Repositories
+{
+    public class ChangedDocumentsRepository
+    {
+        private readonly NLog.Logger _logger = LogHelper.Instance.GetLogger(&quot;Репозиторий измененных документов&quot;);
+
+        private readonly ICommonSettings _commonSettings;
+
+        public ChangedDocumentsRepository(ICommonSettings commonSettings)
+        {
+            _commonSettings = commonSettings;
+        }
+
+        public List&lt;ChangedDocument&gt; GetDocuments(CatalogTypeEnum catalogType)
+        {
+            string catalogName;
+            CatalogDefinition ivDefinition;
+
+            switch (catalogType)
+            {
+                case CatalogTypeEnum.Nomenclature:
+                    catalogName = &quot;Номенклатура&quot;;
+                    ivDefinition = _commonSettings.NomenclatureDefinition;
+                    break;
+                case CatalogTypeEnum.Specification:
+                    catalogName = &quot;Спецификация&quot;;
+                    ivDefinition = _commonSettings.BomDefinition;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(catalogType), catalogType, null);
+            }
+
+            _logger.Debug($&quot;Получение измененных документов справочника &#39;{catalogName}&#39;...&quot;);
+
+            var changedDocuments = new List&lt;ChangedDocument&gt;();
+
+            var queryBuilder = new QueryBuilder();
+
+            var query = queryBuilder.ChangedDocumentsByVariableQuery(ivDefinition, new []
+            {
+                _commonSettings.ArticleVariableName, _commonSettings.IsServiceVariableName
+            });
+
+            _logger.Debug(query);
+
+            var dataTable = ExecuteQuery(query, _commonSettings.PdmDbConnection.ConnectionString());
+
+            foreach (DataRow dataTableRow in dataTable.Rows)
+            {
+                var document = new ChangedDocument((int)dataTableRow[&quot;Идентификатор документа&quot;], (string)dataTableRow[&quot;Имя конфигурации документа&quot;], (int)dataTableRow[&quot;Версия документа&quot;])
+                {
+                    Article = (string)dataTableRow[_commonSettings.ArticleVariableName],
+                    IsService = dataTableRow[_commonSettings.IsServiceVariableName] == DBNull.Value ? string.Empty : (string)dataTableRow[_commonSettings.IsServiceVariableName]
+                };
+
+                changedDocuments.Add(document);
+            }
+
+            _logger.Info($&quot;Получили &#39;{changedDocuments.Count}&#39; измененных документа справочника &#39;{catalogName}&#39;&quot;);
+
+            return changedDocuments;
+        }
+
+        private DataTable ExecuteQuery(string query, string connectionString)
+        {
+            using (var sqlConnection = new SqlConnection { ConnectionString = connectionString })
+            {
+                sqlConnection.Open();
+
+                using (var command = new SqlCommand(query, sqlConnection) { CommandType = CommandType.Text })
+                {
+                    using (var sqlDataAdapter = new SqlDataAdapter(command))
+                    {
+                        var dataTable = new DataTable();
+
+                        sqlDataAdapter.Fill(dataTable);
+
+                        return dataTable;
+                    }
+                }
+            }
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[18,9,18,114,1],[22,9,22,74,1],[23,9,23,10,1],[24,13,24,46,1],[25,9,25,10,1],[28,9,28,10,1],[32,13,32,33,1],[35,21,35,50,1],[36,21,36,75,1],[37,21,37,27,1],[39,21,39,50,1],[40,21,40,66,1],[41,21,41,27,1],[43,21,43,99,0],[46,13,46,94,1],[48,13,48,64,1],[50,13,50,51,1],[52,13,55,16,1],[57,13,57,34,1],[59,13,59,101,1],[61,13,61,20,1],[61,22,61,42,1],[61,43,61,45,1],[61,46,61,60,1],[62,13,62,14,1],[63,17,67,19,1],[69,17,69,48,1],[70,13,70,14,1],[72,13,72,115,1],[74,13,74,37,1],[75,9,75,10,1],[78,9,78,10,1],[79,20,79,97,1],[80,13,80,14,1],[81,17,81,38,1],[83,24,83,109,1],[84,17,84,18,1],[85,28,85,76,1],[86,21,86,22,1],[87,25,87,57,1],[89,25,89,56,1],[91,25,91,42,1],[95,9,95,10,1]]);
+    </script>
+  </body>
+</html>

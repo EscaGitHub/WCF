@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\DataViewModels\SearchCompomentVM.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Data;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.Logic;
+using Swr.Configurator.WebApi;
+using SwrUI;
+using SwrUILogic;
+using SwrUILogic.Data;
+using ComponentConverter = Swr.Configurator.Logic.ComponentConverter;
+
+namespace Swr.Configurator.View.DataViewModels
+{
+	internal class SearchCompomentVm : ErrorCollector, IDataErrorInfo
+	{
+		private string _designation;
+		private string _notation;
+		private RelayCommand _toStartCommand;
+		private RelayCommand _searchCommand;
+		private RelayCommand _toEndCommand;
+		private RelayCommand _nextPageCommand;
+		private RelayCommand _prevPageCommand;
+		private string _showNumber;
+		private string _findCount;
+        private INameElement _selectedElement;
+        private RelayCommand _transferComponentCommand;
+        private RelayCommand _transferComponentToSpecificationCommand;
+
+        public SearchCompomentVm()
+		{
+			FoundItems = new ObservableCollection&lt;INameElement&gt;();
+		}
+
+		public string Designation
+		{
+			get =&gt; _designation;
+			set
+			{
+				_designation = value;
+				OnPropertyChanged(nameof(Designation));
+			}
+		}
+
+        public INameElement SelectedItem
+        {
+            get =&gt; _selectedElement;
+            set
+            {
+                _selectedElement = value;
+                OnPropertyChanged(nameof(SelectedItem));
+            }
+        }
+
+        private int Count { get; set; }
+
+		public RelayCommand ToStartCommand
+		{
+			get { return _toStartCommand ?? (_toStartCommand = new RelayCommand(GoToStartPage, CanGoToStartPage)); }
+		}
+
+        public RelayCommand TransferComponentToSpecificationCommand
+        {
+            get { return _transferComponentToSpecificationCommand ?? (_transferComponentToSpecificationCommand = new RelayCommand(TransferComponentToSpecification, CanTransferComponentToSpecificationCommand)); }
+        }
+
+        private void TransferComponentToSpecification(object obj)
+        {
+            if (obj is Product product)
+            {
+                var activeSpecification =
+                    ConfiguratorMainWindowVM.Instance.SpecificationsController.ActiveSpecification;
+                var props = new Dictionary&lt;string, string&gt;();
+                props.Add(&quot;Тип спецификации&quot;, activeSpecification.ActiveTab.SpecificationTypeObject.Name);
+                if (activeSpecification.Product.DbIdentificator == product.DbIdentificator ||
+                    SpecificationApiCaller.CheckCycleReference(product.DbIdentificator, activeSpecification.Product.DbIdentificator))
+                {
+                    SwrMessageBox.Show(ConfiguratorMainWindow.Instance, $&quot;Компонент &#39;{product.Name}&#39; не может быть добавлен в спецификацию, потому что образует циклическую ссылку.&quot;, Properties.Resources.ApplicationName, SwrMessageBoxButton.OK, SwrMessageBoxImage.Warning);
+                }
+                else
+                {
+                    //if (product.References.Count == 0)
+                    //{
+                        
+                        if (product.References.Count != 0 || StructureApiCaller.ComponentHasChildren(product.DbIdentificator))
+                        {
+                            product.AddReference(DummyProduct.GetOrCreate(Guid.NewGuid()));
+                        }
+                    //}
+
+                    activeSpecification.Product.AddReference(product, props);
+                }
+                
+            }
+        }
+
+        private bool CanTransferComponentToSpecificationCommand(object obj)
+        {
+            var actiiveSp = ConfiguratorMainWindowVM.Instance.SpecificationsController.ActiveSpecification;
+
+            return actiiveSp != null &amp;&amp; !actiiveSp.NoTabs;
+        }
+
+        public RelayCommand TransferComponentToComponentsCommand
+        {
+            get { return _transferComponentCommand ?? (_transferComponentCommand = new RelayCommand(TransferComponent, CanTransferComponent)); }
+        }
+
+        private void TransferComponent(object obj)
+        {
+            if (obj is Product product)
+            {
+                var foundProduct = ProductStructureContainer.Products.FirstOrDefault(t =&gt; t.DbIdentificator == product.DbIdentificator);
+
+                if (foundProduct == null)
+                {
+					ProductStructureContainer.AddProduct(product, true);
+				}
+                else
+                {
+                    SwrMessageBox.Show(ConfiguratorMainWindow.Instance, $&quot;Компонент &#39;{product.Name}&#39; уже был добавлен в список компонентов.&quot;, Properties.Resources.ApplicationName, SwrMessageBoxButton.OK, SwrMessageBoxImage.Warning);
+                }
+            }
+        }
+
+        private bool CanTransferComponent(object obj)
+        {
+            return true;
+        }
+
+        private bool CanGoToStartPage(object obj)
+        {
+            return PageCount &gt; 1 &amp;&amp; CurrentPage &gt; 0; //FlippingController != null &amp;&amp; FlippingController.HasPrevPage;
+        }
+
+		private void GoToStartPage(object obj)
+        {
+            CurrentPage = 0;
+            FormList(CurrentPage);
+			//FlippingController.GoToFirst();
+			//UpdateList();
+		}
+
+		public RelayCommand SearchCommand
+		{
+			get { return _searchCommand ?? (_searchCommand = new RelayCommand(StartSearch, CanStartSearch)); }
+		}
+
+		private bool CanStartSearch(object obj)
+		{
+			return !(string.IsNullOrEmpty(Notation) &amp;&amp; string.IsNullOrEmpty(Designation));
+		}
+
+		private void StartSearch(object obj)
+        {
+            Count = 0;
+            CurrentPage = 0;
+            FormList(CurrentPage);
+            UpdateTexts();
+			//ReleaseOldProducts();
+			
+			//var elements = GetElements(CurrentPage);//.ToArray();
+			////Count = elements.Count();
+   //         foreach (var element in elements)
+   //         {
+   //             FoundItems.Add(element);
+   //         }
+			////FlippingController?.Dispose();
+		 //   //FlippingController = new FlippingController(elements);
+			//UpdateList();
+		}
+
+		private void ReleaseOldProducts()
+		{
+			//if (FlippingController!=null)
+			//{
+				foreach (var element in FoundItems.OfType&lt;IProduct&gt;()/*FlippingController.AllElements.OfType&lt;IProduct&gt;()*/)
+				{
+					AllProductsLinkContainer.Instance.RemoveLink(element.ObjectIdentificator);
+				}
+
+                FoundItems.Clear();
+			//}
+		}
+
+		public RelayCommand ToEndCommand
+		{
+			get { return _toEndCommand ?? (_toEndCommand = new RelayCommand(GoToEndPage, CanGoToEndPage)); }
+		}
+
+		private bool CanGoToEndPage(object obj)
+        {
+            return
+                PageCount &gt; 1 &amp;&amp;
+                CurrentPage != PageCount - 1; //FlippingController != null &amp;&amp; FlippingController.HasNextPage;
+        }
+
+		private void GoToEndPage(object obj)
+        {
+            CurrentPage = PageCount - 1;
+            FormList(CurrentPage);
+            //UpdateTexts();
+        }
+
+        private void FormList(int pageNumber)
+        {
+            ReleaseOldProducts();
+            var elements = GetElements(pageNumber);
+            foreach (var element in elements)
+            {
+                FoundItems.Add(element);
+            }
+
+            //FlippingController.GoToEnd();
+            UpdateList();
+        }
+
+        public RelayCommand NextPageCommand
+		{
+			get { return _nextPageCommand ?? (_nextPageCommand = new RelayCommand(GoToNextPage, CanGoToNextPage)); }
+		}
+
+		private bool CanGoToNextPage(object obj)
+        {
+            return PageCount &gt; 1 &amp;&amp; CurrentPage &lt; PageCount - 1; //FlippingController != null &amp;&amp; FlippingController.HasNextPage; 
+        }
+
+		private void GoToNextPage(object obj)
+        {
+            CurrentPage++;
+            FormList(CurrentPage);
+            //FlippingController.GoToNext();
+            //UpdateList();
+        }
+
+		public RelayCommand PrevPageCommand
+		{
+			get { return _prevPageCommand ?? (_prevPageCommand = new RelayCommand(GoPrevPage, CanGoPrevPage)); }
+		}
+
+		private bool CanGoPrevPage(object obj)
+        {
+            return PageCount &gt; 1 &amp;&amp; CurrentPage &gt; 0; //FlippingController != null &amp;&amp; FlippingController.HasPrevPage;
+        }
+
+		private void GoPrevPage(object obj)
+        {
+            CurrentPage--;
+            FormList(CurrentPage);
+            //FlippingController.GoToPrev();
+            //UpdateList();
+        }
+
+		private void UpdateList()
+		{
+			//FoundItems.Clear();
+			//var page = FlippingController.GetCurrentPage();
+
+            if (FoundItems != null || FoundItems.Count != 0)
+            {
+
+                //foreach (var currentElement in page.Elements)
+                //{
+                //    FoundItems.Add(currentElement);
+                //}
+
+                UpdateTexts();
+            }
+            else
+            {
+                ShowNumber = string.Empty;
+                FindCount = $&quot;Всего найдено: {Count}&quot;;
+            }
+
+        }
+
+		public ObservableCollection&lt;INameElement&gt; FoundItems { get; set; }
+
+        private int PageCount { get; set; }
+
+        private int CurrentPage { get; set; }
+
+		private void UpdateTexts()
+        {
+            if (Count != 0)
+            {
+                var startNumber = CurrentPage * 10 + 1;
+                var finishNumber = CurrentPage * 10 + 10 &lt; Count ? CurrentPage * 10 + 10 : Count;
+                ShowNumber = $&quot;Показаны с {startNumber} по {finishNumber}&quot;;
+            }
+            else
+            {
+                ShowNumber = &quot;&quot;;
+            }
+            FindCount = $&quot;Всего найдено: {Count}&quot;;
+		}
+
+		public string FindCount
+		{
+			get =&gt; _findCount;
+			set
+			{
+				_findCount = value;
+				OnPropertyChanged(nameof(FindCount));
+			}
+		}
+
+		public string ShowNumber
+		{
+			get =&gt; _showNumber;
+			set
+			{
+				_showNumber = value;
+				OnPropertyChanged(nameof(ShowNumber));
+			}
+		}
+
+		public string Notation
+		{
+			get =&gt; _notation;
+			set
+			{
+				_notation = value;
+				OnPropertyChanged(nameof(Notation));
+			}
+		}
+
+		public string this[string propertyName]
+		{
+			get
+			{
+				//string notationPropName = &quot;Notation&quot;;
+				//string designPropName = &quot;Designation&quot;;
+				//if (string.IsNullOrWhiteSpace(propertyName) || propertyName == notationPropName || propertyName == designPropName)
+				//{
+				//	DeleteErrorsForProperty(this, designPropName);
+				//	DeleteErrorsForProperty(this, notationPropName);
+
+				//	if (string.IsNullOrEmpty(Designation) &amp;&amp; string.IsNullOrEmpty(Notation))
+				//	{
+				//		var text = &quot;Для поиска надо заполнить одно из значений&quot;;
+				//		AddError(this, Designation, text);
+				//		AddError(this, Notation, text);
+				//	}
+				//}
+
+				return string.Join(Environment.NewLine, Errors.Where(x =&gt; x.PropertyName == propertyName).Select(x =&gt; x.ErrorMessage));
+			}
+		}
+
+		//public FlippingController FlippingController { get; set; }
+
+		public string Error =&gt; this[null];
+
+        public ProductStructureContainer ProductStructureContainer { get; set; }
+
+        public override void UpdateValidation()
+		{
+		}
+
+		private IEnumerable&lt;IProduct&gt; GetElements(int pageNumber)
+		{
+		    var result = new List&lt;IProduct&gt;();
+
+            try
+            {
+                var searchParam = GetSearchParams(pageNumber);
+                var searchResult = ComponentApiCaller.Search(searchParam);
+                var foundComponents = searchResult.Components;//ComponentApiCaller.Search(searchParam);
+                if (searchResult.FullResultCount != 0)
+                {
+                    Count = searchResult.FullResultCount;
+                    double pageCount = (double)Count / searchParam.Count;
+                    PageCount = (int)Math.Ceiling(pageCount);
+                }
+
+                foreach (var foundComponent in foundComponents)
+                {
+	                var product = ComponentConverter.ApiExistToProduct(foundComponent);
+					AllProductsLinkContainer.Instance.AddLink(product.ObjectIdentificator);
+                    result.Add(product);
+                }
+
+                result = result.OrderBy(t =&gt; t.Name).ToList();
+            }
+            catch (Exception e)
+            {
+                SwrMessageBox.Show(&quot;Ошибка в процессе поиска компонентов. &quot; + e.Message, &quot;&quot;, SwrMessageBoxButton.OK,
+                    SwrMessageBoxImage.Error);
+            }
+            
+
+		    return result;
+		}
+
+        private SearchParams GetSearchParams(int pageNumber)
+        {
+            SearchParam[] searchParams = null;
+            if (!string.IsNullOrEmpty(Designation))
+            {
+                if (!string.IsNullOrEmpty(Notation))
+                {
+                    searchParams = new SearchParam[2];
+                    searchParams[0] = new SearchParam {Name = &quot;Обозначение&quot;, Value = Designation};
+                    searchParams[1] = new SearchParam {Name = &quot;Наименование&quot;, Value = Notation};
+                }
+                else
+                {
+                    searchParams = new SearchParam[1];
+                    searchParams[0] = new SearchParam {Name = &quot;Обозначение&quot;, Value = Designation};
+                }
+            }
+            else if (!string.IsNullOrEmpty(Notation))
+            {
+                searchParams = new SearchParam[1];
+                searchParams[0] = new SearchParam {Name = &quot;Наименование&quot;, Value = Notation};
+            }
+
+            var searchParam = new SearchParams();
+            searchParam.Count = 10;
+            searchParam.PageNumber = pageNumber;
+            searchParam.SearchAttributes = searchParams.ToList();
+            return searchParam;
+        }
+    }
+
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[33,9,33,35,0],[34,3,34,4,0],[35,4,35,58,0],[36,3,36,4,0],[40,11,40,23,0],[42,4,42,5,0],[43,5,43,26,0],[44,5,44,44,0],[45,4,45,5,0],[50,20,50,36,0],[52,13,52,14,0],[53,17,53,42,0],[54,17,54,57,0],[55,13,55,14,0],[58,29,58,33,0],[58,34,58,38,0],[62,8,62,9,0],[62,10,62,106,0],[62,107,62,108,0],[67,17,67,18,0],[67,19,67,210,0],[67,211,67,212,0],[71,9,71,10,0],[72,13,72,40,0],[73,13,73,14,0],[74,17,75,100,0],[76,17,76,62,0],[77,17,77,107,0],[78,17,79,134,0],[80,17,80,18,0],[81,21,81,273,0],[82,17,82,18,0],[84,17,84,18,0],[88,25,88,127,0],[89,25,89,26,0],[90,29,90,92,0],[91,25,91,26,0],[94,21,94,78,0],[95,17,95,18,0],[97,13,97,14,0],[98,9,98,10,0],[101,9,101,10,0],[102,13,102,108,0],[104,13,104,59,0],[105,9,105,10,0],[109,17,109,18,0],[109,19,109,143,0],[109,144,109,145,0],[113,9,113,10,0],[114,13,114,40,0],[115,13,115,14,0],[116,17,116,91,0],[116,91,116,135,0],[116,135,116,137,0],[116,17,116,137,0],[118,17,118,42,0],[119,17,119,18,0],[120,6,120,58,0],[121,5,121,6,0],[123,17,123,18,0],[124,21,124,233,0],[125,17,125,18,0],[126,13,126,14,0],[127,9,127,10,0],[130,9,130,10,0],[131,13,131,25,0],[132,9,132,10,0],[135,9,135,10,0],[136,13,136,53,0],[137,9,137,10,0],[140,9,140,10,0],[141,13,141,29,0],[142,13,142,35,0],[145,3,145,4,0],[149,8,149,9,0],[149,10,149,100,0],[149,101,149,102,0],[153,3,153,4,0],[154,4,154,82,0],[155,3,155,4,0],[158,9,158,10,0],[159,13,159,23,0],[160,13,160,29,0],[161,13,161,35,0],[162,13,162,27,0],[174,3,174,4,0],[177,3,177,4,0],[180,5,180,12,0],[180,14,180,25,0],[180,26,180,28,0],[180,29,180,58,0],[181,5,181,6,0],[182,6,182,80,0],[183,5,183,6,0],[185,17,185,36,0],[187,3,187,4,0],[191,8,191,9,0],[191,10,191,98,0],[191,99,191,100,0],[195,9,195,10,0],[196,13,198,46,0],[199,9,199,10,0],[202,9,202,10,0],[203,13,203,41,0],[204,13,204,35,0],[206,9,206,10,0],[209,9,209,10,0],[210,13,210,34,0],[211,13,211,52,0],[212,13,212,20,0],[212,22,212,33,0],[212,34,212,36,0],[212,37,212,45,0],[213,13,213,14,0],[214,17,214,41,0],[215,13,215,14,0],[218,13,218,26,0],[219,9,219,10,0],[223,8,223,9,0],[223,10,223,106,0],[223,107,223,108,0],[227,9,227,10,0],[228,13,228,65,0],[229,9,229,10,0],[232,9,232,10,0],[233,13,233,27,0],[234,13,234,35,0],[237,9,237,10,0],[241,8,241,9,0],[241,10,241,102,0],[241,103,241,104,0],[245,9,245,10,0],[246,13,246,53,0],[247,9,247,10,0],[250,9,250,10,0],[251,13,251,27,0],[252,13,252,35,0],[255,9,255,10,0],[258,3,258,4,0],[262,13,262,61,0],[263,13,263,14,0],[270,17,270,31,0],[271,13,271,14,0],[273,13,273,14,0],[274,17,274,43,0],[275,17,275,55,0],[276,13,276,14,0],[278,9,278,10,0],[280,58,280,62,0],[280,63,280,67,0],[282,33,282,37,0],[282,38,282,42,0],[284,35,284,39,0],[284,40,284,44,0],[287,9,287,10,0],[288,13,288,28,0],[289,13,289,14,0],[290,17,290,56,0],[291,17,291,98,0],[292,17,292,76,0],[293,13,293,14,0],[295,13,295,14,0],[296,17,296,33,0],[297,13,297,14,0],[298,13,298,51,0],[299,3,299,4,0],[303,11,303,21,0],[305,4,305,5,0],[306,5,306,24,0],[307,5,307,42,0],[308,4,308,5,0],[313,11,313,22,0],[315,4,315,5,0],[316,5,316,25,0],[317,5,317,43,0],[318,4,318,5,0],[323,11,323,20,0],[325,4,325,5,0],[326,5,326,23,0],[327,5,327,41,0],[328,4,328,5,0],[334,4,334,5,0],[350,5,350,63,0],[350,63,350,93,0],[350,93,350,107,0],[350,107,350,121,0],[350,121,350,124,0],[350,5,350,124,0],[351,4,351,5,0],[356,26,356,36,0],[358,70,358,74,0],[358,75,358,79,0],[361,3,361,4,0],[362,3,362,4,0],[365,3,365,4,0],[366,7,366,41,0],[369,13,369,14,0],[370,17,370,63,0],[371,17,371,75,0],[372,17,372,63,0],[373,17,373,55,0],[374,17,374,18,0],[375,21,375,58,0],[376,21,376,74,0],[377,21,377,62,0],[378,17,378,18,0],[380,17,380,24,0],[380,26,380,44,0],[380,45,380,47,0],[380,48,380,63,0],[381,17,381,18,0],[382,18,382,85,0],[383,6,383,77,0],[384,21,384,41,0],[385,17,385,18,0],[387,17,387,46,0],[387,46,387,52,0],[387,52,387,63,0],[387,17,387,63,0],[388,13,388,14,0],[389,13,389,32,0],[390,13,390,14,0],[391,17,392,47,0],[393,13,393,14,0],[396,7,396,21,0],[397,3,397,4,0],[400,9,400,10,0],[401,13,401,47,0],[402,13,402,52,0],[403,13,403,14,0],[404,17,404,53,0],[405,17,405,18,0],[406,21,406,55,0],[407,21,407,99,0],[408,21,408,97,0],[409,17,409,18,0],[411,17,411,18,0],[412,21,412,55,0],[413,21,413,99,0],[414,17,414,18,0],[415,13,415,14,0],[416,18,416,54,0],[417,13,417,14,0],[418,17,418,51,0],[419,17,419,93,0],[420,13,420,14,0],[422,13,422,50,0],[423,13,423,36,0],[424,13,424,49,0],[425,13,425,66,0],[426,13,426,32,0],[427,9,427,10,0]]);
+    </script>
+  </body>
+</html>

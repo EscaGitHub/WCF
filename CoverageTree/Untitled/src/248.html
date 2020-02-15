@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\FlippingController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Data;
+using SwrUILogic.Extensions;
+
+namespace Swr.Configurator.Logic
+{
+	class FlippingController : IDisposable
+	{
+		private const int PageItemsCount = 30;
+		private LinkedList&lt;PageElement&gt; _sequence = new LinkedList&lt;PageElement&gt;();
+		private LinkedListNode&lt;PageElement&gt; _currentPageElement;
+
+		public FlippingController(INameElement[] elements)
+		{
+			SplitElements(elements);
+			AllElements = elements;
+		}
+
+		public INameElement[] AllElements { get; private set; }
+
+		public bool HasPrevPage
+		{
+			get { return _currentPageElement?.Previous != null; }
+		}
+
+		public bool HasNextPage
+		{
+			get { return _currentPageElement?.Next != null; }
+		}
+
+		private void SplitElements(IEnumerable&lt;INameElement&gt; elements)
+		{
+			var counter = 0;
+			foreach (IEnumerable&lt;INameElement&gt; groupElements in elements.Split(PageItemsCount))
+			{
+				var startNumber = PageItemsCount * counter + 1;
+				_sequence.AddLast(new PageElement(groupElements, startNumber));
+				counter++;
+			}
+
+			_currentPageElement = _sequence.First;
+		}
+
+
+
+		public PageElement GetCurrentPage()
+		{
+			return _currentPageElement?.Value;
+		}
+
+		public void GoToFirst()
+		{
+			_currentPageElement = _sequence.First;
+		}
+
+		public void GoToEnd()
+		{
+			_currentPageElement = _sequence.Last;
+		}
+
+		public void GoToNext()
+		{
+			_currentPageElement = _currentPageElement?.Next;
+		}
+
+		public void GoToPrev()
+		{
+			_currentPageElement = _currentPageElement?.Previous;
+		}
+
+		public void Dispose()
+		{
+			AllElements = null;
+			_sequence.Clear();
+			_sequence = null;
+		}
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[12,3,12,77,0],[15,3,15,53,0],[16,3,16,4,0],[17,4,17,28,0],[18,4,18,27,0],[19,3,19,4,0],[21,39,21,43,0],[21,44,21,56,0],[25,8,25,9,0],[25,10,25,55,0],[25,56,25,57,0],[30,8,30,9,0],[30,10,30,51,0],[30,52,30,53,0],[34,3,34,4,0],[35,4,35,20,0],[36,4,36,11,0],[36,13,36,52,0],[36,53,36,55,0],[36,56,36,86,0],[37,4,37,5,0],[38,5,38,52,0],[39,5,39,68,0],[40,5,40,15,0],[41,4,41,5,0],[43,4,43,42,0],[44,3,44,4,0],[49,3,49,4,0],[50,4,50,38,0],[51,3,51,4,0],[54,3,54,4,0],[55,4,55,42,0],[56,3,56,4,0],[59,3,59,4,0],[60,4,60,41,0],[61,3,61,4,0],[64,3,64,4,0],[65,4,65,52,0],[66,3,66,4,0],[69,3,69,4,0],[70,4,70,56,0],[71,3,71,4,0],[74,3,74,4,0],[75,4,75,23,0],[76,4,76,22,0],[77,4,77,21,0],[78,3,78,4,0]]);
+    </script>
+  </body>
+</html>

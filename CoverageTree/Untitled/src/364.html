@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\SWRConfiguratorClient\Logic\SpecificationConverterTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.Logic;
+using Xunit;
+
+namespace Swr.Configurator.Test.SWRConfiguratorClient.Logic
+{
+    public class SpecificationConverterTest
+    {
+        [Fact]
+        public void ProductToSpecificationNewTest()
+        {
+            var product = Product.GetOrCreate(Guid.Empty, Guid.Empty);
+            AllProductsLinkContainer.Instance.UpdateKeyAfterCreate(product.ObjectIdentificator, Guid.Parse(&quot;D8045C71-3953-470E-AFBC-C16A2CFFE891&quot;));
+            product.DbIdentificator = Guid.Parse(&quot;D8045C71-3953-470E-AFBC-C16A2CFFE891&quot;);
+            
+            product.SetProperty(&quot;Обозначение&quot;, &quot;АБВГ.001&quot;);
+            product.SetProperty(&quot;Наименование&quot;, &quot;Кофемолка&quot;);
+
+            var type = new ComponentTypeObject();
+            type.Name = &quot;Деталь&quot;;
+
+            var childProduct1 = Product.GetOrCreate(Guid.Empty, Guid.Empty);
+            AllProductsLinkContainer.Instance.UpdateKeyAfterCreate(childProduct1.ObjectIdentificator, Guid.Parse(&quot;EE746129-C839-4D98-8B8C-A8C634159240&quot;));
+            childProduct1.DbIdentificator = Guid.Parse(&quot;EE746129-C839-4D98-8B8C-A8C634159240&quot;);
+            childProduct1.SetProperty(&quot;Обозначение&quot;, &quot;АБВГ.002&quot;);
+            childProduct1.SetProperty(&quot;Наименование&quot;, &quot;Ручка&quot;);
+            childProduct1.Type = type;
+
+            var childProduct2 = Product.GetOrCreate(Guid.Empty, Guid.Empty);
+            AllProductsLinkContainer.Instance.UpdateKeyAfterCreate(childProduct2.ObjectIdentificator, Guid.Parse(&quot;1F2D32DA-488A-466D-830C-89241774F450&quot;));
+            childProduct2.DbIdentificator = Guid.Parse(&quot;1F2D32DA-488A-466D-830C-89241774F450&quot;);
+            childProduct2.SetProperty(&quot;Обозначение&quot;, &quot;АБВГ.003&quot;);
+            childProduct2.SetProperty(&quot;Наименование&quot;, &quot;Винт&quot;);
+            childProduct2.Type = type;
+
+            var refProp1 = new Dictionary&lt;string, string&gt;();
+            refProp1.Add(&quot;Количество&quot;, &quot;2&quot;);
+            refProp1.Add(&quot;Позиция&quot;, &quot;1&quot;);
+            refProp1.Add(&quot;Тип спецификации&quot;, &quot;Конструкторская спецификация&quot;);
+
+            var refProp2 = new Dictionary&lt;string, string&gt;();
+            refProp2.Add(&quot;Количество&quot;, &quot;1&quot;);
+            refProp2.Add(&quot;Позиция&quot;, &quot;3&quot;);
+            refProp2.Add(&quot;Тип спецификации&quot;, &quot;Конструкторская спецификация&quot;);
+
+            product.AddReference(childProduct1, refProp1);
+            product.AddReference(childProduct2, refProp2);
+
+            //product.References
+
+
+            var specificationConverter = new SpecificationConverter();
+
+            var specificationApiNew = specificationConverter.ProductToSpecificationApiNew(product, &quot;Конструкторская спецификация&quot;);
+
+            Assert.NotNull(specificationApiNew);
+            Assert.Equal(Guid.Parse(&quot;D8045C71-3953-470E-AFBC-C16A2CFFE891&quot;), specificationApiNew.ComponentID);
+            Assert.Equal(&quot;Конструкторская спецификация&quot;, specificationApiNew.TypeName);
+            Assert.NotNull(specificationApiNew.Childs);
+            Assert.Equal(2, specificationApiNew.Childs.Count);
+            Assert.Equal(Guid.Parse(&quot;EE746129-C839-4D98-8B8C-A8C634159240&quot;), specificationApiNew.Childs[0].ID);
+            Assert.Equal(&quot;Деталь&quot;, specificationApiNew.Childs[0].TypeName);
+            Assert.Equal(2, specificationApiNew.Childs[0].RelationAttributes.Count);
+
+        }
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[15,9,15,10,1],[16,13,16,71,1],[17,13,17,149,1],[18,13,18,90,1],[20,13,20,60,1],[21,13,21,62,1],[23,13,23,50,1],[24,13,24,34,1],[26,13,26,77,1],[27,13,27,155,1],[28,13,28,96,1],[29,13,29,66,1],[30,13,30,64,1],[31,13,31,39,1],[33,13,33,77,1],[34,13,34,155,1],[35,13,35,96,1],[36,13,36,66,1],[37,13,37,63,1],[38,13,38,39,1],[40,13,40,61,1],[41,13,41,45,1],[42,13,42,42,1],[43,13,43,78,1],[45,13,45,61,1],[46,13,46,45,1],[47,13,47,42,1],[48,13,48,78,1],[50,13,50,59,1],[51,13,51,59,1],[56,13,56,71,1],[58,13,58,132,1],[60,13,60,49,1],[61,13,61,111,1],[62,13,62,88,1],[63,13,63,56,1],[64,13,64,63,1],[65,13,65,112,1],[66,13,66,76,1],[67,13,67,85,1],[69,9,69,10,1]]);
+    </script>
+  </body>
+</html>

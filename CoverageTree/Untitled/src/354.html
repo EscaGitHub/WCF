@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\ElasticLogControllerTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Swr.Configurator.Common.Logic;
+using SWR.ConfiguratorApi.Logic.Elastic;
+using Xunit;
+
+namespace Swr.Configurator.Test
+{
+    public class ElasticLogControllerTest
+    {
+        [Fact]
+        public void MustLogToElastic()
+        {
+            ElasticConnectionSettings.SetSettings(new ElasticConnectionSettings
+            {
+                DefaultIndex = &quot;swr.configurator&quot;,
+                ClusterUrl = &quot;http://skobelev:9200&quot;,
+                Login = &quot;swr.configurator.user&quot;,
+                Password = &quot;123456&quot;
+            });
+
+            ElasticLogController.Log(LogTypeEnum.Info, EventEnum.None, ObjectTypeEnum.None, 
+                &quot;Test user&quot;,
+                true,
+                &quot;127.0.0.1&quot;,
+                &quot;Test message&quot;);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,9,14,10,1],[15,13,21,16,1],[23,13,27,33,1],[28,9,28,10,1]]);
+    </script>
+  </body>
+</html>

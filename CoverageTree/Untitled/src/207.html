@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Data\EventArgs\ReferencePropertyChangedEventArgs.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using Swr.Configurator.Data.SpecificationModel;
+
+namespace Swr.Configurator.Data.EventArgs
+{
+	/// &lt;summary&gt;
+	/// ��������� ������� ��������� ��������
+	/// &lt;/summary&gt;
+	public class ReferencePropertyChangedEventArgs : System.EventArgs
+	{
+		public ReferencePropertyChangedEventArgs(IReference reference, string variable, string oldValue, string newValue)
+		{
+			Reference = reference;
+			Variable = variable;
+			OldValue = oldValue;
+			NewValue = newValue;
+		}
+
+		public IReference Reference { get; private set; }
+
+		public string Variable { get; private set; }
+
+		public string OldValue { get; private set; }
+
+		public string NewValue { get; private set; }
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[10,3,10,116,0],[11,3,11,4,0],[12,4,12,26,0],[13,4,13,24,0],[14,4,14,24,0],[15,4,15,24,0],[16,3,16,4,0],[18,33,18,37,0],[18,38,18,50,0],[20,28,20,32,0],[20,33,20,45,0],[22,28,22,32,0],[22,33,22,45,0],[24,28,24,32,0],[24,33,24,45,0]]);
+    </script>
+  </body>
+</html>

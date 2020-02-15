@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-ConfiguratorAPI\Logic\SettingsService.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Swr.Configurator.Common.Logic;
+using Swr.Configurator.Common.Serialization;
+using SWR.ConfiguratorApi.Data.Db;
+using SWR.ConfiguratorApi.Logic.Elastic;
+using SWR.ConfiguratorApi.Logic.Settings;
+
+namespace SWR.ConfiguratorApi.Logic
+{
+    public class SettingsService : ISettingsService
+    {
+        public SettingsService()
+        {
+            Reload();
+        }
+
+        public bool Reload()
+        {
+            try
+            {
+                var settingsManager = new SettingsManager();
+
+                var settings = settingsManager.ReadSettings();
+
+                CurrentSettings = settings.Deserialize&lt;Swr.Configurator.Common.Settings.Settings&gt;();
+
+                ElasticLogController.Log(LogTypeEnum.Info, EventEnum.Read, ObjectTypeEnum.Settings, &quot;system&quot;, false, &quot;127.0.0.1&quot;, &quot;Settings on server received or reloaded&quot;);
+            }
+            catch (Exception e)
+            {
+                ElasticLogController.Log(LogTypeEnum.Error, EventEnum.Read, ObjectTypeEnum.Settings, &quot;system&quot;, false, &quot;127.0.0.1&quot;  ,&quot;Settings load/reload errors: &quot; + e.Message);
+
+                CurrentSettings = null;
+
+                return false;
+            }
+
+            return true;
+        }
+
+        public Swr.Configurator.Common.Settings.Settings CurrentSettings { get; set; }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[15,9,15,33,1],[16,9,16,10,1],[17,13,17,22,1],[18,9,18,10,1],[21,9,21,10,1],[23,13,23,14,1],[24,17,24,61,1],[26,17,26,63,1],[28,17,28,101,1],[30,17,30,174,1],[31,13,31,14,1],[32,13,32,32,0],[33,13,33,14,0],[34,17,34,178,0],[36,17,36,40,0],[38,17,38,30,0],[41,13,41,25,1],[42,9,42,10,1],[44,76,44,80,1],[44,81,44,85,1]]);
+    </script>
+  </body>
+</html>

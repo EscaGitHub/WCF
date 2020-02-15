@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\UnitTests\CustomUserNameValidatorTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.ServiceModel;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Service;
+using Xunit;
+
+namespace UnitTests
+{
+    public class CustomUserNameValidatorTest
+    {
+        [Fact]
+        public void Validate_ShouldReturnOk()
+        {
+            var userName = &quot;SWR&quot;;
+            var password = &quot;SWRPassword&quot;;
+
+            var nameValidator = new CustomUserNameValidator();
+            nameValidator.Validate(userName, password);
+        }
+
+        [Fact]
+        public void EmptyFields_Validate_ShouldReturnThrowArgumentException()
+        {
+            var userName = string.Empty;
+            var password = string.Empty;
+
+            var nameValidator = new CustomUserNameValidator();
+            Assert.Throws&lt;ArgumentException&gt;(() =&gt; nameValidator.Validate(userName, password));
+        }
+
+        [Fact]
+        public void Validate_ShouldReturnFaultException()
+        {
+            var userName = &quot;SWR1&quot;;
+            var password = &quot;SWRPassword&quot;;
+
+            var nameValidator = new CustomUserNameValidator();
+            Assert.Throws&lt;FaultException&gt;(() =&gt; nameValidator.Validate(userName, password));
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[16,9,16,10,1],[17,13,17,34,1],[18,13,18,42,1],[20,13,20,63,1],[21,13,21,56,1],[22,9,22,10,1],[26,9,26,10,1],[27,13,27,41,1],[28,13,28,41,1],[30,13,30,63,1],[31,13,31,52,1],[31,52,31,94,1],[31,94,31,96,1],[31,13,31,96,1],[32,9,32,10,1],[36,9,36,10,1],[37,13,37,35,1],[38,13,38,42,1],[40,13,40,63,1],[41,13,41,49,1],[41,49,41,91,1],[41,91,41,93,1],[41,13,41,93,1],[42,9,42,10,1]]);
+    </script>
+  </body>
+</html>

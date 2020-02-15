@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Settings\Separator.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Configurator.Data.EventArgs;
+using SwrUI;
+using SwrUILogic.Data;
+
+namespace Swr.Configurator.View.Settings
+{
+    public class Separator : PageControlSeparator, IValidationUpdate
+    {
+        public void UpdateValidation()
+        {
+            foreach (var pageUserControl in Children)
+            {
+                pageUserControl.PropertyChanged -= PageUserControlOnPropertyChanged;
+
+                var page = pageUserControl as IValidationUpdate;
+                if (page != null) page.UpdateValidation();
+
+                pageUserControl.PropertyChanged += PageUserControlOnPropertyChanged; ;
+            }
+
+            UpdateErrors();
+        }
+
+        private void PageUserControlOnPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs propertyChangedEventArgs)
+        {
+            UpdateErrors();
+        }
+
+        private void UpdateErrors()
+        {
+            HasErrors = Children.Any(x =&gt; x.HasErrors);
+            Errors = HasErrors ? &quot;Есть ошибки&quot; : null;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[15,9,15,10,0],[16,13,16,20,0],[16,22,16,41,0],[16,42,16,44,0],[16,45,16,53,0],[17,13,17,14,0],[18,17,18,85,0],[20,17,20,65,0],[21,17,21,34,0],[21,35,21,59,0],[23,17,23,85,0],[23,86,23,87,0],[24,13,24,14,0],[26,13,26,28,0],[27,9,27,10,0],[30,9,30,10,0],[31,13,31,28,0],[32,9,32,10,0],[35,9,35,10,0],[36,13,36,43,0],[36,43,36,54,0],[36,54,36,56,0],[36,13,36,56,0],[37,13,37,55,0],[38,9,38,10,0]]);
+    </script>
+  </body>
+</html>

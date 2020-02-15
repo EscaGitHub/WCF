@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Layout\LayoutAnchorable.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Xml.Serialization;
+using System.Windows.Controls;
+using System.Globalization;
+using System.ComponentModel;
+
+namespace Xceed.Wpf.AvalonDock.Layout
+{
+    [Serializable]
+    public class LayoutAnchorable : LayoutContent
+    {
+        #region IsVisible
+        [XmlIgnore]
+        public bool IsVisible
+        {
+            get
+            {
+                return Parent != null &amp;&amp; !(Parent is LayoutRoot);
+            }
+            set
+            {
+                if (value)
+                {
+                    Show();
+                }
+                else
+                {
+                    Hide();
+                }
+            }
+        }
+
+        public event EventHandler IsVisibleChanged;
+
+        void NotifyIsVisibleChanged()
+        {
+            if (IsVisibleChanged != null)
+                IsVisibleChanged(this, EventArgs.Empty);
+        }
+
+        [XmlIgnore]
+        public bool IsHidden
+        {
+            get
+            {
+                return (Parent is LayoutRoot);
+            }
+        }
+
+        protected override void OnParentChanged(ILayoutContainer oldValue, ILayoutContainer newValue)
+        {
+            UpdateParentVisibility();
+            RaisePropertyChanged(&quot;IsVisible&quot;);
+            NotifyIsVisibleChanged();
+            RaisePropertyChanged(&quot;IsHidden&quot;);
+            RaisePropertyChanged(&quot;IsAutoHidden&quot;);
+            base.OnParentChanged(oldValue, newValue);
+        }
+
+        void UpdateParentVisibility()
+        {
+            var parentPane = Parent as ILayoutElementWithVisibility;
+            if (parentPane != null)
+                parentPane.ComputeVisibility();
+        }
+
+        #endregion
+
+        #region AutoHideWidth
+
+        private double _autohideWidth = 0.0;
+        public double AutoHideWidth
+        {
+            get { return _autohideWidth; }
+            set
+            {
+                if (_autohideWidth != value)
+                {
+                    RaisePropertyChanging(&quot;AutoHideWidth&quot;);
+                    value = Math.Max(value, _autohideMinWidth);
+                    _autohideWidth = value;
+                    RaisePropertyChanged(&quot;AutoHideWidth&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region AutoHideMinWidth
+
+        private double _autohideMinWidth = 100.0;
+        public double AutoHideMinWidth
+        {
+            get { return _autohideMinWidth; }
+            set
+            {
+                if (_autohideMinWidth != value)
+                {
+                    RaisePropertyChanging(&quot;AutoHideMinWidth&quot;);
+                    if (value &lt; 0)
+                        throw new ArgumentException(&quot;value&quot;);
+                    _autohideMinWidth = value;
+                    RaisePropertyChanged(&quot;AutoHideMinWidth&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region AutoHideHeight
+
+        private double _autohideHeight = 0.0;
+        public double AutoHideHeight
+        {
+            get { return _autohideHeight; }
+            set
+            {
+                if (_autohideHeight != value)
+                {
+                    RaisePropertyChanging(&quot;AutoHideHeight&quot;);
+                    value = Math.Max(value, _autohideMinHeight);
+                    _autohideHeight = value;
+                    RaisePropertyChanged(&quot;AutoHideHeight&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region AutoHideMinHeight
+
+        private double _autohideMinHeight = 100.0;
+        public double AutoHideMinHeight
+        {
+            get { return _autohideMinHeight; }
+            set
+            {
+                if (_autohideMinHeight != value)
+                {
+                    RaisePropertyChanging(&quot;AutoHideMinHeight&quot;);
+                    if (value &lt; 0)
+                        throw new ArgumentException(&quot;value&quot;);
+                    _autohideMinHeight = value;
+                    RaisePropertyChanged(&quot;AutoHideMinHeight&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        /// &lt;summary&gt;
+        /// Hide this contents
+        /// &lt;/summary&gt;
+        /// &lt;remarks&gt;Add this content to &lt;see cref=&quot;ILayoutRoot.Hidden&quot;/&gt; collection of parent root.&lt;/remarks&gt;
+        public void Hide(bool cancelable = true)
+        {
+            if (!IsVisible)
+            {
+                IsSelected = true;
+                IsActive = true;
+                return;
+            }
+
+            if (cancelable)
+            {
+                CancelEventArgs args = new CancelEventArgs();
+                OnHiding(args);
+                if (args.Cancel)
+                    return;
+            }
+
+            RaisePropertyChanging(&quot;IsHidden&quot;);
+            RaisePropertyChanging(&quot;IsVisible&quot;);
+            //if (Parent is ILayoutPane)
+            {
+                var parentAsGroup = Parent as ILayoutGroup;
+                PreviousContainer = parentAsGroup;
+                PreviousContainerIndex = parentAsGroup.IndexOfChild(this);
+            }
+            Root.Hidden.Add(this);
+            RaisePropertyChanged(&quot;IsVisible&quot;);
+            RaisePropertyChanged(&quot;IsHidden&quot;);
+            NotifyIsVisibleChanged();
+        }
+
+        public event EventHandler&lt;CancelEventArgs&gt; Hiding;
+
+        protected virtual void OnHiding(CancelEventArgs args)
+        {
+            if (Hiding != null)
+                Hiding(this, args);
+        }
+
+
+        /// &lt;summary&gt;
+        /// Show the content
+        /// &lt;/summary&gt;
+        /// &lt;remarks&gt;Try to show the content where it was previously hidden.&lt;/remarks&gt;
+        public void Show()
+        {
+            if (IsVisible)
+                return;
+
+            if (!IsHidden)
+                throw new InvalidOperationException();
+
+            RaisePropertyChanging(&quot;IsHidden&quot;);
+            RaisePropertyChanging(&quot;IsVisible&quot;);
+
+            bool added = false;
+            var root = Root;
+            if (root != null &amp;&amp; root.Manager != null)
+            {
+                if (root.Manager.LayoutUpdateStrategy != null)
+                    added = root.Manager.LayoutUpdateStrategy.BeforeInsertAnchorable(root as LayoutRoot, this, PreviousContainer);
+            }
+
+            if (!added &amp;&amp; PreviousContainer != null)
+            {
+                var previousContainerAsLayoutGroup = PreviousContainer as ILayoutGroup;
+                if (PreviousContainerIndex &lt; previousContainerAsLayoutGroup.ChildrenCount)
+                    previousContainerAsLayoutGroup.InsertChildAt(PreviousContainerIndex, this);
+                else
+                    previousContainerAsLayoutGroup.InsertChildAt(previousContainerAsLayoutGroup.ChildrenCount, this);
+                IsSelected = true;
+                IsActive = true;
+            }
+
+            if (root != null &amp;&amp; root.Manager != null)
+            {
+                if (root.Manager.LayoutUpdateStrategy != null)
+                {
+                    root.Manager.LayoutUpdateStrategy.AfterInsertAnchorable(root as LayoutRoot, this);
+                }
+            }
+
+            PreviousContainer = null;
+            PreviousContainerIndex = -1;
+
+            RaisePropertyChanged(&quot;IsVisible&quot;);
+            RaisePropertyChanged(&quot;IsHidden&quot;);
+            NotifyIsVisibleChanged();
+        }
+
+        protected override void InternalDock()
+        {
+            var root = Root as LayoutRoot;
+            LayoutAnchorablePane anchorablePane = null;
+
+            if (root.ActiveContent != null &amp;&amp;
+                root.ActiveContent != this)
+            {
+                //look for active content parent pane
+                anchorablePane = root.ActiveContent.Parent as LayoutAnchorablePane;
+            }
+
+            if (anchorablePane == null)
+            {
+                //look for a pane on the right side
+                anchorablePane = root.Descendents().OfType&lt;LayoutAnchorablePane&gt;().Where(pane =&gt; !pane.IsHostedInFloatingWindow &amp;&amp; pane.GetSide() == AnchorSide.Right).FirstOrDefault();
+            }
+
+            if (anchorablePane == null)
+            {
+                //look for an available pane
+                anchorablePane = root.Descendents().OfType&lt;LayoutAnchorablePane&gt;().FirstOrDefault();
+            }
+
+
+            bool added = false;
+            if (root.Manager.LayoutUpdateStrategy != null)
+            {
+                added = root.Manager.LayoutUpdateStrategy.BeforeInsertAnchorable(root, this, anchorablePane);
+            }
+
+            if (!added)
+            {
+                if (anchorablePane == null)
+                {
+                    var mainLayoutPanel = new LayoutPanel() { Orientation = Orientation.Horizontal };
+                    if (root.RootPanel != null)
+                    {
+                        mainLayoutPanel.Children.Add(root.RootPanel);
+                    }
+
+                    root.RootPanel = mainLayoutPanel;
+                    anchorablePane = new LayoutAnchorablePane() { DockWidth = new GridLength(200.0, GridUnitType.Pixel) };
+                    mainLayoutPanel.Children.Add(anchorablePane);
+                }
+
+                anchorablePane.Children.Add(this);
+                added = true;
+            }
+
+            if (root.Manager.LayoutUpdateStrategy != null)
+            {
+                root.Manager.LayoutUpdateStrategy.AfterInsertAnchorable(root, this);
+            }
+
+            base.InternalDock();
+        }
+
+        /// &lt;summary&gt;
+        /// Add the anchorable to a DockingManager layout
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;manager&quot;&gt;&lt;/param&gt;
+        /// &lt;param name=&quot;strategy&quot;&gt;&lt;/param&gt;
+        public void AddToLayout(DockingManager manager, AnchorableShowStrategy strategy)
+        {
+            if (IsVisible ||
+                IsHidden)
+                throw new InvalidOperationException();
+
+
+            bool most = (strategy &amp; AnchorableShowStrategy.Most) == AnchorableShowStrategy.Most;
+            bool left = (strategy &amp; AnchorableShowStrategy.Left) == AnchorableShowStrategy.Left;
+            bool right = (strategy &amp; AnchorableShowStrategy.Right) == AnchorableShowStrategy.Right;
+            bool top = (strategy &amp; AnchorableShowStrategy.Top) == AnchorableShowStrategy.Top;
+            bool bottom = (strategy &amp; AnchorableShowStrategy.Bottom) == AnchorableShowStrategy.Bottom;
+
+            if (!most)
+            { 
+                var side = AnchorSide.Left;
+                if (left)
+                    side = AnchorSide.Left;
+                if (right)
+                    side = AnchorSide.Right;
+                if (top)
+                    side = AnchorSide.Top;
+                if (bottom)
+                    side = AnchorSide.Bottom;
+
+                var anchorablePane = manager.Layout.Descendents().OfType&lt;LayoutAnchorablePane&gt;().FirstOrDefault(p =&gt; p.GetSide() == side);
+                if (anchorablePane != null)
+                    anchorablePane.Children.Add(this);
+                else
+                    most = true;
+            }
+
+
+            if (most)
+            {
+                if (manager.Layout.RootPanel == null)
+                    manager.Layout.RootPanel = new LayoutPanel() { Orientation = (left || right ? Orientation.Horizontal : Orientation.Vertical) };
+
+                if (left || right)
+                {
+                    if (manager.Layout.RootPanel.Orientation == Orientation.Vertical &amp;&amp;
+                        manager.Layout.RootPanel.ChildrenCount &gt; 1)
+                    {
+                        manager.Layout.RootPanel = new LayoutPanel(manager.Layout.RootPanel);
+                    }
+
+                    manager.Layout.RootPanel.Orientation = Orientation.Horizontal;
+
+                    if (left)
+                        manager.Layout.RootPanel.Children.Insert(0, new LayoutAnchorablePane(this));
+                    else
+                        manager.Layout.RootPanel.Children.Add(new LayoutAnchorablePane(this));
+                }
+                else
+                {
+                    if (manager.Layout.RootPanel.Orientation == Orientation.Horizontal &amp;&amp;
+                        manager.Layout.RootPanel.ChildrenCount &gt; 1)
+                    {
+                        manager.Layout.RootPanel = new LayoutPanel(manager.Layout.RootPanel);
+                    }
+
+                    manager.Layout.RootPanel.Orientation = Orientation.Vertical;
+
+                    if (top)
+                        manager.Layout.RootPanel.Children.Insert(0, new LayoutAnchorablePane(this));
+                    else
+                        manager.Layout.RootPanel.Children.Add(new LayoutAnchorablePane(this));
+                }
+
+            }
+        }
+
+
+        /// &lt;summary&gt;
+        /// Get a value indicating if the anchorable is anchored to a border in an autohide status
+        /// &lt;/summary&gt;
+        public bool IsAutoHidden
+        {
+            get { return Parent != null &amp;&amp; Parent is LayoutAnchorGroup; }
+        }
+
+
+        #region AutoHide
+        public void ToggleAutoHide()
+        {
+            #region Anchorable is already auto hidden
+            if (IsAutoHidden)
+            {
+                var parentGroup = Parent as LayoutAnchorGroup;
+                var parentSide = parentGroup.Parent as LayoutAnchorSide;
+                var previousContainer = ((ILayoutPreviousContainer)parentGroup).PreviousContainer as LayoutAnchorablePane;
+
+                if (previousContainer == null)
+                {
+                    AnchorSide side = (parentGroup.Parent as LayoutAnchorSide).Side;
+                    switch (side)
+                    {
+                        case AnchorSide.Right:
+                            if (parentGroup.Root.RootPanel.Orientation == Orientation.Horizontal)
+                            {
+                                previousContainer = new LayoutAnchorablePane();
+                                parentGroup.Root.RootPanel.Children.Add(previousContainer);
+                            }
+                            else
+                            {
+                                previousContainer = new LayoutAnchorablePane();
+                                LayoutPanel panel = new LayoutPanel() { Orientation = Orientation.Horizontal };
+                                LayoutRoot root = parentGroup.Root as LayoutRoot;
+                                LayoutPanel oldRootPanel = parentGroup.Root.RootPanel as LayoutPanel;
+                                root.RootPanel = panel;
+                                panel.Children.Add(oldRootPanel);
+                                panel.Children.Add(previousContainer);
+                            }
+                            break;
+                        case AnchorSide.Left:
+                            if (parentGroup.Root.RootPanel.Orientation == Orientation.Horizontal)
+                            {
+                                previousContainer = new LayoutAnchorablePane();
+                                parentGroup.Root.RootPanel.Children.Insert(0, previousContainer);
+                            }
+                            else
+                            {
+                                previousContainer = new LayoutAnchorablePane();
+                                LayoutPanel panel = new LayoutPanel() { Orientation = Orientation.Horizontal };
+                                LayoutRoot root = parentGroup.Root as LayoutRoot;
+                                LayoutPanel oldRootPanel = parentGroup.Root.RootPanel as LayoutPanel;
+                                root.RootPanel = panel;
+                                panel.Children.Add(previousContainer);
+                                panel.Children.Add(oldRootPanel);
+                            }
+                            break;
+                        case AnchorSide.Top:
+                            if (parentGroup.Root.RootPanel.Orientation == Orientation.Vertical)
+                            {
+                                previousContainer = new LayoutAnchorablePane();
+                                parentGroup.Root.RootPanel.Children.Insert(0, previousContainer);
+                            }
+                            else
+                            {
+                                previousContainer = new LayoutAnchorablePane();
+                                LayoutPanel panel = new LayoutPanel() { Orientation = Orientation.Vertical };
+                                LayoutRoot root = parentGroup.Root as LayoutRoot;
+                                LayoutPanel oldRootPanel = parentGroup.Root.RootPanel as LayoutPanel;
+                                root.RootPanel = panel;
+                                panel.Children.Add(previousContainer);
+                                panel.Children.Add(oldRootPanel);
+                            }
+                            break;
+                        case AnchorSide.Bottom:
+                            if (parentGroup.Root.RootPanel.Orientation == Orientation.Vertical)
+                            {
+                                previousContainer = new LayoutAnchorablePane();
+                                parentGroup.Root.RootPanel.Children.Add(previousContainer);
+                            }
+                            else
+                            {
+                                previousContainer = new LayoutAnchorablePane();
+                                LayoutPanel panel = new LayoutPanel() { Orientation = Orientation.Vertical };
+                                LayoutRoot root = parentGroup.Root as LayoutRoot;
+                                LayoutPanel oldRootPanel = parentGroup.Root.RootPanel as LayoutPanel;
+                                root.RootPanel = panel;
+                                panel.Children.Add(oldRootPanel);
+                                panel.Children.Add(previousContainer);
+                            }
+                            break;
+                    }
+                }
+                else
+                { 
+                    //I&#39;m about to remove parentGroup, redirect any content (ie hidden contents) that point to it
+                    //to previousContainer
+                    LayoutRoot root = parentGroup.Root as LayoutRoot;
+                    foreach (var cnt in root.Descendents().OfType&lt;ILayoutPreviousContainer&gt;().Where(c =&gt; c.PreviousContainer == parentGroup))
+                    {
+                        cnt.PreviousContainer = previousContainer;
+                    }
+                }
+
+
+                foreach (var anchorableToToggle in parentGroup.Children.ToArray())
+                {
+                    previousContainer.Children.Add(anchorableToToggle);
+                }
+
+                parentSide.Children.Remove(parentGroup);
+            }
+            #endregion
+            #region Anchorable is docked
+            else if (Parent is LayoutAnchorablePane)
+            {
+                var root = Root;
+                var parentPane = Parent as LayoutAnchorablePane;
+	            
+				try
+	            {
+					this.AutoHideWidth = ((ILayoutPositionableElementWithActualSize)parentPane).ActualWidth;
+					this.AutoHideHeight = ((ILayoutPositionableElementWithActualSize)parentPane).ActualHeight;
+	            }
+	            catch (Exception)
+	            {
+
+	            }
+			
+                var newAnchorGroup = new LayoutAnchorGroup();
+
+                ((ILayoutPreviousContainer)newAnchorGroup).PreviousContainer = parentPane;
+
+                foreach (var anchorableToImport in parentPane.Children.ToArray())
+                    newAnchorGroup.Children.Add(anchorableToImport);
+
+                //detect anchor side for the pane
+                var anchorSide = parentPane.GetSide();
+
+                switch (anchorSide)
+                {
+                    case AnchorSide.Right:
+                        root.RightSide.Children.Add(newAnchorGroup);
+                        break;
+                    case AnchorSide.Left:
+                        root.LeftSide.Children.Add(newAnchorGroup);
+                        break;
+                    case AnchorSide.Top:
+                        root.TopSide.Children.Add(newAnchorGroup);
+                        break;
+                    case AnchorSide.Bottom:
+                        root.BottomSide.Children.Add(newAnchorGroup);
+                        break;
+                }
+            }
+            #endregion
+        }
+
+        #endregion
+
+        #region CanHide
+
+        private bool _canHide = true;
+        public bool CanHide
+        {
+            get { return _canHide; }
+            set
+            {
+                if (_canHide != value)
+                {
+                    _canHide = value;
+                    RaisePropertyChanged(&quot;CanHide&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+        #region CanAutoHide
+
+        private bool _canAutoHide = true;
+        public bool CanAutoHide
+        {
+            get { return _canAutoHide; }
+            set
+            {
+                if (_canAutoHide != value)
+                {
+                    _canAutoHide = value;
+                    RaisePropertyChanged(&quot;CanAutoHide&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+
+        public override void ReadXml(System.Xml.XmlReader reader)
+        {
+            if (reader.MoveToAttribute(&quot;CanHide&quot;))
+                CanHide = bool.Parse(reader.Value);
+            if (reader.MoveToAttribute(&quot;CanAutoHide&quot;))
+                CanAutoHide = bool.Parse(reader.Value);
+            if (reader.MoveToAttribute(&quot;AutoHideWidth&quot;))
+                AutoHideWidth = double.Parse(reader.Value, CultureInfo.InvariantCulture);
+            if (reader.MoveToAttribute(&quot;AutoHideHeight&quot;))
+                AutoHideHeight = double.Parse(reader.Value, CultureInfo.InvariantCulture);
+            if (reader.MoveToAttribute(&quot;AutoHideMinWidth&quot;))
+                AutoHideMinWidth = double.Parse(reader.Value, CultureInfo.InvariantCulture);
+            if (reader.MoveToAttribute(&quot;AutoHideMinHeight&quot;))
+                AutoHideMinHeight = double.Parse(reader.Value, CultureInfo.InvariantCulture);
+
+            base.ReadXml(reader);
+        }
+
+        public override void WriteXml(System.Xml.XmlWriter writer)
+        {
+            if (!CanHide)
+                writer.WriteAttributeString(&quot;CanHide&quot;, CanHide.ToString());
+            if (!CanAutoHide)
+                writer.WriteAttributeString(&quot;CanAutoHide&quot;, CanAutoHide.ToString(CultureInfo.InvariantCulture));
+            if (AutoHideWidth &gt; 0)
+                writer.WriteAttributeString(&quot;AutoHideWidth&quot;, AutoHideWidth.ToString(CultureInfo.InvariantCulture));
+            if (AutoHideHeight &gt; 0)
+                writer.WriteAttributeString(&quot;AutoHideHeight&quot;, AutoHideHeight.ToString(CultureInfo.InvariantCulture));
+            if (AutoHideMinWidth != 25.0)
+                writer.WriteAttributeString(&quot;AutoHideMinWidth&quot;, AutoHideMinWidth.ToString(CultureInfo.InvariantCulture));
+            if (AutoHideMinHeight != 25.0)
+                writer.WriteAttributeString(&quot;AutoHideMinHeight&quot;, AutoHideMinHeight.ToString(CultureInfo.InvariantCulture));
+
+
+            base.WriteXml(writer);
+        }
+
+
+#if TRACE
+        public override void ConsoleDump(int tab)
+        {
+          System.Diagnostics.Trace.Write( new string( &#39; &#39;, tab * 4 ) );
+          System.Diagnostics.Trace.WriteLine( &quot;Anchorable()&quot; );
+        }
+#endif
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[37,13,37,14,0],[38,17,38,66,0],[39,13,39,14,0],[41,13,41,14,0],[42,17,42,27,0],[43,17,43,18,0],[44,21,44,28,0],[45,17,45,18,0],[47,17,47,18,0],[48,21,48,28,0],[49,17,49,18,0],[50,13,50,14,0],[56,9,56,10,0],[57,13,57,42,0],[58,17,58,57,0],[59,9,59,10,0],[65,13,65,14,0],[66,17,66,47,0],[67,13,67,14,0],[71,9,71,10,0],[72,13,72,38,0],[73,13,73,47,0],[74,13,74,38,0],[75,13,75,46,0],[76,13,76,50,0],[77,13,77,54,0],[78,9,78,10,0],[81,9,81,10,0],[82,13,82,69,0],[83,13,83,36,0],[84,17,84,48,0],[85,9,85,10,0],[91,9,91,45,0],[94,17,94,18,0],[94,19,94,41,0],[94,42,94,43,0],[96,13,96,14,0],[97,17,97,45,0],[98,17,98,18,0],[99,21,99,60,0],[100,21,100,64,0],[101,21,101,44,0],[102,21,102,59,0],[103,17,103,18,0],[104,13,104,14,0],[111,9,111,50,0],[114,17,114,18,0],[114,19,114,44,0],[114,45,114,46,0],[116,13,116,14,0],[117,17,117,48,0],[118,17,118,18,0],[119,21,119,63,0],[120,21,120,35,0],[121,25,121,62,0],[122,21,122,47,0],[123,21,123,62,0],[124,17,124,18,0],[125,13,125,14,0],[132,9,132,46,0],[135,17,135,18,0],[135,19,135,42,0],[135,43,135,44,0],[137,13,137,14,0],[138,17,138,46,0],[139,17,139,18,0],[140,21,140,61,0],[141,21,141,65,0],[142,21,142,45,0],[143,21,143,60,0],[144,17,144,18,0],[145,13,145,14,0],[152,9,152,51,0],[155,17,155,18,0],[155,19,155,45,0],[155,46,155,47,0],[157,13,157,14,0],[158,17,158,49,0],[159,17,159,18,0],[160,21,160,64,0],[161,21,161,35,0],[162,25,162,62,0],[163,21,163,48,0],[164,21,164,63,0],[165,17,165,18,0],[166,13,166,14,0],[176,9,176,10,0],[177,13,177,28,0],[178,13,178,14,0],[179,17,179,35,0],[180,17,180,33,0],[181,17,181,24,0],[184,13,184,28,0],[185,13,185,14,0],[186,17,186,62,0],[187,17,187,32,0],[188,17,188,33,0],[189,21,189,28,0],[190,13,190,14,0],[192,13,192,47,0],[193,13,193,48,0],[195,13,195,14,0],[196,17,196,60,0],[197,17,197,51,0],[198,17,198,75,0],[199,13,199,14,0],[200,13,200,35,0],[201,13,201,47,0],[202,13,202,46,0],[203,13,203,38,0],[204,9,204,10,0],[209,9,209,10,0],[210,13,210,32,0],[211,17,211,36,0],[212,9,212,10,0],[220,9,220,10,0],[221,13,221,27,0],[222,17,222,24,0],[224,13,224,27,0],[225,17,225,55,0],[227,13,227,47,0],[228,13,228,48,0],[230,13,230,32,0],[231,13,231,29,0],[232,13,232,54,0],[233,13,233,14,0],[234,17,234,63,0],[235,21,235,131,0],[236,13,236,14,0],[238,13,238,53,0],[239,13,239,14,0],[240,17,240,88,0],[241,17,241,91,0],[242,21,242,96,0],[244,21,244,118,0],[245,17,245,35,0],[246,17,246,33,0],[247,13,247,14,0],[249,13,249,54,0],[250,13,250,14,0],[251,17,251,63,0],[252,17,252,18,0],[253,21,253,103,0],[254,17,254,18,0],[255,13,255,14,0],[257,13,257,38,0],[258,13,258,41,0],[260,13,260,47,0],[261,13,261,46,0],[262,13,262,38,0],[263,9,263,10,0],[266,9,266,10,0],[267,13,267,43,0],[268,13,268,56,0],[270,13,271,44,0],[272,13,272,14,0],[274,17,274,84,0],[275,13,275,14,0],[277,13,277,40,0],[278,13,278,14,0],[280,17,280,98,0],[280,98,280,166,0],[280,166,280,185,0],[280,17,280,185,0],[281,13,281,14,0],[283,13,283,40,0],[284,13,284,14,0],[286,17,286,101,0],[287,13,287,14,0],[290,13,290,32,0],[291,13,291,59,0],[292,13,292,14,0],[293,17,293,110,0],[294,13,294,14,0],[296,13,296,24,0],[297,13,297,14,0],[298,17,298,44,0],[299,17,299,18,0],[300,21,300,102,0],[301,21,301,48,0],[302,21,302,22,0],[303,25,303,70,0],[304,21,304,22,0],[306,21,306,54,0],[307,21,307,123,0],[308,21,308,66,0],[309,17,309,18,0],[311,17,311,51,0],[312,17,312,30,0],[313,13,313,14,0],[315,13,315,59,0],[316,13,316,14,0],[317,17,317,85,0],[318,13,318,14,0],[320,13,320,33,0],[321,9,321,10,0],[329,9,329,10,0],[330,13,331,26,0],[332,17,332,55,0],[335,13,335,97,0],[336,13,336,97,0],[337,13,337,100,0],[338,13,338,94,0],[339,13,339,103,0],[341,13,341,23,0],[342,13,342,14,0],[343,17,343,44,0],[344,17,344,26,0],[345,21,345,44,0],[346,17,346,27,0],[347,21,347,45,0],[348,17,348,25,0],[349,21,349,43,0],[350,17,350,28,0],[351,21,351,46,0],[353,17,353,118,0],[353,118,353,137,0],[353,137,353,139,0],[353,17,353,139,0],[354,17,354,44,0],[355,21,355,55,0],[357,21,357,33,0],[358,13,358,14,0],[361,13,361,22,0],[362,13,362,14,0],[363,17,363,54,0],[364,21,364,148,0],[366,17,366,35,0],[367,17,367,18,0],[368,21,369,68,0],[370,21,370,22,0],[371,25,371,94,0],[372,21,372,22,0],[374,21,374,83,0],[376,21,376,30,0],[377,25,377,101,0],[379,25,379,95,0],[380,17,380,18,0],[382,17,382,18,0],[383,21,384,68,0],[385,21,385,22,0],[386,25,386,94,0],[387,21,387,22,0],[389,21,389,81,0],[391,21,391,29,0],[392,25,392,101,0],[394,25,394,95,0],[395,17,395,18,0],[397,13,397,14,0],[398,9,398,10,0],[406,17,406,18,0],[406,19,406,72,0],[406,73,406,74,0],[412,9,412,10,0],[414,13,414,30,0],[415,13,415,14,0],[416,17,416,63,0],[417,17,417,73,0],[418,17,418,123,0],[420,17,420,47,0],[421,17,421,18,0],[422,21,422,85,0],[423,21,423,34,0],[426,29,426,98,0],[427,29,427,30,0],[428,33,428,80,0],[429,33,429,92,0],[430,29,430,30,0],[432,29,432,30,0],[433,33,433,80,0],[434,33,434,112,0],[435,33,435,82,0],[436,33,436,102,0],[437,33,437,56,0],[438,33,438,66,0],[439,33,439,71,0],[440,29,440,30,0],[441,29,441,35,0],[443,29,443,98,0],[444,29,444,30,0],[445,33,445,80,0],[446,33,446,98,0],[447,29,447,30,0],[449,29,449,30,0],[450,33,450,80,0],[451,33,451,112,0],[452,33,452,82,0],[453,33,453,102,0],[454,33,454,56,0],[455,33,455,71,0],[456,33,456,66,0],[457,29,457,30,0],[458,29,458,35,0],[460,29,460,96,0],[461,29,461,30,0],[462,33,462,80,0],[463,33,463,98,0],[464,29,464,30,0],[466,29,466,30,0],[467,33,467,80,0],[468,33,468,110,0],[469,33,469,82,0],[470,33,470,102,0],[471,33,471,56,0],[472,33,472,71,0],[473,33,473,66,0],[474,29,474,30,0],[475,29,475,35,0],[477,29,477,96,0],[478,29,478,30,0],[479,33,479,80,0],[480,33,480,92,0],[481,29,481,30,0],[483,29,483,30,0],[484,33,484,80,0],[485,33,485,110,0],[486,33,486,82,0],[487,33,487,102,0],[488,33,488,56,0],[489,33,489,66,0],[490,33,490,71,0],[491,29,491,30,0],[492,29,492,35,0],[494,17,494,18,0],[496,17,496,18,0],[499,21,499,70,0],[500,21,500,28,0],[500,30,500,37,0],[500,38,500,40,0],[500,41,500,106,0],[500,106,500,140,0],[500,140,500,141,0],[500,41,500,141,0],[501,21,501,22,0],[502,25,502,67,0],[503,21,503,22,0],[504,17,504,18,0],[507,17,507,24,0],[507,26,507,48,0],[507,49,507,51,0],[507,52,507,82,0],[508,17,508,18,0],[509,21,509,72,0],[510,17,510,18,0],[512,17,512,57,0],[513,13,513,14,0],[516,18,516,53,0],[517,13,517,14,0],[518,17,518,33,0],[519,17,519,65,0],[522,14,522,15,0],[523,6,523,94,0],[524,6,524,96,0],[525,14,525,15,0],[526,14,526,31,0],[527,14,527,15,0],[529,14,529,15,0],[531,17,531,62,0],[533,17,533,91,0],[535,17,535,24,0],[535,26,535,48,0],[535,49,535,51,0],[535,52,535,81,0],[536,21,536,69,0],[539,17,539,55,0],[541,17,541,36,0],[544,25,544,69,0],[545,25,545,31,0],[547,25,547,68,0],[548,25,548,31,0],[550,25,550,67,0],[551,25,551,31,0],[553,25,553,70,0],[554,25,554,31,0],[556,13,556,14,0],[558,9,558,10,0],[564,9,564,38,0],[567,17,567,18,0],[567,19,567,35,0],[567,36,567,37,0],[569,13,569,14,0],[570,17,570,39,0],[571,17,571,18,0],[572,21,572,38,0],[573,21,573,53,0],[574,17,574,18,0],[575,13,575,14,0],[582,9,582,42,0],[585,17,585,18,0],[585,19,585,39,0],[585,40,585,41,0],[587,13,587,14,0],[588,17,588,43,0],[589,17,589,18,0],[590,21,590,42,0],[591,21,591,57,0],[592,17,592,18,0],[593,13,593,14,0],[600,9,600,10,0],[601,13,601,51,0],[602,17,602,52,0],[603,13,603,55,0],[604,17,604,56,0],[605,13,605,57,0],[606,17,606,90,0],[607,13,607,58,0],[608,17,608,91,0],[609,13,609,60,0],[610,17,610,93,0],[611,13,611,61,0],[612,17,612,94,0],[614,13,614,34,0],[615,9,615,10,0],[618,9,618,10,0],[619,13,619,26,0],[620,17,620,76,0],[621,13,621,30,0],[622,17,622,112,0],[623,13,623,35,0],[624,17,624,116,0],[625,13,625,36,0],[626,17,626,118,0],[627,13,627,42,0],[628,17,628,122,0],[629,13,629,43,0],[630,17,630,124,0],[633,13,633,35,0],[634,9,634,10,0]]);
+    </script>
+  </body>
+</html>

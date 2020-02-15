@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\LayoutGridResizerControl.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Controls.Primitives;
+using System.Windows;
+using System.Windows.Media;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public class LayoutGridResizerControl : Thumb
+    {
+        static LayoutGridResizerControl()
+        {
+            //This OverrideMetadata call tells the system that this element wants to provide a style that is different than its base class.
+            //This style is defined in themes\generic.xaml
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(LayoutGridResizerControl), new FrameworkPropertyMetadata(typeof(LayoutGridResizerControl)));
+            HorizontalAlignmentProperty.OverrideMetadata(typeof(LayoutGridResizerControl), new FrameworkPropertyMetadata(HorizontalAlignment.Stretch, FrameworkPropertyMetadataOptions.AffectsParentMeasure));
+            VerticalAlignmentProperty.OverrideMetadata(typeof(LayoutGridResizerControl), new FrameworkPropertyMetadata(VerticalAlignment.Stretch, FrameworkPropertyMetadataOptions.AffectsParentMeasure));
+            BackgroundProperty.OverrideMetadata(typeof(LayoutGridResizerControl), new FrameworkPropertyMetadata(Brushes.Transparent));
+            IsHitTestVisibleProperty.OverrideMetadata(typeof(LayoutGridResizerControl), new FrameworkPropertyMetadata(true, null));
+        }
+
+
+        #region BackgroundWhileDragging
+
+        /// &lt;summary&gt;
+        /// BackgroundWhileDragging Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty BackgroundWhileDraggingProperty =
+            DependencyProperty.Register(&quot;BackgroundWhileDragging&quot;, typeof(Brush), typeof(LayoutGridResizerControl),
+                new FrameworkPropertyMetadata((Brush)Brushes.Black));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the BackgroundWhileDragging property.  This dependency property 
+        /// indicates ....
+        /// &lt;/summary&gt;
+        public Brush BackgroundWhileDragging
+        {
+            get { return (Brush)GetValue(BackgroundWhileDraggingProperty); }
+            set { SetValue(BackgroundWhileDraggingProperty, value); }
+        }
+
+        #endregion
+
+        #region OpacityWhileDragging
+
+        /// &lt;summary&gt;
+        /// OpacityWhileDragging Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty OpacityWhileDraggingProperty =
+            DependencyProperty.Register(&quot;OpacityWhileDragging&quot;, typeof(double), typeof(LayoutGridResizerControl),
+                new FrameworkPropertyMetadata((double)0.5));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the OpacityWhileDragging property.  This dependency property 
+        /// indicates ....
+        /// &lt;/summary&gt;
+        public double OpacityWhileDragging
+        {
+            get { return (double)GetValue(OpacityWhileDraggingProperty); }
+            set { SetValue(OpacityWhileDraggingProperty, value); }
+        }
+
+        #endregion
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[30,9,30,10,0],[33,13,33,153,0],[34,13,34,207,0],[35,13,35,203,0],[36,13,36,135,0],[37,13,37,132,0],[38,9,38,10,0],[46,9,48,70,0],[56,17,56,18,0],[56,19,56,75,0],[56,76,56,77,0],[57,17,57,18,0],[57,19,57,68,0],[57,69,57,70,0],[67,9,69,61,0],[77,17,77,18,0],[77,19,77,73,0],[77,74,77,75,0],[78,17,78,18,0],[78,19,78,65,0],[78,66,78,67,0]]);
+    </script>
+  </body>
+</html>

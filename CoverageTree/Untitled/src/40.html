@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Domain\Services\Nomenclatures\ChangedDocument.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Swr.Capital1C.Service.Domain.Services.Nomenclatures
+{
+    public class ChangedDocument
+    {
+        public ChangedDocument(int id, string configurationName, int version)
+        {
+            Id = id;
+            ConfigurationName = configurationName;
+            Version = version;
+        }
+
+        public int Id { get; set; }
+
+        public string ConfigurationName { get; set; }
+
+        public int Version { get; set; }
+
+        public string Article { get; set; }
+
+        public string IsService { get; set; }
+
+        public string GetUniqueId()
+        {
+            return $&quot;{Id}:{ConfigurationName}:{Version}&quot;;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[11,9,11,78,1],[12,9,12,10,1],[13,13,13,21,1],[14,13,14,51,1],[15,13,15,31,1],[16,9,16,10,1],[18,25,18,29,1],[18,30,18,34,1],[20,43,20,47,1],[20,48,20,52,1],[22,30,22,34,1],[22,35,22,39,1],[24,33,24,37,1],[24,38,24,42,1],[26,35,26,39,1],[26,40,26,44,1],[29,9,29,10,1],[30,13,30,58,1],[31,9,31,10,1]]);
+    </script>
+  </body>
+</html>

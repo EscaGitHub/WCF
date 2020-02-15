@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\LayoutAnchorableFloatingWindowControl.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Media;
+using System.Windows.Input;
+using SwrUI.Shell;
+using Xceed.Wpf.AvalonDock.Layout;
+using Xceed.Wpf.AvalonDock.Converters;
+using System.Diagnostics;
+using System.Windows.Controls.Primitives;
+using Xceed.Wpf.AvalonDock.Commands;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public class LayoutAnchorableFloatingWindowControl : LayoutFloatingWindowControl, IOverlayWindowHost
+    {
+        static LayoutAnchorableFloatingWindowControl()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(LayoutAnchorableFloatingWindowControl), new FrameworkPropertyMetadata(typeof(LayoutAnchorableFloatingWindowControl)));
+        } 
+
+
+        internal LayoutAnchorableFloatingWindowControl(LayoutAnchorableFloatingWindow model)
+            :base(model)
+        {
+            _model = model;
+            HideWindowCommand = new RelayCommand((p) =&gt; OnExecuteHideWindowCommand(p), (p) =&gt; CanExecuteHideWindowCommand(p));
+        }
+
+        internal override void UpdateThemeResources( Xceed.Wpf.AvalonDock.Themes.Theme oldTheme = null )
+        {
+            base.UpdateThemeResources(oldTheme);
+
+            if (_overlayWindow != null)
+                _overlayWindow.UpdateThemeResources(oldTheme);
+        }
+
+        LayoutAnchorableFloatingWindow _model;
+
+        public override ILayoutElement Model
+        {
+            get { return _model; }
+        }
+
+        #region SingleContentLayoutItem
+
+        /// &lt;summary&gt;
+        /// SingleContentLayoutItem Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty SingleContentLayoutItemProperty =
+            DependencyProperty.Register(&quot;SingleContentLayoutItem&quot;, typeof(LayoutItem), typeof(LayoutAnchorableFloatingWindowControl),
+                new FrameworkPropertyMetadata((LayoutItem)null,
+                    new PropertyChangedCallback(OnSingleContentLayoutItemChanged)));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the SingleContentLayoutItem property.  This dependency property 
+        /// indicates the layout item of the selected content when is shown a single anchorable pane.
+        /// &lt;/summary&gt;
+        public LayoutItem SingleContentLayoutItem
+        {
+            get { return (LayoutItem)GetValue(SingleContentLayoutItemProperty); }
+            set { SetValue(SingleContentLayoutItemProperty, value); }
+        }
+
+        /// &lt;summary&gt;
+        /// Handles changes to the SingleContentLayoutItem property.
+        /// &lt;/summary&gt;
+        private static void OnSingleContentLayoutItemChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((LayoutAnchorableFloatingWindowControl)d).OnSingleContentLayoutItemChanged(e);
+        }
+
+        /// &lt;summary&gt;
+        /// Provides derived classes an opportunity to handle changes to the SingleContentLayoutItem property.
+        /// &lt;/summary&gt;
+        protected virtual void OnSingleContentLayoutItemChanged(DependencyPropertyChangedEventArgs e)
+        {
+        }
+
+        #endregion
+
+
+
+        protected override void OnInitialized(EventArgs e)
+        {
+            base.OnInitialized(e);
+
+            var manager = _model.Root.Manager;
+
+            Content = manager.CreateUIElementForModel(_model.RootPanel);
+
+            //SetBinding(VisibilityProperty, new Binding(&quot;IsVisible&quot;) { Source = _model, Converter = new BoolToVisibilityConverter(), Mode = BindingMode.OneWay, ConverterParameter = Visibility.Hidden });
+
+            //Issue: http://avalondock.codeplex.com/workitem/15036
+            IsVisibleChanged += (s, args) =&gt;
+            {
+                var visibilityBinding = GetBindingExpression(VisibilityProperty);
+                if (IsVisible &amp;&amp; (visibilityBinding == null))
+                {
+                    SetBinding(VisibilityProperty, new Binding(&quot;IsVisible&quot;) { Source = _model, Converter = new BoolToVisibilityConverter(), Mode = BindingMode.OneWay, ConverterParameter = Visibility.Hidden });
+                }
+            };
+
+            SetBinding(SingleContentLayoutItemProperty, new Binding(&quot;Model.SinglePane.SelectedContent&quot;) { Source = this, Converter = new LayoutItemFromLayoutModelConverter() });
+
+            _model.PropertyChanged += new System.ComponentModel.PropertyChangedEventHandler(_model_PropertyChanged);
+        }
+
+
+        void _model_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == &quot;RootPanel&quot; &amp;&amp;
+                _model.RootPanel == null)
+            {
+                InternalClose();
+            }
+        }
+
+
+        bool IOverlayWindowHost.HitTest(Point dragPoint)
+        {
+            Rect detectionRect = new Rect(this.PointToScreenDPIWithoutFlowDirection(new Point()), this.TransformActualSizeToAncestor());
+            return detectionRect.Contains(dragPoint);
+        }
+
+        DockingManager IOverlayWindowHost.Manager
+        {
+            get { return _model.Root.Manager; }
+        }
+
+        OverlayWindow _overlayWindow = null;
+        void CreateOverlayWindow()
+        {
+            if (_overlayWindow == null)
+                _overlayWindow = new OverlayWindow(this);
+            Rect rectWindow = new Rect(this.PointToScreenDPIWithoutFlowDirection(new Point()), this.TransformActualSizeToAncestor());
+            _overlayWindow.Left = rectWindow.Left;
+            _overlayWindow.Top = rectWindow.Top;
+            _overlayWindow.Width = rectWindow.Width;
+            _overlayWindow.Height = rectWindow.Height;
+        }
+
+        IOverlayWindow IOverlayWindowHost.ShowOverlayWindow(LayoutFloatingWindowControl draggingWindow)
+        {
+            CreateOverlayWindow();
+            _overlayWindow.Owner = draggingWindow;
+            _overlayWindow.EnableDropTargets();
+            _overlayWindow.Show();
+
+            return _overlayWindow;
+        }
+
+        void IOverlayWindowHost.HideOverlayWindow()
+        {
+            _dropAreas = null;
+            _overlayWindow.Owner = null;
+            _overlayWindow.HideDropTargets();
+        }
+
+        List&lt;IDropArea&gt; _dropAreas = null;
+        IEnumerable&lt;IDropArea&gt; IOverlayWindowHost.GetDropAreas(LayoutFloatingWindowControl draggingWindow)
+        {
+            if (_dropAreas != null)
+                return _dropAreas;
+
+            _dropAreas = new List&lt;IDropArea&gt;();
+
+            if (draggingWindow.Model is LayoutDocumentFloatingWindow)
+                return _dropAreas;
+
+            var rootVisual = (Content as FloatingWindowContentHost).RootVisual;
+
+            foreach (var areaHost in rootVisual.FindVisualChildren&lt;LayoutAnchorablePaneControl&gt;())
+            {
+                _dropAreas.Add(new DropArea&lt;LayoutAnchorablePaneControl&gt;(
+                    areaHost,
+                    DropAreaType.AnchorablePane));
+            }
+            foreach (var areaHost in rootVisual.FindVisualChildren&lt;LayoutDocumentPaneControl&gt;())
+            {
+                _dropAreas.Add(new DropArea&lt;LayoutDocumentPaneControl&gt;(
+                    areaHost,
+                    DropAreaType.DocumentPane));
+            }
+
+            return _dropAreas;
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            var root = Model.Root;
+            root.Manager.RemoveFloatingWindow(this);
+            root.CollectGarbage();
+            if (_overlayWindow != null)
+            {
+                _overlayWindow.Close();
+                _overlayWindow = null;
+            }
+
+            base.OnClosed(e);
+
+            if (!CloseInitiatedByUser)
+            {
+                root.FloatingWindows.Remove(_model);
+            }
+
+            _model.PropertyChanged -= new System.ComponentModel.PropertyChangedEventHandler(_model_PropertyChanged);
+        }
+
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            if (CloseInitiatedByUser &amp;&amp; !KeepContentVisibleOnClose)
+            {
+                e.Cancel = true;
+                _model.Descendents().OfType&lt;LayoutAnchorable&gt;().ToArray().ForEach&lt;LayoutAnchorable&gt;((a) =&gt; a.Hide());
+            }
+
+            base.OnClosing(e);
+        }
+
+        protected override IntPtr FilterMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            switch (msg)
+            {
+                case Win32Helper.WM_NCLBUTTONDOWN: //Left button down on title -&gt; start dragging over docking manager
+                    if (wParam.ToInt32() == Win32Helper.HT_CAPTION)
+                    {
+                        _model.Descendents().OfType&lt;LayoutAnchorablePane&gt;().First(p =&gt; p.ChildrenCount &gt; 0 &amp;&amp; p.SelectedContent != null).SelectedContent.IsActive = true;
+                        handled = true;
+                    }
+                    break;
+                case Win32Helper.WM_NCRBUTTONUP:
+                    if (wParam.ToInt32() == Win32Helper.HT_CAPTION)
+                    {
+                        if (OpenContextMenu())
+                            handled = true;
+
+                        if (_model.Root.Manager.ShowSystemMenu)
+                            WindowChrome.GetWindowChrome(this).ShowSystemMenu = !handled;
+                        else
+                            WindowChrome.GetWindowChrome(this).ShowSystemMenu = false;
+                    }
+                    break;
+
+            }
+
+            return base.FilterMessage(hwnd, msg, wParam, lParam, ref handled);
+        }
+
+        bool OpenContextMenu()
+        {
+            var ctxMenu = _model.Root.Manager.AnchorableContextMenu;
+            if (ctxMenu != null &amp;&amp; SingleContentLayoutItem != null)
+            {
+                ctxMenu.PlacementTarget = null;
+                ctxMenu.Placement = PlacementMode.MousePoint;
+                ctxMenu.DataContext = SingleContentLayoutItem;
+                ctxMenu.IsOpen = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        bool IsContextMenuOpen()
+        {
+            var ctxMenu = _model.Root.Manager.AnchorableContextMenu;
+            if (ctxMenu != null &amp;&amp; SingleContentLayoutItem != null)
+            {
+                return ctxMenu.IsOpen;
+            }
+
+            return false;
+        }
+
+        #region HideWindowCommand
+        public ICommand HideWindowCommand
+        {
+            get;
+            private set;
+        }
+
+        private bool CanExecuteHideWindowCommand(object parameter)
+        {
+            if (Model == null)
+                return false;
+
+            var root = Model.Root;
+            if (root == null)
+                return false;
+
+            var manager = root.Manager;
+            if (manager == null)
+                return false;
+
+            bool canExecute = false;
+            foreach (var anchorable in this.Model.Descendents().OfType&lt;LayoutAnchorable&gt;().ToArray())
+            {
+                if (!anchorable.CanHide)
+                {
+                    canExecute = false;
+                    break;
+                }
+
+                var anchorableLayoutItem = manager.GetLayoutItemFromModel(anchorable) as LayoutAnchorableItem;
+                if (anchorableLayoutItem == null ||
+                    anchorableLayoutItem.HideCommand == null ||
+                    !anchorableLayoutItem.HideCommand.CanExecute(parameter))
+                {
+                    canExecute = false;
+                    break;
+                }
+
+                canExecute = true;
+            }
+
+            return canExecute;
+        }
+
+        private void OnExecuteHideWindowCommand(object parameter)
+        {
+            var manager = Model.Root.Manager;
+            foreach (var anchorable in this.Model.Descendents().OfType&lt;LayoutAnchorable&gt;().ToArray())
+            {
+                var anchorableLayoutItem = manager.GetLayoutItemFromModel(anchorable) as LayoutAnchorableItem;
+                anchorableLayoutItem.HideCommand.Execute(parameter);
+            }
+        }
+        #endregion
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[40,9,40,10,0],[41,13,41,179,0],[42,9,42,10,0],[46,14,46,25,0],[47,9,47,10,0],[48,13,48,28,0],[49,13,49,57,0],[49,57,49,86,0],[49,86,49,95,0],[49,95,49,125,0],[49,125,49,127,0],[49,13,49,127,0],[50,9,50,10,0],[53,9,53,10,0],[54,13,54,49,0],[56,13,56,40,0],[57,17,57,63,0],[58,9,58,10,0],[64,17,64,18,0],[64,19,64,33,0],[64,34,64,35,0],[72,9,75,85,0],[83,17,83,18,0],[83,19,83,80,0],[83,81,83,82,0],[84,17,84,18,0],[84,19,84,68,0],[84,69,84,70,0],[91,9,91,10,0],[92,13,92,92,0],[93,9,93,10,0],[99,9,99,10,0],[100,9,100,10,0],[107,9,107,10,0],[108,13,108,35,0],[110,13,110,47,0],[112,13,112,73,0],[117,13,118,13,0],[118,13,118,14,0],[118,14,119,17,0],[119,17,119,82,0],[119,82,120,17,0],[120,17,120,62,0],[120,62,121,17,0],[121,17,121,18,0],[121,18,122,21,0],[122,21,122,210,0],[122,210,123,17,0],[123,17,123,18,0],[123,18,124,13,0],[124,13,124,14,0],[124,14,124,15,0],[117,13,124,15,0],[126,13,126,178,0],[128,13,128,117,0],[129,9,129,10,0],[133,9,133,10,0],[134,13,135,42,0],[136,13,136,14,0],[137,17,137,33,0],[138,13,138,14,0],[139,9,139,10,0],[143,9,143,10,0],[144,13,144,137,0],[145,13,145,54,0],[146,9,146,10,0],[150,17,150,18,0],[150,19,150,46,0],[150,47,150,48,0],[153,9,153,45,0],[155,9,155,10,0],[156,13,156,40,0],[157,17,157,58,0],[158,13,158,134,0],[159,13,159,51,0],[160,13,160,49,0],[161,13,161,53,0],[162,13,162,55,0],[163,9,163,10,0],[166,9,166,10,0],[167,13,167,35,0],[168,13,168,51,0],[169,13,169,48,0],[170,13,170,35,0],[172,13,172,35,0],[173,9,173,10,0],[176,9,176,10,0],[177,13,177,31,0],[178,13,178,41,0],[179,13,179,46,0],[180,9,180,10,0],[182,9,182,43,0],[184,9,184,10,0],[185,13,185,36,0],[186,17,186,35,0],[188,13,188,48,0],[190,13,190,70,0],[191,17,191,35,0],[193,13,193,80,0],[195,13,195,20,0],[195,22,195,34,0],[195,35,195,37,0],[195,38,195,98,0],[196,13,196,14,0],[197,17,199,51,0],[200,13,200,14,0],[201,13,201,20,0],[201,22,201,34,0],[201,35,201,37,0],[201,38,201,96,0],[202,13,202,14,0],[203,17,205,49,0],[206,13,206,14,0],[208,13,208,31,0],[209,9,209,10,0],[212,9,212,10,0],[213,13,213,35,0],[214,13,214,53,0],[215,13,215,35,0],[216,13,216,40,0],[217,13,217,14,0],[218,17,218,40,0],[219,17,219,39,0],[220,13,220,14,0],[222,13,222,30,0],[224,13,224,39,0],[225,13,225,14,0],[226,17,226,53,0],[227,13,227,14,0],[229,13,229,117,0],[230,9,230,10,0],[233,9,233,10,0],[234,13,234,68,0],[235,13,235,14,0],[236,17,236,33,0],[237,17,237,108,0],[237,108,237,116,0],[237,116,237,118,0],[237,17,237,118,0],[238,13,238,14,0],[240,13,240,31,0],[241,9,241,10,0],[244,9,244,10,0],[245,13,245,25,0],[248,21,248,68,0],[249,21,249,22,0],[250,25,250,88,0],[250,88,250,136,0],[250,136,250,170,0],[250,25,250,170,0],[251,25,251,40,0],[252,21,252,22,0],[253,21,253,27,0],[255,21,255,68,0],[256,21,256,22,0],[257,25,257,47,0],[258,29,258,44,0],[260,25,260,64,0],[261,29,261,90,0],[263,29,263,87,0],[264,21,264,22,0],[265,21,265,27,0],[269,13,269,79,0],[270,9,270,10,0],[273,9,273,10,0],[274,13,274,69,0],[275,13,275,68,0],[276,13,276,14,0],[277,17,277,48,0],[278,17,278,62,0],[279,17,279,63,0],[280,17,280,39,0],[281,17,281,29,0],[284,13,284,26,0],[285,9,285,10,0],[288,9,288,10,0],[289,13,289,69,0],[290,13,290,68,0],[291,13,291,14,0],[292,17,292,39,0],[295,13,295,26,0],[296,9,296,10,0],[301,13,301,17,0],[302,13,302,25,0],[306,9,306,10,0],[307,13,307,31,0],[308,17,308,30,0],[310,13,310,35,0],[311,13,311,30,0],[312,17,312,30,0],[314,13,314,40,0],[315,13,315,33,0],[316,17,316,30,0],[318,13,318,37,0],[319,13,319,20,0],[319,22,319,36,0],[319,37,319,39,0],[319,40,319,101,0],[320,13,320,14,0],[321,17,321,41,0],[322,17,322,18,0],[323,21,323,40,0],[324,21,324,27,0],[327,17,327,111,0],[328,17,330,77,0],[331,17,331,18,0],[332,21,332,40,0],[333,21,333,27,0],[336,17,336,35,0],[337,13,337,14,0],[339,13,339,31,0],[340,9,340,10,0],[343,9,343,10,0],[344,13,344,46,0],[345,13,345,20,0],[345,22,345,36,0],[345,37,345,39,0],[345,40,345,101,0],[346,13,346,14,0],[347,17,347,111,0],[348,17,348,69,0],[349,13,349,14,0],[350,9,350,10,0]]);
+    </script>
+  </body>
+</html>

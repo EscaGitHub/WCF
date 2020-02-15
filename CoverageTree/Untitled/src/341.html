@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\DataViewModels\DataCardItemVM.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.ComponentModel;
+using System.Linq;
+using System.Windows;
+using Swr.Configurator.Data;
+using SwrUILogic.Data;
+
+namespace Swr.Configurator.View.DataViewModels
+{
+	internal class DataCardItemVM : ErrorCollector, IDataErrorInfo
+	{
+		private readonly IDataCardItem _item;
+		private string _value;
+		private Visibility _maskNameVisibility;
+		private FontWeight _isNecesary;
+
+		public DataCardItemVM(IDataCardItem item)
+		{
+			_item = item;
+			Value = _item.Value;
+            _isChanged = false;
+            _item.IsChanged = false;
+			MaskNameVisibility = item.IsMaskName ? Visibility.Visible : Visibility.Hidden;
+			NameBold = item.IsNecessary ? FontWeights.Bold : FontWeights.Normal;
+		}
+
+		public Visibility MaskNameVisibility
+		{
+			get =&gt; _maskNameVisibility;
+			set
+			{
+				_maskNameVisibility = value;
+				OnPropertyChanged(nameof(MaskNameVisibility));
+			}
+		}
+
+		public FontWeight NameBold
+		{
+			get =&gt; _isNecesary;
+			set 
+
+		{
+			_isNecesary = value;
+			OnPropertyChanged(nameof(NameBold));
+		}
+		}
+
+		public string Name
+		{
+			get =&gt; _item.Name;
+			set
+			{
+				//_item.Name = value;
+				OnPropertyChanged(nameof(Name));
+			}
+		}
+
+		public string Value
+		{
+			get =&gt; _value;
+			set
+			{
+				_value = value;
+                _isChanged = true;
+                _item.IsChanged = true;
+				OnPropertyChanged(nameof(Value));
+			}
+		}
+
+
+
+		public string this[string propertyName]
+		{
+			get
+			{
+
+				string propName = &quot;Value&quot;;
+				if (_item.IsNecessary &amp;&amp; (string.IsNullOrWhiteSpace(propertyName) || propertyName == propName))
+                {
+                    _item.ClearPropertyError();
+
+                    if (string.IsNullOrEmpty(Value))
+                    {
+                        var message = &quot;Значение поля пустое&quot;;
+                        _item.SetPropertyError(message);
+                        return message;
+                    }
+
+                    if (Value.Length &gt; 255)
+                    {
+                        var message = &quot;Значение поля не может быть больше 255&quot;;
+                        _item.SetPropertyError(message);
+                        return message;
+                    }
+
+                    //DeleteErrorsForProperty(this, propName);
+
+                    //var errors = new List&lt;string&gt;();
+                    //foreach (var itemChecker in _item.Checkers)
+                    //{
+                    //	var checkResult = itemChecker.Check(Value);
+                    //	if (checkResult.hasError)
+                    //		errors.Add(checkResult.errorText);
+                    //}
+                    //AddError(this, propName, string.Join(Environment.NewLine, errors));
+                }
+
+				return string.Join(Environment.NewLine, Errors.Where(x =&gt; x.PropertyName == propertyName).Select(x =&gt; x.ErrorMessage));
+			}
+		}
+
+		public string Error =&gt; this[null];
+
+		public override void UpdateValidation()
+		{
+			
+		}
+
+        private bool _isChanged;
+
+        public void Revert()
+		{
+			Value = _item.Value;
+            _isChanged = false;
+        }
+
+		public void Save()
+		{
+			_item.Value = Value;
+            //_item.IsChanged = false; //_isChanged;
+        }
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[17,3,17,44,0],[18,3,18,4,0],[19,4,19,17,0],[20,4,20,24,0],[21,13,21,32,0],[22,13,22,37,0],[23,4,23,82,0],[24,4,24,72,0],[25,3,25,4,0],[29,11,29,30,0],[31,4,31,5,0],[32,5,32,33,0],[33,5,33,51,0],[34,4,34,5,0],[39,11,39,22,0],[42,3,42,4,0],[43,4,43,24,0],[44,4,44,40,0],[45,3,45,4,0],[50,11,50,21,0],[52,4,52,5,0],[54,5,54,37,0],[55,4,55,5,0],[60,11,60,17,0],[62,4,62,5,0],[63,5,63,20,0],[64,17,64,35,0],[65,17,65,40,0],[66,5,66,38,0],[67,4,67,5,0],[75,4,75,5,0],[77,5,77,31,0],[78,5,78,100,0],[79,17,79,18,0],[80,21,80,48,0],[82,21,82,53,0],[83,21,83,22,0],[84,25,84,62,0],[85,25,85,57,0],[86,25,86,40,0],[89,21,89,44,0],[90,21,90,22,0],[91,25,91,80,0],[92,25,92,57,0],[93,25,93,40,0],[106,17,106,18,0],[108,5,108,63,0],[108,63,108,93,0],[108,93,108,107,0],[108,107,108,121,0],[108,121,108,124,0],[108,5,108,124,0],[109,4,109,5,0],[112,26,112,36,0],[115,3,115,4,0],[117,3,117,4,0],[122,3,122,4,0],[123,4,123,24,0],[124,13,124,32,0],[125,9,125,10,0],[128,3,128,4,0],[129,4,129,24,0],[131,9,131,10,0]]);
+    </script>
+  </body>
+</html>

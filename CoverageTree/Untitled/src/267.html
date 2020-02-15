@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Controls\ComponentTreeUC.xaml.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows;
+using System.Windows.Controls;
+using Swr.Configurator.Properties;
+using Swr.Configurator.View.DataViewModels;
+
+namespace Swr.Configurator.View.Controls
+{
+	/// &lt;summary&gt;
+	/// Логика взаимодействия для ComponentTreeUC.xaml
+	/// &lt;/summary&gt;
+	public partial class ComponentTreeUC : UserControl, INotifyPropertyChanged
+	{
+		public ComponentTreeUC()
+		{
+			InitializeComponent();
+		}
+
+		private StructureVM vm;
+
+		private void StructureUC_OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+		{
+			vm = e.NewValue as StructureVM;
+		}
+
+		public event PropertyChangedEventHandler PropertyChanged;
+
+		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+		{
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[15,3,15,27,0],[16,3,16,4,0],[17,4,17,26,0],[18,3,18,4,0],[23,3,23,4,0],[24,4,24,35,0],[25,3,25,4,0],[30,3,30,4,0],[31,4,31,78,0],[32,3,32,4,0]]);
+    </script>
+  </body>
+</html>

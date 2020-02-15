@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\DropTargetBase.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    abstract class DropTargetBase : DependencyObject
+    {
+        #region IsDraggingOver
+
+        /// &lt;summary&gt;
+        /// IsDraggingOver Attached Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty IsDraggingOverProperty =
+            DependencyProperty.RegisterAttached(&quot;IsDraggingOver&quot;, typeof(bool), typeof(DropTargetBase),
+                new FrameworkPropertyMetadata((bool)false));
+
+        /// &lt;summary&gt;
+        /// Gets the IsDraggingOver property.  This dependency property 
+        /// indicates if user is dragging a window over the target element.
+        /// &lt;/summary&gt;
+        public static bool GetIsDraggingOver(DependencyObject d)
+        {
+            return (bool)d.GetValue(IsDraggingOverProperty);
+        }
+
+        /// &lt;summary&gt;
+        /// Sets the IsDraggingOver property.  This dependency property 
+        /// indicates if user is dragging away a window from the target element.
+        /// &lt;/summary&gt;
+        public static void SetIsDraggingOver(DependencyObject d, bool value)
+        {
+            d.SetValue(IsDraggingOverProperty, value);
+        }
+
+        #endregion
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[32,9,34,61,0],[41,9,41,10,0],[42,13,42,61,0],[43,9,43,10,0],[50,9,50,10,0],[51,13,51,55,0],[52,9,52,10,0]]);
+    </script>
+  </body>
+</html>

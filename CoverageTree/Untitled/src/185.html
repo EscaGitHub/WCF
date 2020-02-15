@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Data\Api\AttributeApi.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.ComponentModel.DataAnnotations;
+
+namespace Swr.Configurator.Common.Data.Api
+{
+    public class AttributeApi
+    {
+        [Required(ErrorMessage = &quot;Field &#39;Name&#39; is required.&quot;)]
+        public string Name { get; set; }
+
+        [Required(ErrorMessage = &quot;Field &#39;Value&#39; is required.&quot;, AllowEmptyStrings = true)]
+        public string Value { get; set; }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[8,30,8,34,1],[8,35,8,39,1],[11,31,11,35,1],[11,36,11,40,1]]);
+    </script>
+  </body>
+</html>

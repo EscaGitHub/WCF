@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\IntegrationTest\ServiceTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Service;
+using Swr.Capital1C.Service.Domain.Services.Boms.Models;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models;
+using Swr.Capital1C.Service.Settings;
+using Swr.Capital1C.Service.Settings.Model;
+using Xunit;
+using Xunit.Extensions.Ordering;
+
+namespace IntegrationTest
+{
+    public class ServiceTest
+    {
+        private CommonSettings _settings;
+
+        public ServiceTest()
+        {
+            CommonSettingsController.Dispose();
+            _settings = CommonSettingsController.Settings;
+        }
+
+        private const string Skip = &quot;&quot;;
+
+        [Fact]
+        public void IsAvailable_ShouldReturnTrue()
+        {
+            var service = new Service(null);
+
+            var result = service.IsAvailable();
+
+            Assert.True(result);
+        }
+
+        [Fact(Skip = Skip), Order(1)]
+        public void GetNomenclatures_ShouldReturnNomenclatures()
+        {
+            var settings = CommonSettingsController.Settings;
+            settings.NomenclatureDefinition.FolderDefinitions = new List&lt;FolderDefinition&gt;
+            {
+                new FolderDefinition
+                {
+                    FolderPaths = new List&lt;string&gt; { @&quot;\Проекты\Тесты\009 Полная цепочка СП\&quot; }
+                }
+            };
+
+            var guid = Guid.NewGuid().ToString();
+
+            var request = new ITEMS_REQ
+            {
+                HEADER = new HEADER
+                {
+                    MSGID = guid,
+                    TIMESTAMP = DateTime.Now.ToString(CultureInfo.InvariantCulture)
+                }
+            };
+
+            var service = new Service(settings);
+            var result = service.GetNomenclatures(request);
+
+            Assert.Equal(guid, result.HEADER.MSGID);
+            Assert.Equal(3, result.ITEMS.Length);
+
+            var item = result.ITEMS.FirstOrDefault(t =&gt; t.ID == &quot;P0000037172&quot;);
+            Assert.NotNull(item);
+            Assert.Equal(&quot;Детали&quot;, item.BOM_PART);
+            Assert.Equal(&quot;Ручка SWR.019.010&quot;, item.NAME);
+            Assert.Equal(60.3f, item.WEIGHT);
+        }
+
+        [Fact(Skip = Skip)]
+        [Order(2)]
+        public void SetNomenclaturesResponse_ShouldUpdateStatusAttribute()
+        {
+            var settings = CommonSettingsController.Settings;
+            settings.NomenclatureDefinition.FolderDefinitions = new List&lt;FolderDefinition&gt;
+            {
+                new FolderDefinition
+                {
+                    FolderPaths = new List&lt;string&gt; { @&quot;\Проекты\Тесты\007 Обновление переменной\&quot; }
+                }
+            };
+
+            var guid = Guid.NewGuid().ToString();
+
+            var request = new ITEM_RESULTS_REQ
+            {
+                HEADER = new HEADER
+                {
+                    MSGID = guid,
+                    TIMESTAMP = DateTime.Now.ToString(CultureInfo.InvariantCulture)
+                },
+                ITEM_RESULTS = new []
+                {
+                    new ITEM_RESULT
+                    {
+                        ID = &quot;P0000036686&quot;,
+                        RESULT = 0,
+                        MESSAGE = &quot;Ошибка номенклатуры&quot;
+                    }, 
+                }
+            };
+
+            var service = new Service(settings);
+            var result = service.SetNomenclaturesResponse(request);
+
+            // SWR.007.030.SLDPRT, По умолчанию, Прочее, Статус и описание ошибки
+        }
+
+        [Fact]
+        [Order(3)]
+        public void GetBoms_ShouldReturnBoms()
+        {
+            var settings = CommonSettingsController.Settings;
+            settings.NomenclatureDefinition.FolderDefinitions = new List&lt;FolderDefinition&gt;
+            {
+                new FolderDefinition
+                {
+                    FolderPaths = new List&lt;string&gt; { @&quot;\Проекты\Тесты\009 Полная цепочка СП\&quot; }
+                }
+            };
+
+            var guid = Guid.NewGuid().ToString();
+
+            var request = new BOMS_REQ
+            {
+                HEADER = new HEADER
+                {
+                    MSGID = guid,
+                    TIMESTAMP = DateTime.Now.ToString(CultureInfo.InvariantCulture)
+                }
+            };
+
+            var service = new Service(settings);
+            var result = service.GetBoms(request);
+
+            Assert.Equal(guid, result.HEADER.MSGID);
+            Assert.Equal(2,result.BOMS.Length);
+
+            var item = result.BOMS.FirstOrDefault(t =&gt; t.PARENT_ID == &quot;P0000037175&quot;);
+            Assert.NotNull(item);
+            Assert.Equal(&quot;Ручка&quot;, item.BOM_NAME);
+            Assert.Equal(&quot;A&quot;, item.VERSION);
+            Assert.Equal(1, item.QTY_BOM);
+            Assert.Single(item.ROWS);
+            var row = item.ROWS[0];
+            Assert.Equal(&quot;P0000037172&quot;, row.CHILD_ID);
+            Assert.Equal(&quot;796&quot;, row.UOM);
+            Assert.Equal(1, row.QTY);
+
+            item = result.BOMS.FirstOrDefault(t =&gt; t.PARENT_ID == &quot;P0000037174&quot;);
+            Assert.NotNull(item);
+            Assert.Equal(&quot;Ручка длинная&quot;, item.BOM_NAME);
+            Assert.Equal(&quot;A&quot;, item.VERSION);
+            Assert.Equal(1, item.QTY_BOM);
+            Assert.Single(item.ROWS);
+            row = item.ROWS[0];
+            Assert.Equal(&quot;P0000037172&quot;, row.CHILD_ID);
+            Assert.Equal(&quot;796&quot;, row.UOM);
+            Assert.Equal(5, row.QTY);
+        }
+
+        [Fact(Skip = Skip)]
+        [Order(4)]
+        public void SetBomsResponse_ShouldUpdateStatusAttribute()
+        {
+            var settings = CommonSettingsController.Settings;
+            settings.NomenclatureDefinition.FolderDefinitions = new List&lt;FolderDefinition&gt;
+            {
+                new FolderDefinition
+                {
+                    FolderPaths = new List&lt;string&gt; { @&quot;\Проекты\Тесты\007 Обновление переменной\&quot; }
+                }
+            };
+
+            var guid = Guid.NewGuid().ToString();
+
+            var request = new BOM_RESULTS_REQ
+            {
+                HEADER = new HEADER
+                {
+                    MSGID = guid,
+                    TIMESTAMP = DateTime.Now.ToString(CultureInfo.InvariantCulture)
+                },
+                BOM_RESULTS = new[]
+                {
+                    new BOM_RESULT
+                    {
+                        ID = &quot;P0000036686&quot;,
+                        RESULT = 0,
+                        MESSAGE = &quot;Ошибка СП&quot;
+                    },
+                }
+            };
+
+            var service = new Service(settings);
+            var result = service.SetBomsResponse(request);
+
+            // SWR.007.030.SLDPRT, По умолчанию, Прочее, Статус и описание ошибки
+        }
+
+        //[Fact(Skip = Skip), Order(5)]
+        public void SetNomenclaturesResponse_ShouldSendMessageOnException()
+        {
+            var settings = CommonSettingsController.Settings;
+            var tmpAddress = settings.NomenclatureCatalogServiceConnection.IdentityAddress;
+
+            settings.NomenclatureCatalogServiceConnection.IdentityAddress = tmpAddress + &quot;wrong&quot;; // Throw Exception
+
+            var guid = Guid.NewGuid().ToString();
+
+            var request = new ITEM_RESULTS_REQ
+            {
+                HEADER = new HEADER
+                {
+                    MSGID = guid,
+                    TIMESTAMP = DateTime.Now.ToString(CultureInfo.InvariantCulture)
+                },
+                ITEM_RESULTS = new[]
+                {
+                    new ITEM_RESULT
+                    {
+                        ID = &quot;P0000036686&quot;,
+                        RESULT = 0,
+                        MESSAGE = &quot;Ошибка номенклатуры&quot;
+                    },
+                }
+            };
+
+            var service = new Service(settings);
+
+            Assert.Throws&lt;AggregateException&gt;(() =&gt; service.SetNomenclaturesResponse(request));
+
+            settings.NomenclatureCatalogServiceConnection.IdentityAddress = tmpAddress;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[21,9,21,29,1],[22,9,22,10,1],[23,13,23,48,1],[24,13,24,59,1],[25,9,25,10,1],[31,9,31,10,1],[32,13,32,45,1],[34,13,34,48,1],[36,13,36,33,1],[37,9,37,10,1],[41,9,41,10,1],[42,13,42,62,1],[43,13,49,15,1],[51,13,51,50,1],[53,13,60,15,1],[62,13,62,49,1],[63,13,63,60,1],[65,13,65,53,1],[66,13,66,50,1],[68,13,68,57,1],[68,57,68,78,1],[68,78,68,80,1],[68,13,68,80,1],[69,13,69,34,1],[70,13,70,51,1],[71,13,71,58,1],[72,13,72,46,1],[73,9,73,10,1],[78,9,78,10,1],[79,13,79,62,1],[80,13,86,15,1],[88,13,88,50,1],[90,13,106,15,1],[108,13,108,49,1],[109,13,109,68,1],[112,9,112,10,1],[117,9,117,10,1],[118,13,118,62,1],[119,13,125,15,1],[127,13,127,50,1],[129,13,136,15,1],[138,13,138,49,1],[139,13,139,51,1],[141,13,141,53,1],[142,13,142,48,1],[144,13,144,56,1],[144,56,144,84,1],[144,84,144,86,1],[144,13,144,86,1],[145,13,145,34,1],[146,13,146,50,1],[147,13,147,45,1],[148,13,148,43,1],[149,13,149,38,1],[150,13,150,36,1],[151,13,151,55,1],[152,13,152,42,1],[153,13,153,38,1],[155,13,155,52,1],[155,52,155,80,1],[155,80,155,82,1],[155,13,155,82,1],[156,13,156,34,1],[157,13,157,58,1],[158,13,158,45,1],[159,13,159,43,1],[160,13,160,38,1],[161,13,161,32,1],[162,13,162,55,1],[163,13,163,42,1],[164,13,164,38,1],[165,9,165,10,1],[170,9,170,10,1],[171,13,171,62,1],[172,13,178,15,1],[180,13,180,50,1],[182,13,198,15,1],[200,13,200,49,1],[201,13,201,59,1],[204,9,204,10,1],[208,9,208,10,0],[209,13,209,62,0],[210,13,210,92,0],[212,13,212,98,0],[214,13,214,50,0],[216,13,232,15,0],[234,13,234,49,0],[236,13,236,53,0],[236,53,236,94,0],[236,94,236,96,0],[236,13,236,96,0],[238,13,238,88,0],[239,9,239,10,0]]);
+    </script>
+  </body>
+</html>

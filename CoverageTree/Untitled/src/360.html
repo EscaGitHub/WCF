@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\WebApiControllers\SpecificationControllerTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Common.Data.Api;
+using SWR.ConfiguratorApi.Controllers;
+using SWR.ConfiguratorApi.Data;
+using SWR.ConfiguratorApi.Data.Db;
+using SWR.ConfiguratorApi.Logic;
+using SWR.ConfiguratorApi.Logic.Converters;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace Swr.Configurator.Test.WebApiControllers
+{
+    public class SpecificationControllerTest : IDisposable
+    {
+        private readonly ITestOutputHelper _output;
+
+        private SpecificationController _controller;
+
+        private Stopwatch _stopWatch = new Stopwatch();
+        private ComponentController _componentController;
+
+        public SpecificationControllerTest(ITestOutputHelper output) 
+        {
+            //TODO: До запусков необходимо загрузить 800+ компонентов, это делается через тест контроллера компонентов
+
+            _output = output;
+
+            SetTestSettingsConnection();
+
+            var settingsService = new SettingsService();
+            _controller = new SpecificationController(settingsService)
+            {
+                ControllerContext = new ControllerContext { HttpContext = HttpContextMock.Get() }
+            };
+
+            _componentController = new ComponentController(settingsService)
+            {
+                ControllerContext = new ControllerContext { HttpContext = HttpContextMock.Get() }
+            };
+
+            _stopWatch.Restart();
+
+        }
+
+        private void SetTestSettingsConnection()
+        {
+            var settings = new DBSettings { DatabaseName = &quot;swr_configurator&quot;, Host = &quot;192.168.0.109&quot;, UserName = &quot;postgres&quot;, Password = &quot;newtime&quot;, Port = 5432 };
+
+            DbSettingsSingleton.Instance.SetValues(settings);
+        }
+
+        [Theory]
+        [InlineData(10, 1)]
+        [InlineData(100, 2)]
+        [InlineData(200, 4)]
+        [InlineData(400, 6)]
+        [InlineData(800, 12)]
+        public void AddSpecificationWithComponentTestP05(int componentCount, int second) // P-05
+        {
+            SetTestSettingsConnection();
+
+            var count = 1;
+
+            var specifications = new List&lt;Specification&gt;();
+
+            _output.WriteLine(&quot;Components count: &quot; + componentCount);
+            Component[] components;
+
+			using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                components = TestHelper.FillComponentsWithAttributes(componentCount);
+				dbController.AddComponents(components);
+
+                for (int i = 0; i &lt; count; i++)
+                {
+                    var sp = CreateSpecification(components, componentCount);
+
+                    sp.Name = &quot;Спецификация&quot; + i;
+
+                    specifications.Add(sp);
+                }
+
+                _output.WriteLine(&quot;Start AddSpecifications: &quot; + _stopWatch.Elapsed);
+
+                dbController.CreateSpecifications(specifications);
+
+                dbController.SaveClose();
+
+                _output.WriteLine(&quot;End AddSpecifications: &quot; + _stopWatch.Elapsed);
+            }
+
+            //Assert.True(_stopWatch.Elapsed &lt; new TimeSpan(0, 0, second));
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                foreach (var specification in specifications)
+                {
+                    dbController.DeleteSpecification(specification.Id);
+                }
+                dbController.DeleteComponents(components.Select(t=&gt;t.Id).ToArray());
+
+				dbController.SaveClose();
+            }
+        }
+
+        [Theory]
+        [InlineData(1, 1)]
+        [InlineData(100, 1)]
+        [InlineData(200, 2)]
+        [InlineData(400, 4)]
+        [InlineData(800, 8)]
+        public void GetSpecificationsP06(int componentCount, int second) // P-06
+        {
+            SetTestSettingsConnection();
+
+            var count = 1;
+
+            var specifications = new List&lt;Specification&gt;();
+
+            _output.WriteLine(&quot;Components count: &quot; + componentCount);
+            _output.WriteLine(&quot;Need time: &quot; + second);
+            Component[] components;
+			// Preparing:
+			using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                components = TestHelper.FillComponentsWithAttributes(componentCount);
+				dbController.AddComponents(components);
+
+				var sp = CreateSpecification(components, componentCount);
+
+                sp.Name = &quot;Спецификация&quot;;
+
+                specifications.Add(sp);
+
+                dbController.CreateSpecifications(specifications);
+
+                dbController.SaveClose();
+
+                _output.WriteLine(&quot;Create specification for test: &quot; + _stopWatch.Elapsed);
+            }
+
+            // Run:
+            _stopWatch.Restart();
+
+            const int i = 100;
+
+            _output.WriteLine(&quot;Thread count: &quot; + i);
+
+            var spId = specifications[0].Id;
+            var parentComponentId = specifications[0].ParentComponentId;
+
+            var tasks = new Task&lt;IActionResult&gt;[i];
+
+            for (var y = 0; y &lt; i; y++)
+            {
+                tasks[y] = new Task&lt;IActionResult&gt;(() =&gt; _controller.Read(parentComponentId.ToString()));
+            }
+
+            foreach (var task in tasks)
+            {
+                task.Start();
+            }
+
+            Task.WaitAll(tasks);
+
+            _stopWatch.Stop();
+
+            _output.WriteLine(&quot;Get specification: &quot; + _stopWatch.Elapsed);
+
+            // Clean:
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                foreach (var specification in specifications)
+                {
+	                dbController.DeleteSpecification(specification.Id);
+                }
+				dbController.DeleteComponents(components.Select(t =&gt; t.Id).ToArray());
+
+				dbController.SaveClose();
+            }
+
+            Assert.True(_stopWatch.Elapsed &lt; new TimeSpan(0, 0, second));
+        }
+
+        private Specification CreateSpecification(Component[] components, int componentCount)
+        {
+            var specification = new Specification();
+            specification.SetEmpty();
+            //specification.Id = Guid.Parse(&quot;A6E1B11F-F593-4388-BD70-8719DFEB8BB4&quot;);
+            specification.Name = &quot;Спецификация1&quot;;
+            specification.Revision = 1;
+            specification.Version = 1;
+            specification.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+            specification.StateEnum = StateEnum.Locked;
+            specification.ParentComponentId = components[0].Id;
+
+            for (int i = 1; i &lt; componentCount; i++)
+            {
+                var relation = new Relation();
+                relation.SpecificationId = specification.Id;
+                relation.RelationTypeId = Guid.Parse(&quot;a670463c-89db-4fe1-9885-163b4e3e647d&quot;);
+                relation.ComponentId = components[i].Id;//Guid.Parse(&quot;aef37e48-43cd-4baa-a95a-92a676f0d2d0&quot;);
+                relation.RelationAttributes = FillRelationAttributes(relation, i + 1);
+                specification.Relations.Add(relation);
+            }
+            
+            return specification;
+        }
+
+        private List&lt;RelationAttribute&gt; FillRelationAttributes(Relation relation, int i)
+        {
+            var result = new List&lt;RelationAttribute&gt;();
+            var relationAttribute = new RelationAttribute();
+            relationAttribute.RelationId = relation.Id;
+            relationAttribute.SpecificationTypeAttrId = Guid.Parse(&quot;b4bbb607-bfaa-4d69-a314-b67e0af28bfa&quot;);
+            relationAttribute.Value = i + &quot;-Наименование&quot;;
+            result.Add(relationAttribute);
+
+            relationAttribute = new RelationAttribute();
+            relationAttribute.RelationId = relation.Id;
+            relationAttribute.SpecificationTypeAttrId = Guid.Parse(&quot;652BFE09-ED9F-4D77-AD67-BB0E15E4CC35&quot;);
+            relationAttribute.Value = i + &quot;-Обозначение&quot;;
+            result.Add(relationAttribute);
+
+            relationAttribute = new RelationAttribute();
+            relationAttribute.RelationId = relation.Id;
+            relationAttribute.SpecificationTypeAttrId = Guid.Parse(&quot;9FEE73C3-D0DE-416C-B876-605EC543A92A&quot;);
+            relationAttribute.Value = i + &quot;-Количество&quot;;
+            result.Add(relationAttribute);
+
+            relationAttribute = new RelationAttribute();
+            relationAttribute.RelationId = relation.Id;
+            relationAttribute.SpecificationTypeAttrId = Guid.Parse(&quot;FA192BAE-9C02-4C99-85CE-06D643A18FA7&quot;);
+            relationAttribute.Value = i + &quot;-Схемное обозначение&quot;;
+            result.Add(relationAttribute);
+
+            relationAttribute = new RelationAttribute();
+            relationAttribute.RelationId = relation.Id;
+            relationAttribute.SpecificationTypeAttrId = Guid.Parse(&quot;410D5F81-48CF-4935-8FEA-FDBB9F94A902&quot;);
+            relationAttribute.Value = i + &quot;-Позиция&quot;;
+            result.Add(relationAttribute);
+
+
+            return result;
+        }
+
+
+        [Fact]
+        public void ReadSpecificationTest()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                var attribute = Guid.NewGuid();
+                ComponentApiNew[] components = PrepareComponent(attribute.ToString(), &quot;ReadSpecification&quot;);
+                //var componentController = new ComponentController(null);
+                var compResult = _componentController.Create(components);
+
+                var jsonResult = compResult as JsonResult;
+                Assert.True(jsonResult != null);
+                var createscomp = (List&lt;ComponentApiExist&gt;)jsonResult.Value;
+
+                //создание спецификации
+                var settingsService = new SettingsService();
+                //var specController = new SpecificationController(settingsService);
+                var specForCreate = PrepareSpecification(createscomp);
+                var specResult = _controller.Create(specForCreate);
+                jsonResult = specResult as JsonResult;
+
+                Assert.True(jsonResult != null);
+
+                var createdSpec = jsonResult.Value as SpecificationApiExist;
+
+                var createdSpecResult = _controller.Read(createscomp[0].Id.ToString());
+                jsonResult = createdSpecResult as JsonResult;
+                Assert.True(jsonResult != null);
+                var createdSpecsFromDB = jsonResult.Value as SpecificationApiExist[];
+
+                Assert.NotNull(createdSpecsFromDB);
+                Assert.True(createdSpecsFromDB.Length != 0);
+
+                dbController.SaveClose();
+
+                //удаляем созданные для теста компоненты
+                dbController.Connect();
+
+                dbController.DeleteSpecification(createdSpecsFromDB[0].ID);
+                var componentIds = createscomp.Select(t =&gt; t.Id).ToArray();
+                dbController.DeleteComponents(componentIds);
+
+                dbController.SaveClose();
+
+            }
+        }
+
+
+        public ComponentApiNew[] PrepareComponent(string attribute, string name_prefix)
+        {
+            var comps = new ComponentApiNew[5];
+            comps[0] = new ComponentApiNew()
+            {
+                TypeName = &quot;Сборочная единица&quot;,
+                Attributes = new List&lt;AttributeApi&gt;()
+                {
+                    new AttributeApi { Name = &quot;Обозначение&quot;,
+                                        Value = name_prefix + &quot;_ТЕСТОВАЯ_СБОРКА&quot; },
+                    new AttributeApi(){Name = &quot;Наименование&quot;, Value = attribute}
+                }
+            };
+
+            comps[1] = new ComponentApiNew()
+            {
+                TypeName = &quot;Деталь&quot;,
+                Attributes = new List&lt;AttributeApi&gt;()
+                {
+                    new AttributeApi { Name = &quot;Обозначение&quot;,
+                        Value = name_prefix + &quot;_ТЕСТОВАЯ_ДЕТАЛЬ1&quot; },
+                    new AttributeApi(){Name = &quot;Наименование&quot;, Value = attribute}
+                }
+            };
+
+            comps[2] = new ComponentApiNew()
+            {
+                TypeName = &quot;Деталь&quot;,
+                Attributes = new List&lt;AttributeApi&gt;()
+                {
+                    new AttributeApi { Name = &quot;Обозначение&quot;,
+                        Value = name_prefix + &quot;_ТЕСТОВАЯ_ДЕТАЛЬ2&quot; },
+                    new AttributeApi(){Name = &quot;Наименование&quot;, Value = attribute}
+                }
+            };
+
+            comps[3] = new ComponentApiNew()
+            {
+                TypeName = &quot;Деталь&quot;,
+                Attributes = new List&lt;AttributeApi&gt;()
+                {
+                    new AttributeApi { Name = &quot;Обозначение&quot;,
+                        Value = name_prefix + &quot;_ТЕСТОВАЯ_ДЕТАЛЬ3&quot; },
+                    new AttributeApi(){Name = &quot;Наименование&quot;, Value = attribute}
+                }
+            };
+
+            comps[4] = new ComponentApiNew()
+            {
+                TypeName = &quot;Деталь&quot;,
+                Attributes = new List&lt;AttributeApi&gt;()
+                {
+                    new AttributeApi { Name = &quot;Обозначение&quot;,
+                        Value = name_prefix + &quot;_ТЕСТОВАЯ_ДЕТАЛЬ4&quot; },
+                    new AttributeApi(){Name = &quot;Наименование&quot;, Value = attribute}
+                }
+            };
+            return comps;
+        }
+
+        private SpecificationApiNew PrepareSpecification(List&lt;ComponentApiExist&gt; components)
+        {
+            var specification = new SpecificationApiNew();
+            specification.ComponentID = components[0].Id;
+
+            specification.TypeName = &quot;Конструкторская спецификация&quot;;
+
+            specification.Childs = new List&lt;SpecificationComponentApi&gt;()
+            {   new SpecificationComponentApi()
+                {
+                    ID =  components[1].Id,
+                    RelationAttributes = new List&lt;AttributeApi&gt;(){ new AttributeApi() { Name = &quot;Количество&quot;,Value = &quot;1&quot;} }
+                },
+                new SpecificationComponentApi()
+                {
+                    ID =  components[2].Id,
+                    RelationAttributes = new List&lt;AttributeApi&gt;(){ new AttributeApi() { Name = &quot;Количество&quot;,Value = &quot;2&quot;} }
+                },
+                new SpecificationComponentApi()
+                {
+                    ID =  components[3].Id,
+                    RelationAttributes = new List&lt;AttributeApi&gt;(){ new AttributeApi() { Name = &quot;Количество&quot;,Value = &quot;3&quot;} }
+                },
+                new SpecificationComponentApi()
+                {
+                    ID =  components[4].Id,
+                    RelationAttributes = new List&lt;AttributeApi&gt;(){ new AttributeApi() { Name = &quot;Количество&quot;,Value = &quot;4&quot;} }
+                },
+            };
+
+            return specification;
+        }
+
+
+        [Fact]
+        public void CreateSpecificationForPartTest()
+        {
+            var componentApiNew = new ComponentApiNew();
+            componentApiNew.TypeName = &quot;Деталь&quot;;
+            componentApiNew.Attributes = new List&lt;AttributeApi&gt;();
+            componentApiNew.Attributes.Add(new AttributeApi {Name = &quot;Обозначение&quot;, Value = &quot;Тестовая_Деталь1&quot;});
+
+            var componentApiNew1 = new ComponentApiNew();
+            componentApiNew1.TypeName = &quot;Деталь&quot;;
+            componentApiNew1.Attributes = new List&lt;AttributeApi&gt;();
+            componentApiNew1.Attributes.Add(new AttributeApi { Name = &quot;Обозначение&quot;, Value = &quot;Тестовая_Деталь2&quot; });
+
+            var components = new ComponentApiNew[2];
+            components[0] = componentApiNew;
+            components[1] = componentApiNew1;
+            var jsonResult = _componentController.Create(components);
+            var result = ((JsonResult) jsonResult).Value as List&lt;ComponentApiExist&gt;;
+
+
+            Assert.NotNull(result);
+            var specification = new SpecificationApiNew();
+
+            specification.ComponentID = result[0].Id;
+            specification.TypeName = &quot;Конструкторская спецификация&quot;;
+            var component = new SpecificationComponentApi();
+            component.ID = result[1].Id;
+            component.RelationAttributes = new List&lt;AttributeApi&gt;()
+                {new AttributeApi() {Name = &quot;Количество&quot;, Value = &quot;4&quot;}};
+
+            var actionResult = (BadRequestObjectResult)_controller.Create(specification);
+
+            Assert.NotNull(actionResult);
+            //Assert.Equal($&quot;{{\&quot;StatusCode\&quot;:400,\&quot;Message\&quot;:\&quot;Specification type Конструкторская спецификация could not be created for component {specification.ComponentID}\&quot;}}&quot;, actionResult.Value);
+
+            //удаляем созданные для теста компоненты
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                //dbController.DeleteSpecification(createdSpecFromDB.ID);
+                var componentIds = new Guid[2];
+                componentIds[0] = result[0].Id;
+                componentIds[1] = result[1].Id;
+                dbController.DeleteComponents(componentIds);
+
+                dbController.SaveClose();
+            }
+        }
+
+        [Fact]
+        public void CheckCycleReferenceTest()
+        {
+            var componentApiNew = new ComponentApiNew();
+            componentApiNew.TypeName = &quot;Сборочная единица&quot;;
+            componentApiNew.Attributes = new List&lt;AttributeApi&gt;();
+            componentApiNew.Attributes.Add(new AttributeApi { Name = &quot;Обозначение&quot;, Value = &quot;Тестовая_Деталь1&quot; });
+
+            var componentApiNew1 = new ComponentApiNew();
+            componentApiNew1.TypeName = &quot;Сборочная единица&quot;;
+            componentApiNew1.Attributes = new List&lt;AttributeApi&gt;();
+            componentApiNew1.Attributes.Add(new AttributeApi { Name = &quot;Обозначение&quot;, Value = &quot;Тестовая_Деталь2&quot; });
+
+            var componentApiNew2 = new ComponentApiNew();
+            componentApiNew2.TypeName = &quot;Сборочная единица&quot;;
+            componentApiNew2.Attributes = new List&lt;AttributeApi&gt;();
+            componentApiNew2.Attributes.Add(new AttributeApi { Name = &quot;Обозначение&quot;, Value = &quot;Тестовая_Деталь3&quot; });
+
+            var components = new ComponentApiNew[3];
+            components[0] = componentApiNew;
+            components[1] = componentApiNew1;
+            components[2] = componentApiNew2;
+            var jsonResult = _componentController.Create(components);
+            var result = ((JsonResult)jsonResult).Value as List&lt;ComponentApiExist&gt;;
+
+            Assert.NotNull(result);
+            var specification = new SpecificationApiNew();
+
+            specification.ComponentID = result[0].Id;
+            specification.TypeName = &quot;Конструкторская спецификация&quot;;
+            var component = new SpecificationComponentApi();
+            component.ID = result[1].Id;
+            component.RelationAttributes = new List&lt;AttributeApi&gt;()
+                {new AttributeApi() {Name = &quot;Количество&quot;, Value = &quot;4&quot;}};
+            specification.Childs.Add(component);
+
+            var actionResult = (ActionResult)_controller.Create(specification);
+            Assert.NotNull(actionResult);
+            var createdSpecification = ((JsonResult)actionResult).Value as SpecificationApiExist;
+            Assert.NotNull(createdSpecification);
+
+
+            var specification1 = new SpecificationApiNew();
+
+            specification1.ComponentID = result[2].Id;
+            specification1.TypeName = &quot;Конструкторская спецификация&quot;;
+            var component1 = new SpecificationComponentApi();
+            component1.ID = result[0].Id;
+            component1.RelationAttributes = new List&lt;AttributeApi&gt;()
+                {new AttributeApi() {Name = &quot;Количество&quot;, Value = &quot;4&quot;}};
+            specification1.Childs.Add(component1);
+
+            var actionResult1 = (ActionResult)_controller.Create(specification1);
+            Assert.NotNull(actionResult1);
+            var createdSpecification1 = ((JsonResult)actionResult1).Value as SpecificationApiExist;
+            Assert.NotNull(createdSpecification1);
+
+            var specification2 = new SpecificationApiNew();
+            specification2.ComponentID = result[1].Id;
+            specification2.TypeName = &quot;Конструкторская спецификация&quot;;
+            var component2 = new SpecificationComponentApi();
+            component2.ID = result[2].Id;
+            component2.RelationAttributes = new List&lt;AttributeApi&gt;()
+                {new AttributeApi() {Name = &quot;Количество&quot;, Value = &quot;4&quot;}};
+            specification2.Childs.Add(component2);
+
+            var actionResult2 = (ActionResult)_controller.Create(specification2);
+            Assert.NotNull(actionResult2);
+
+            //удаляем созданные компоненты
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                dbController.DeleteSpecification(createdSpecification.ID);
+                dbController.DeleteSpecification(createdSpecification1.ID);
+
+                dbController.DeleteComponents(result.Select(t =&gt; t.Id).ToArray());
+
+                dbController.SaveClose();
+            }
+        }
+
+
+        public void Dispose()
+        {
+            _stopWatch.Stop();
+            _output.WriteLine(&quot;Elapsed: &quot; + _stopWatch.Elapsed);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[26,9,26,56,1],[29,9,29,69,1],[30,9,30,10,1],[33,13,33,30,1],[35,13,35,41,1],[37,13,37,57,1],[38,13,41,15,1],[43,13,46,15,1],[48,13,48,34,1],[50,9,50,10,1],[53,9,53,10,1],[54,13,54,163,1],[56,13,56,62,1],[57,9,57,10,1],[66,9,66,10,1],[67,13,67,41,1],[69,13,69,27,1],[71,13,71,60,1],[73,13,73,70,1],[76,11,76,48,1],[77,13,77,14,1],[78,17,78,40,1],[80,17,80,86,1],[81,5,81,44,1],[83,22,83,31,1],[83,33,83,42,1],[83,44,83,47,1],[84,17,84,18,1],[85,21,85,78,1],[87,21,87,50,1],[89,21,89,44,1],[90,17,90,18,1],[92,17,92,85,1],[94,17,94,67,1],[96,17,96,42,1],[98,17,98,83,1],[99,13,99,14,1],[103,20,103,57,1],[104,13,104,14,1],[105,17,105,40,1],[107,17,107,24,1],[107,26,107,43,1],[107,44,107,46,1],[107,47,107,61,1],[108,17,108,18,1],[109,21,109,72,1],[110,17,110,18,1],[111,17,111,68,1],[111,68,111,72,1],[111,72,111,85,1],[111,17,111,85,1],[113,5,113,30,1],[114,13,114,14,1],[115,9,115,10,1],[124,9,124,10,1],[125,13,125,41,1],[127,13,127,27,1],[129,13,129,60,1],[131,13,131,70,1],[132,13,132,55,1],[135,11,135,48,1],[136,13,136,14,1],[137,17,137,40,1],[139,17,139,86,1],[140,5,140,44,1],[142,5,142,62,1],[144,17,144,42,1],[146,17,146,40,1],[148,17,148,67,1],[150,17,150,42,1],[152,17,152,91,1],[153,13,153,14,1],[156,13,156,34,1],[160,13,160,53,1],[162,13,162,45,1],[163,13,163,73,1],[165,13,165,52,1],[167,18,167,27,1],[167,29,167,34,1],[167,36,167,39,1],[168,13,168,14,1],[169,17,169,58,1],[169,58,169,104,1],[169,104,169,106,1],[169,17,169,106,1],[170,13,170,14,1],[172,13,172,20,1],[172,22,172,30,1],[172,31,172,33,1],[172,34,172,39,1],[173,13,173,14,1],[174,17,174,30,1],[175,13,175,14,1],[177,13,177,33,1],[179,13,179,31,1],[181,13,181,75,1],[184,20,184,57,1],[185,13,185,14,1],[186,17,186,40,1],[188,17,188,24,1],[188,26,188,43,1],[188,44,188,46,1],[188,47,188,61,1],[189,17,189,18,1],[190,18,190,69,1],[191,17,191,18,1],[192,5,192,58,1],[192,58,192,62,1],[192,62,192,75,1],[192,5,192,75,1],[194,5,194,30,1],[195,13,195,14,1],[197,13,197,74,1],[198,9,198,10,1],[201,9,201,10,1],[202,13,202,53,1],[203,13,203,38,1],[205,13,205,50,1],[206,13,206,40,1],[207,13,207,39,1],[208,13,208,100,1],[209,13,209,56,1],[210,13,210,64,1],[212,18,212,27,1],[212,29,212,47,1],[212,49,212,52,1],[213,13,213,14,1],[214,17,214,47,1],[215,17,215,61,1],[216,17,216,94,1],[217,17,217,57,1],[218,17,218,87,1],[219,17,219,55,1],[220,13,220,14,1],[222,13,222,34,1],[223,9,223,10,1],[226,9,226,10,1],[227,13,227,56,1],[228,13,228,61,1],[229,13,229,56,1],[230,13,230,108,1],[231,13,231,59,1],[232,13,232,43,1],[234,13,234,57,1],[235,13,235,56,1],[236,13,236,108,1],[237,13,237,58,1],[238,13,238,43,1],[240,13,240,57,1],[241,13,241,56,1],[242,13,242,108,1],[243,13,243,57,1],[244,13,244,43,1],[246,13,246,57,1],[247,13,247,56,1],[248,13,248,108,1],[249,13,249,66,1],[250,13,250,43,1],[252,13,252,57,1],[253,13,253,56,1],[254,13,254,108,1],[255,13,255,54,1],[256,13,256,43,1],[259,13,259,27,1],[260,9,260,10,1],[265,9,265,10,1],[266,13,266,41,1],[268,20,268,57,1],[269,13,269,14,1],[270,17,270,40,1],[272,17,272,48,1],[273,17,273,108,1],[275,17,275,74,1],[277,17,277,59,1],[278,17,278,49,1],[279,17,279,77,1],[282,17,282,61,1],[284,17,284,71,1],[285,17,285,68,1],[286,17,286,55,1],[288,17,288,49,1],[290,17,290,77,1],[292,17,292,88,1],[293,17,293,62,1],[294,17,294,49,1],[295,17,295,86,1],[297,17,297,52,1],[298,17,298,61,1],[300,17,300,42,1],[303,17,303,40,1],[305,17,305,76,1],[306,17,306,60,1],[306,60,306,64,1],[306,64,306,76,1],[306,17,306,76,1],[307,17,307,61,1],[309,17,309,42,1],[311,13,311,14,1],[312,9,312,10,1],[316,9,316,10,1],[317,13,317,48,1],[318,13,327,15,1],[329,13,338,15,1],[340,13,349,15,1],[351,13,360,15,1],[362,13,371,15,1],[372,13,372,26,1],[373,9,373,10,1],[376,9,376,10,1],[377,13,377,59,1],[378,13,378,58,1],[380,13,380,69,1],[382,13,403,15,1],[405,13,405,34,1],[406,9,406,10,1],[411,9,411,10,1],[412,13,412,57,1],[413,13,413,49,1],[414,13,414,67,1],[415,13,415,113,1],[417,13,417,58,1],[418,13,418,50,1],[419,13,419,68,1],[420,13,420,116,1],[422,13,422,53,1],[423,13,423,45,1],[424,13,424,46,1],[425,13,425,70,1],[426,13,426,85,1],[429,13,429,36,1],[430,13,430,59,1],[432,13,432,54,1],[433,13,433,69,1],[434,13,434,61,1],[435,13,435,41,1],[436,13,437,73,1],[439,13,439,90,1],[441,13,441,42,1],[445,20,445,57,1],[446,13,446,14,1],[447,17,447,40,1],[450,17,450,48,1],[451,17,451,48,1],[452,17,452,48,1],[453,17,453,61,1],[455,17,455,42,1],[456,13,456,14,1],[457,9,457,10,1],[461,9,461,10,1],[462,13,462,57,1],[463,13,463,60,1],[464,13,464,67,1],[465,13,465,115,1],[467,13,467,58,1],[468,13,468,61,1],[469,13,469,68,1],[470,13,470,116,1],[472,13,472,58,1],[473,13,473,61,1],[474,13,474,68,1],[475,13,475,116,1],[477,13,477,53,1],[478,13,478,45,1],[479,13,479,46,1],[480,13,480,46,1],[481,13,481,70,1],[482,13,482,84,1],[484,13,484,36,1],[485,13,485,59,1],[487,13,487,54,1],[488,13,488,69,1],[489,13,489,61,1],[490,13,490,41,1],[491,13,492,73,1],[493,13,493,49,1],[495,13,495,80,1],[496,13,496,42,1],[497,13,497,98,1],[498,13,498,50,1],[501,13,501,60,1],[503,13,503,55,1],[504,13,504,70,1],[505,13,505,62,1],[506,13,506,42,1],[507,13,508,73,1],[509,13,509,51,1],[511,13,511,82,1],[512,13,512,43,1],[513,13,513,100,1],[514,13,514,51,1],[516,13,516,60,1],[517,13,517,55,1],[518,13,518,70,1],[519,13,519,62,1],[520,13,520,42,1],[521,13,522,73,1],[523,13,523,51,1],[525,13,525,82,1],[526,13,526,43,1],[529,20,529,57,1],[530,13,530,14,1],[531,17,531,40,1],[533,17,533,75,1],[534,17,534,76,1],[536,17,536,66,1],[536,66,536,70,1],[536,70,536,83,1],[536,17,536,83,1],[538,17,538,42,1],[539,13,539,14,1],[540,9,540,10,1],[544,9,544,10,1],[545,13,545,31,1],[546,13,546,65,1],[547,9,547,10,1]]);
+    </script>
+  </body>
+</html>

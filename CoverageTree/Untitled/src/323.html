@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\SpecificationsController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Linq;
+using System.Windows.Markup;
+using Swr.Configurator.Logic.Card;
+using Swr.Configurator.View;
+using Swr.Configurator.View.DataViewModels;
+using Swr.Configurator.View.Logic;
+using Swr.Configurator.View.Panels.ViewModels;
+using Swr.Configurator.WebApi;
+using SwrUI;
+using SwrUILogic.Data;
+using SWR_Tools.Extention;
+using IProduct = Swr.Configurator.Data.ProductModel.IProduct;
+
+namespace Swr.Configurator.Logic
+{
+	public class SpecificationsController : NotifyBaseClass, IDisposable
+	{
+		private SpecificationPageVM _activeSpecification;
+		private LayoutController _layoutController;
+		private IProduct _selectedProduct;
+		private bool _showAlternatePositionColumn;
+
+		public SpecificationsController()
+		{
+			SpecificationPages = new ObservableCollection&lt;SpecificationPageVM&gt;();
+			SpecificationPages.CollectionChanged += SpecificationPages_CollectionChanged;
+		}
+
+		private ConfiguratorMainWindowVM ViewModel
+		{
+			get { return ConfiguratorMainWindowVM.Instance; }
+		}
+
+		public ObservableCollection&lt;SpecificationPageVM&gt; SpecificationPages { get; private set; }
+
+        //public bool ShowAlternatePositionColumn
+        //{
+        //	get =&gt; _showAlternatePositionColumn;
+        //    set
+        //	{
+        //	    ActiveSpecification?.ActiveTab?.DataGrid?.CancelEdit();
+
+        //              _showAlternatePositionColumn = value;
+        //              OnPropertyChanged(() =&gt; ShowAlternatePositionColumn);
+
+        //          }
+        //      }
+
+           public bool IsDeletedProductsVisible { get; set; }
+
+        //public bool IsAlternateColumnsExistsInSettingsForCurrentRole
+        //{
+        //	get
+        //	{
+        //		if (ViewModel == null)
+        //			return false;
+
+        //		var roleSpecifications = ViewModel.SharedSettingsController.Settings.SpecificationTypes.GetTypesByIdentifiers(ViewModel.CurrentUserRole.SpecificationTypes);
+
+        //		var specificationTypes = new List&lt;SpecificationTypeObject&gt;(roleSpecifications)
+        //		{
+        //			ViewModel.SharedSettingsController.Settings.SpecificationTypes.GetTypeByIdentifier(ViewModel.SharedSettingsController.Settings.SpecificationTypes.DefaultType)
+        //		};
+
+        //		var columns = specificationTypes.SelectMany(x =&gt; x.Columns.Columns);
+
+        //		return columns.SafeAny(x =&gt; x.ColumnType == ColumnType.AlternatePosition);
+        //	}
+        //}
+
+        public IProduct SelectedProduct
+        {
+            get { return _selectedProduct; }
+            set
+            {
+                if (!Equals(_selectedProduct, value))
+                {
+                    _selectedProduct = value;
+                    OnPropertyChanged(() =&gt; SelectedProduct);
+                    OnSelectedProductChanged(_selectedProduct);
+                }
+            }
+        }
+
+        public LayoutController LayoutController
+        {
+            get { return _layoutController; }
+            set
+            {
+                _layoutController = value;
+                if (_layoutController != null)
+                {
+                    _layoutController.ActiveSpecificationChanged += _layoutController_ActiveSpecificationChanged;
+                    _layoutController.SpecificationClosed += _layoutController_SpecificationClosed;
+                }
+            }
+        }
+
+        public SpecificationPageVM ActiveSpecification
+        {
+            get =&gt; _activeSpecification;
+            set
+            {
+                _activeSpecification = value;
+                OnPropertyChanged(nameof(ActiveSpecification));
+            }
+        }
+
+        public CardController CardController { get; set; }
+
+        private void _layoutController_ActiveSpecificationChanged(object sender, ActiveSpecificationChangedArgs e)
+        {
+            ActiveSpecification = e.Specification;
+        }
+
+        private void _layoutController_SpecificationClosed(object sender, ActiveSpecificationChangedArgs e)
+        {
+            if (LayoutController == null)
+                return;
+
+            e.Specification.Close(false);
+
+            var productChanged = e.Specification.Product.References.Any(t =&gt; t.IsChanged || t.Properties.Any(l =&gt; l.IsChanged) || t.Child.Properties.Any(k =&gt; k.IsChanged));
+            if (e.Specification.Product.IsChanged || productChanged)
+            {
+                var dialogResult = SwrMessageBox.Show(ConfiguratorMainWindow.Instance, &quot;��������� ��������� ���������?&quot;, &quot;&quot;,
+                    SwrMessageBoxButton.YesNo /*.YesNo*/,
+                    SwrMessageBoxImage.Question);
+                if (dialogResult == SwrDialogResult.Yes)
+                {
+                    var product = e.Specification.Product;
+
+                    //ConfiguratorMainWindowVM.Instance.UICommandContainer.CheckErrors(product);
+                    if (product.Errors.Count != 0 || product.References.Any(t =&gt; t.Errors.Count != 0))
+                    {
+                        var errorMessage = &quot;������ ���������� ������������.&quot;;
+                        foreach (var productError in product.Errors)
+                        {
+                            errorMessage += &quot;\n&quot; + $&quot;��� ��������� ��������� &#39;{productError}&#39;&quot;;
+                        }
+
+                        foreach (var productReference in product.References)
+                        {
+                            if (productReference.Errors.Count &gt; 0)
+                                errorMessage += &quot;\n&quot; + $&quot;��� ��������� ���������� &#39;{productReference.Child.Name}&#39; ������ &quot; + string.Join(Environment.NewLine, productReference.Errors);
+                        }
+
+                        SwrMessageBox.Show(ConfiguratorMainWindow.Instance, errorMessage, &quot;&quot;, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+                    }
+                    else
+                    {
+                        // ������� �������� ���������, ���� �� �����
+                        if (product.DbIdentificator == Guid.Empty)
+                        {
+                            ComponentApiCaller.Create(product);
+                            foreach (var productProperty in product.Properties)
+                            {
+                                productProperty.IsChanged = false;
+                            }
+                        }
+
+                        //������� ����� �������� ����������
+                        var newChildComponents = product.References.Where(t =&gt; t.Child.DbIdentificator == Guid.Empty)
+                            .Select(t =&gt; t.Child).ToList();
+                        if (newChildComponents != null &amp;&amp; newChildComponents.Count != 0)
+                        {
+                            foreach (var newChildComponent in newChildComponents)
+                            {
+                                ComponentApiCaller.Create(newChildComponent);
+                                foreach (var productProperty in newChildComponent.Properties)
+                                {
+                                    productProperty.IsChanged = false;
+                                }
+
+                                newChildComponent.IsNew = false;
+                            }
+                        }
+
+                        // ��������� �������� ����������
+                        var updatedChildComponents = product.References
+                            .Where(t =&gt; t.Child.Properties.Any(l =&gt; l.IsChanged)).Select(t =&gt; t.Child).ToList();
+                        if (updatedChildComponents != null &amp;&amp; updatedChildComponents.Count != 0)
+                        {
+                            foreach (var updatedChildComponent in updatedChildComponents)
+                            {
+                                ComponentApiCaller.Update(updatedChildComponent);
+                                foreach (var productProperty in updatedChildComponent.Properties)
+                                {
+                                    productProperty.IsChanged = false;
+                                }
+                            }
+
+                        }
+
+                        //��������� ������������
+
+                        SpecificationApiCaller.Save(product);
+
+                        foreach (var productReference in product.References)
+                        {
+                            foreach (var referenceProperty in productReference.Properties)
+                            {
+                                referenceProperty.IsChanged = false;
+                            }
+                        }
+
+                        product.RemoveAllDeleted();
+
+
+                        product.IsChanged = false;
+                        CardController.ClearCard();
+
+						SwrMessageBox.Show(ConfiguratorMainWindow.Instance, &quot;���������� ������ �������&quot;, &quot;&quot;,
+                            SwrMessageBoxButton.OK, SwrMessageBoxImage.Information);
+                    }
+                }
+                else if (dialogResult == SwrDialogResult.No)
+                {
+                    var product = e.Specification.Product;
+                    //foreach (var productReference in product.References)
+                    //{
+                    //    productReference.Dispose();
+                    //}
+
+                    product.ClearReferences();
+                    product.Specifications.Clear();
+
+                    var specificationConverter = new SpecificationConverter();
+                    var productSpecifications = SpecificationApiCaller.Read(product.DbIdentificator);
+
+                    specificationConverter.FillReferences(product, productSpecifications);
+
+                    //
+                }
+                else
+                {
+                    // ������������ ����� ������
+
+                }
+
+                        
+            }
+
+            foreach (var specificationChild in e.Specification.Children)
+            {
+	            specificationChild.Dispose();
+            }
+
+
+			if (e.Specification != null &amp;&amp; ActiveSpecification == e.Specification)
+            {
+                //��� ��������� ������ �� ������ ������
+                ActiveSpecification = LayoutController.GetCurrentVisibleSpecification();
+            }
+
+            LayoutController.ActivateSpecification(ActiveSpecification);
+        }
+
+        private void SpecificationPages_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+        }
+
+        public void OpenSpecification(ProductVM product)
+        {
+            bool specificationIsOpened;
+
+            if (product != null)
+            {
+                specificationIsOpened = SpecificationPages.SafeAny(x =&gt; Equals(x.Product, product.Product));
+
+                if (!specificationIsOpened)
+                {
+
+                    if (product.Product.DbIdentificator != Guid.Empty)
+                    {
+                        var specificationConverter = new SpecificationConverter();
+                        var productSpecifications = SpecificationApiCaller.Read(product.Product.DbIdentificator);
+                        if (productSpecifications != null &amp;&amp; productSpecifications.Count != 0 &amp;&amp; product.Product.References.Count == 0)
+                        {
+                            specificationConverter.FillReferences(product.Product, productSpecifications);
+                        }
+                    }
+
+                    
+                    var vm = new SpecificationPageVM(product.Product, ViewModel.SettingsController.Settings,
+                        this); // �������� � ������ ��� ������ ����������
+
+                    SpecificationPages.Add(vm);
+
+                    ViewModel.LayoutController.AddSpecificationPage(vm);
+                }
+                else
+                {
+                    var specification = SpecificationPages.FirstOrDefault(x =&gt; Equals(x.Product, product.Product));
+                    if (specification != null) ViewModel.LayoutController.ActivateSpecification(specification);
+                    //TODO: ��������� �������������� � ��������� ������������, ���� ������������, � ������� ������, ������ �� ��������������;
+                }
+            }
+        }
+
+        public void CloseSpecifications()
+        {
+            foreach (var specificationPage in SpecificationPages.SafeToArray())
+            {
+                specificationPage.Close();
+            }
+        }
+
+        public void CloseSpecification(IProduct product)
+        {
+            var specification = SpecificationPages.FirstOrDefault(x =&gt; Equals(x.Product, product));
+            if (specification == null)
+                return;
+
+            specification.Close();
+        }
+
+        private void OnSelectedProductChanged(IProduct selectedProduct)
+        {
+            if (SelectedProductChanged != null)
+                SelectedProductChanged(this, new SelectedProductEventArgs(selectedProduct));
+        }
+
+        public event EventHandler&lt;SelectedProductEventArgs&gt; SelectedProductChanged;
+
+        //public void RemoveOrder(OrderProduct orderProduct)
+        //{
+        //	CloseSpecification(orderProduct);
+        //	var flatList = new Reference(null, orderProduct).Child.References.Flatten(x =&gt; x.Child.References).Select(x =&gt; x.Child).OfType&lt;InclusionProduct&gt;();
+        //	foreach (var inclusionProduct in flatList)
+        //	{
+        //		CloseSpecification(inclusionProduct);
+        //	}
+        //}
+
+        //   public void SettingsChanged()
+        //   {
+        //          OnPropertyChanged(nameof(IsAlternateColumnsExistsInSettingsForCurrentRole));
+        //   }
+        public void Dispose()
+        {
+            CardController = null;
+            ActiveSpecification = null;
+            LayoutController = null;
+            SelectedProduct = null;
+
+            if (SpecificationPages != null)
+            {
+                SpecificationPages.CollectionChanged -= SpecificationPages_CollectionChanged;
+                SpecificationPages.Clear();
+                SpecificationPages = null;
+            }
+        }
+    }
+
+
+	public class SelectedProductEventArgs : System.EventArgs
+	{
+		public SelectedProductEventArgs(IProduct product)
+		{
+			Product = product;
+		}
+
+		public IProduct Product { get; private set; }
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[27,3,27,36,0],[28,3,28,4,0],[29,4,29,73,0],[30,4,30,81,0],[31,3,31,4,0],[35,8,35,9,0],[35,10,35,51,0],[35,52,35,53,0],[38,73,38,77,0],[38,78,38,90,0],[53,51,53,55,0],[53,56,53,60,0],[77,17,77,18,0],[77,19,77,43,0],[77,44,77,45,0],[79,13,79,14,0],[80,17,80,54,0],[81,17,81,18,0],[82,21,82,46,0],[83,21,83,62,0],[84,21,84,64,0],[85,17,85,18,0],[86,13,86,14,0],[91,17,91,18,0],[91,19,91,44,0],[91,45,91,46,0],[93,13,93,14,0],[94,17,94,43,0],[95,17,95,47,0],[96,17,96,18,0],[97,21,97,114,0],[98,21,98,100,0],[99,17,99,18,0],[100,13,100,14,0],[105,20,105,40,0],[107,13,107,14,0],[108,17,108,46,0],[109,17,109,64,0],[110,13,110,14,0],[113,48,113,52,0],[113,53,113,57,0],[116,9,116,10,0],[117,13,117,51,0],[118,9,118,10,0],[121,9,121,10,0],[122,13,122,42,0],[123,17,123,24,0],[125,13,125,42,0],[127,13,127,78,0],[127,78,127,115,0],[127,115,127,126,0],[127,126,127,159,0],[127,159,127,170,0],[127,170,127,171,0],[127,78,127,171,0],[127,171,127,173,0],[127,13,127,173,0],[128,13,128,69,0],[129,13,129,14,0],[130,17,132,50,0],[133,17,133,57,0],[134,17,134,18,0],[135,21,135,59,0],[138,21,138,82,0],[138,82,138,101,0],[138,101,138,103,0],[138,21,138,103,0],[139,21,139,22,0],[140,25,140,78,0],[141,25,141,32,0],[141,34,141,50,0],[141,51,141,53,0],[141,54,141,68,0],[142,25,142,26,0],[143,29,143,96,0],[144,25,144,26,0],[146,25,146,32,0],[146,34,146,54,0],[146,55,146,57,0],[146,58,146,76,0],[147,25,147,26,0],[148,29,148,67,0],[149,33,149,184,0],[150,25,150,26,0],[152,25,152,145,0],[153,21,153,22,0],[155,21,155,22,0],[157,25,157,67,0],[158,25,158,26,0],[159,29,159,64,0],[160,29,160,36,0],[160,38,160,57,0],[160,58,160,60,0],[160,61,160,79,0],[161,29,161,30,0],[162,33,162,67,0],[163,29,163,30,0],[164,25,164,26,0],[167,25,167,80,0],[167,80,167,117,0],[167,117,168,42,0],[168,42,168,49,0],[168,49,168,60,0],[167,25,168,60,0],[169,25,169,89,0],[170,25,170,26,0],[171,29,171,36,0],[171,38,171,59,0],[171,60,171,62,0],[171,63,171,81,0],[172,29,172,30,0],[173,33,173,78,0],[174,33,174,40,0],[174,42,174,61,0],[174,62,174,64,0],[174,65,174,93,0],[175,33,175,34,0],[176,37,176,71,0],[177,33,177,34,0],[179,33,179,65,0],[180,29,180,30,0],[181,25,181,26,0],[184,25,185,41,0],[185,41,185,69,0],[185,69,185,80,0],[185,80,185,81,0],[185,41,185,81,0],[185,81,185,95,0],[185,95,185,102,0],[185,102,185,113,0],[184,25,185,113,0],[186,25,186,97,0],[187,25,187,26,0],[188,29,188,36,0],[188,38,188,63,0],[188,64,188,66,0],[188,67,188,89,0],[189,29,189,30,0],[190,33,190,82,0],[191,33,191,40,0],[191,42,191,61,0],[191,62,191,64,0],[191,65,191,97,0],[192,33,192,34,0],[193,37,193,71,0],[194,33,194,34,0],[195,29,195,30,0],[197,25,197,26,0],[201,25,201,62,0],[203,25,203,32,0],[203,34,203,54,0],[203,55,203,57,0],[203,58,203,76,0],[204,25,204,26,0],[205,29,205,36,0],[205,38,205,59,0],[205,60,205,62,0],[205,63,205,90,0],[206,29,206,30,0],[207,33,207,69,0],[208,29,208,30,0],[209,25,209,26,0],[211,25,211,52,0],[214,25,214,51,0],[215,25,215,52,0],[217,7,218,85,0],[219,21,219,22,0],[220,17,220,18,0],[221,22,221,61,0],[222,17,222,18,0],[223,21,223,59,0],[229,21,229,47,0],[230,21,230,52,0],[232,21,232,79,0],[233,21,233,102,0],[235,21,235,91,0],[238,17,238,18,0],[240,17,240,18,0],[243,17,243,18,0],[246,13,246,14,0],[248,13,248,20,0],[248,22,248,44,0],[248,45,248,47,0],[248,48,248,72,0],[249,13,249,14,0],[250,14,250,43,0],[251,13,251,14,0],[254,4,254,74,0],[255,13,255,14,0],[257,17,257,89,0],[258,13,258,14,0],[260,13,260,73,0],[261,9,261,10,0],[264,9,264,10,0],[265,9,265,10,0],[268,9,268,10,0],[271,13,271,33,0],[272,13,272,14,0],[273,17,273,73,0],[273,73,273,107,0],[273,107,273,109,0],[273,17,273,109,0],[275,17,275,44,0],[276,17,276,18,0],[278,21,278,71,0],[279,21,279,22,0],[280,25,280,83,0],[281,25,281,114,0],[282,25,282,136,0],[283,25,283,26,0],[284,29,284,107,0],[285,25,285,26,0],[286,21,286,22,0],[289,21,290,31,0],[292,21,292,48,0],[294,21,294,73,0],[295,17,295,18,0],[297,17,297,18,0],[298,21,298,80,0],[298,80,298,114,0],[298,114,298,116,0],[298,21,298,116,0],[299,21,299,47,0],[299,48,299,112,0],[301,17,301,18,0],[302,13,302,14,0],[303,9,303,10,0],[306,9,306,10,0],[307,13,307,20,0],[307,22,307,43,0],[307,44,307,46,0],[307,47,307,79,0],[308,13,308,14,0],[309,17,309,43,0],[310,13,310,14,0],[311,9,311,10,0],[314,9,314,10,0],[315,13,315,72,0],[315,72,315,98,0],[315,98,315,100,0],[315,13,315,100,0],[316,13,316,39,0],[317,17,317,24,0],[319,13,319,35,0],[320,9,320,10,0],[323,9,323,10,0],[324,13,324,48,0],[325,17,325,93,0],[326,9,326,10,0],[345,9,345,10,0],[346,13,346,35,0],[347,13,347,40,0],[348,13,348,37,0],[349,13,349,36,0],[351,13,351,44,0],[352,13,352,14,0],[353,17,353,94,0],[354,17,354,44,0],[355,17,355,43,0],[356,13,356,14,0],[357,9,357,10,0],[363,3,363,52,0],[364,3,364,4,0],[365,4,365,22,0],[366,3,366,4,0],[368,29,368,33,0],[368,34,368,46,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.WindowsService\IntegrationWindowsService.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Diagnostics;
+using System.Linq;
+using System.ServiceModel;
+using System.ServiceProcess;
+using System.Text;
+using System.Threading.Tasks;
+using NLog;
+using Swr.Capital1C.Service.Logger;
+using Swr.Capital1C.Service.Settings;
+
+namespace Swr.Capital1C.WindowsService
+{
+    public partial class IntegrationWindowsService : ServiceBase
+    {
+        private Logger _logger;
+
+        private ServiceHost _integrationService;
+
+        public IntegrationWindowsService()
+        {
+            InitializeComponent();
+        }
+
+        protected override void OnStart(string[] args)
+        {
+            ServiceLogger.Instance.ServiceName = ServiceName;
+
+            try
+            {
+                _logger = LogHelper.Instance.GetLogger(&quot;Служба Windows. Интеграция PDM с 1С:УППП&quot;);
+            }
+            catch (Exception e)
+            {
+                ServiceLogger.Instance.LogInformation(e.ToString());
+                throw;
+            }
+
+            try
+            {
+                var loadSettingsOnStartToFile = CommonSettingsController.Settings;
+
+                StartService();
+
+                _logger.Info(&quot;Служба запущена&quot;);
+                ServiceLogger.Instance.LogInformation(&quot;Служба запущена&quot;);
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e);
+                ServiceLogger.Instance.LogError(e.ToString());
+                throw;
+            }
+        }
+
+        private void StartService()
+        {
+            _logger.Debug(&quot;Запуск сервиса...&quot;);
+
+            _integrationService?.Close();
+
+            _integrationService = new ServiceHost(typeof(Service.Service));
+            _integrationService.Open();
+        }
+
+        protected override void OnStop()
+        {
+            if (_integrationService != null)
+            {
+                try
+                {
+                    _integrationService.Abort();
+                }
+                catch (Exception e)
+                {
+                    _logger.Error(e);
+                    
+                }
+
+                _integrationService = null;
+
+            }
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[23,9,23,43,0],[24,9,24,10,0],[25,13,25,35,0],[26,9,26,10,0],[29,9,29,10,0],[30,13,30,62,0],[33,13,33,14,0],[34,17,34,100,0],[35,13,35,14,0],[36,13,36,32,0],[37,13,37,14,0],[38,17,38,69,0],[39,17,39,23,0],[43,13,43,14,0],[44,17,44,83,0],[46,17,46,32,0],[48,17,48,49,0],[49,17,49,74,0],[50,13,50,14,0],[51,13,51,32,0],[52,13,52,14,0],[53,17,53,34,0],[54,17,54,63,0],[55,17,55,23,0],[57,9,57,10,0],[60,9,60,10,0],[61,13,61,48,0],[63,13,63,42,0],[65,13,65,76,0],[66,13,66,40,0],[67,9,67,10,0],[70,9,70,10,0],[71,13,71,45,0],[72,13,72,14,0],[74,17,74,18,0],[75,21,75,49,0],[76,17,76,18,0],[77,17,77,36,0],[78,17,78,18,0],[79,21,79,38,0],[81,17,81,18,0],[83,17,83,44,0],[85,13,85,14,0],[86,9,86,10,0]]);
+    </script>
+  </body>
+</html>

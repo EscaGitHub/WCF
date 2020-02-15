@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\MenuItemEx.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Controls;
+using System.Windows;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public class MenuItemEx : MenuItem
+    {
+        static MenuItemEx()
+        {
+            IconProperty.OverrideMetadata(typeof(MenuItemEx), new FrameworkPropertyMetadata(new PropertyChangedCallback(OnIconPropertyChanged)));
+        }
+
+
+        public MenuItemEx()
+        {
+        }
+
+        #region IconTemplate
+
+        /// &lt;summary&gt;
+        /// IconTemplate Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty IconTemplateProperty =
+            DependencyProperty.Register(&quot;IconTemplate&quot;, typeof(DataTemplate), typeof(MenuItemEx),
+                new FrameworkPropertyMetadata((DataTemplate)null,
+                    new PropertyChangedCallback(OnIconTemplateChanged)));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the IconTemplate property.  This dependency property 
+        /// indicates the data template for the icon.
+        /// &lt;/summary&gt;
+        public DataTemplate IconTemplate
+        {
+            get { return (DataTemplate)GetValue(IconTemplateProperty); }
+            set { SetValue(IconTemplateProperty, value); }
+        }
+
+        /// &lt;summary&gt;
+        /// Handles changes to the IconTemplate property.
+        /// &lt;/summary&gt;
+        private static void OnIconTemplateChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((MenuItemEx)d).OnIconTemplateChanged(e);
+        }
+
+        /// &lt;summary&gt;
+        /// Provides derived classes an opportunity to handle changes to the IconTemplate property.
+        /// &lt;/summary&gt;
+        protected virtual void OnIconTemplateChanged(DependencyPropertyChangedEventArgs e)
+        {
+            UpdateIcon();
+        }
+
+        #endregion
+
+        #region IconTemplateSelector
+
+        /// &lt;summary&gt;
+        /// IconTemplateSelector Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty IconTemplateSelectorProperty =
+            DependencyProperty.Register(&quot;IconTemplateSelector&quot;, typeof(DataTemplateSelector), typeof(MenuItemEx),
+                new FrameworkPropertyMetadata((DataTemplateSelector)null,
+                    new PropertyChangedCallback(OnIconTemplateSelectorChanged)));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the IconTemplateSelector property.  This dependency property 
+        /// indicates the DataTemplateSelector for the Icon.
+        /// &lt;/summary&gt;
+        public DataTemplateSelector IconTemplateSelector
+        {
+            get { return (DataTemplateSelector)GetValue(IconTemplateSelectorProperty); }
+            set { SetValue(IconTemplateSelectorProperty, value); }
+        }
+
+        /// &lt;summary&gt;
+        /// Handles changes to the IconTemplateSelector property.
+        /// &lt;/summary&gt;
+        private static void OnIconTemplateSelectorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((MenuItemEx)d).OnIconTemplateSelectorChanged(e);
+        }
+
+        /// &lt;summary&gt;
+        /// Provides derived classes an opportunity to handle changes to the IconTemplateSelector property.
+        /// &lt;/summary&gt;
+        protected virtual void OnIconTemplateSelectorChanged(DependencyPropertyChangedEventArgs e)
+        {
+            UpdateIcon();
+        }
+
+        #endregion
+
+        static void OnIconPropertyChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue != null)
+            {
+                ((MenuItemEx)sender).UpdateIcon();
+            }
+        }
+
+        bool _reentrantFlag = false;
+        void UpdateIcon()
+        {
+            if (_reentrantFlag)
+                return;
+            _reentrantFlag = true;
+            if (IconTemplateSelector != null)
+            {
+                var dataTemplateToUse = IconTemplateSelector.SelectTemplate(Icon, this);
+                if (dataTemplateToUse != null)
+                    Icon = dataTemplateToUse.LoadContent();
+            }
+            else if (IconTemplate != null)
+                Icon = IconTemplate.LoadContent();
+            _reentrantFlag = false;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[29,9,29,10,0],[30,13,30,146,0],[31,9,31,10,0],[34,9,34,28,0],[35,9,35,10,0],[36,9,36,10,0],[43,9,46,74,0],[54,17,54,18,0],[54,19,54,71,0],[54,72,54,73,0],[55,17,55,18,0],[55,19,55,57,0],[55,58,55,59,0],[62,9,62,10,0],[63,13,63,54,0],[64,9,64,10,0],[70,9,70,10,0],[71,13,71,26,0],[72,9,72,10,0],[81,9,84,82,0],[92,17,92,18,0],[92,19,92,87,0],[92,88,92,89,0],[93,17,93,18,0],[93,19,93,65,0],[93,66,93,67,0],[100,9,100,10,0],[101,13,101,62,0],[102,9,102,10,0],[108,9,108,10,0],[109,13,109,26,0],[110,9,110,10,0],[115,9,115,10,0],[116,13,116,36,0],[117,13,117,14,0],[118,17,118,51,0],[119,13,119,14,0],[120,9,120,10,0],[122,9,122,37,0],[124,9,124,10,0],[125,13,125,32,0],[126,17,126,24,0],[127,13,127,35,0],[128,13,128,46,0],[129,13,129,14,0],[130,17,130,89,0],[131,17,131,47,0],[132,21,132,60,0],[133,13,133,14,0],[134,18,134,43,0],[135,17,135,51,0],[136,13,136,36,0],[137,9,137,10,0]]);
+    </script>
+  </body>
+</html>

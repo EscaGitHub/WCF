@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Settings\Columns\ColumnsSettings.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Swr.Configurator.Common.Settings.Columns
+{
+	/// &lt;summary&gt;
+	/// ��������� ������� ������������
+	/// &lt;/summary&gt;
+	public class ColumnsSettings
+	{
+		public ColumnsSettings()
+		{
+			Columns = new List&lt;ColumnSettings&gt;();
+		}
+
+		/// &lt;summary&gt;
+		/// ������ �������
+		/// &lt;/summary&gt;
+		public List&lt;ColumnSettings&gt; Columns { get; set; }
+
+		/// &lt;summary&gt;
+		/// ���������� ��������� ������� �� ��������������
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;identifier&quot;&gt;�������������&lt;/param&gt;
+		/// &lt;returns&gt;��������� ������� ��� null&lt;/returns&gt;
+		public ColumnSettings GetColumnByIdentifier(Guid identifier)
+		{
+			return Columns.FirstOrDefault(c =&gt; c.Identifier == identifier);
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[12,3,12,27,0],[13,3,13,4,0],[14,4,14,41,0],[15,3,15,4,0],[20,41,20,45,0],[20,46,20,50,0],[28,3,28,4,0],[29,4,29,39,0],[29,39,29,65,0],[29,65,29,67,0],[29,4,29,67,0],[30,3,30,4,0]]);
+    </script>
+  </body>
+</html>

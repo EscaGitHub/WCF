@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Data\CannotBeEmptyGuidAttribute.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+
+namespace Swr.Configurator.Common.Data
+{
+    [AttributeUsage(AttributeTargets.Property)]
+    class CannotBeEmptyGuidAttribute : RequiredAttribute
+    {
+        public override bool IsValid(object value)
+        {
+            if (value != null)
+            {
+                var guid = value.ToString();
+
+                if (Guid.TryParse(guid, out var result))
+                {
+                    if (result != Guid.Empty) return true;
+                }
+            }
+
+            return false;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[12,9,12,10,0],[13,13,13,31,0],[14,13,14,14,0],[15,17,15,45,0],[17,17,17,57,0],[18,17,18,18,0],[19,21,19,46,0],[19,47,19,59,0],[20,17,20,18,0],[21,13,21,14,0],[23,13,23,26,0],[24,9,24,10,0]]);
+    </script>
+  </body>
+</html>

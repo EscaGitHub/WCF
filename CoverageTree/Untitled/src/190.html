@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Data\Api\SpecificationComponentApi.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+
+namespace Swr.Configurator.Common.Data.Api
+{
+	public class SpecificationComponentApi
+	{
+        /// &lt;summary&gt;
+        /// Идентификатор компонента, входящего в спецификацию
+        /// &lt;/summary&gt;
+        [CannotBeEmptyGuid(ErrorMessage = &quot;Field &#39;Id&#39; is required.&quot;)]
+        public Guid ID { get; set; }
+
+		/// &lt;summary&gt;
+		/// Атрибуты связи для компонента
+		/// &lt;/summary&gt;
+		public List&lt;AttributeApi&gt; RelationAttributes { get; set; }
+
+        /// &lt;summary&gt;
+        /// Атрибуты компонента
+        /// &lt;/summary&gt;
+        public List&lt;AttributeApi&gt; ComponentAttributes { get; set; }
+
+        /// &lt;summary&gt;
+        /// Имя типа компонента
+        /// &lt;/summary&gt;
+        public string TypeName { get; set; }
+
+        /// &lt;summary&gt;
+        /// Признак, удален ли компонент из спецификации
+        /// &lt;/summary&gt;
+        public bool IsDeleted { get; set; }
+
+        public bool HasChildren { get; set; }
+
+        public string SpecificationTypeName { get; set; }
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,26,14,30,1],[14,31,14,35,1],[19,50,19,54,1],[19,55,19,59,1],[24,57,24,61,1],[24,62,24,66,1],[29,34,29,38,1],[29,39,29,43,1],[34,33,34,37,1],[34,38,34,42,0],[36,35,36,39,0],[36,40,36,44,1],[38,47,38,51,0],[38,52,38,56,1]]);
+    </script>
+  </body>
+</html>

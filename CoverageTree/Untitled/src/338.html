@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\ComponentBehaviorController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.Data.SpecificationModel;
+
+//using Swr.Configurator.Common.Data.Db;
+
+namespace Swr.Configurator.Logic
+{
+    public class ComponentBehaviorController
+    {
+        public string GetComponentNameByTemplate(string template, List&lt;IProperty&gt; componentAttributes)
+        {
+            var result = string.Empty;
+
+            const string pattern = &quot;(?:%(?&lt;VariableName&gt;.*?)%)&quot;;
+
+            result = template ?? string.Empty;
+
+            var matches = Regex.Matches(result, pattern);
+
+            var variables = matches.Cast&lt;Match&gt;()
+                .Select(m =&gt; m.Groups[&quot;VariableName&quot;].Value)
+                .Where(v =&gt; !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            foreach (var variable in variables)
+            {
+                var foundComponentAttribute = componentAttributes.FirstOrDefault(t =&gt; t.Variable == variable);
+                if (foundComponentAttribute != null)
+                {
+                    var vara = foundComponentAttribute.Value;
+                    result = result.Replace(&quot;%&quot; + variable + &quot;%&quot;, vara);
+                }
+                else
+                {
+                    result = result.Replace(&quot;%&quot; + variable + &quot;%&quot;, string.Empty);
+                }
+            }
+
+            return result;
+        }
+
+        
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[17,9,17,10,0],[18,13,18,39,0],[22,13,22,47,0],[24,13,24,58,0],[26,13,27,30,0],[27,30,27,60,0],[27,60,28,29,0],[28,29,28,58,0],[28,58,30,27,0],[26,13,30,27,0],[32,13,32,20,0],[32,22,32,34,0],[32,35,32,37,0],[32,38,32,47,0],[33,13,33,14,0],[34,17,34,87,0],[34,87,34,109,0],[34,109,34,111,0],[34,17,34,111,0],[35,17,35,53,0],[36,17,36,18,0],[37,21,37,62,0],[38,21,38,73,0],[39,17,39,18,0],[41,17,41,18,0],[42,21,42,81,0],[43,17,43,18,0],[44,13,44,14,0],[46,13,46,27,0],[47,9,47,10,0]]);
+    </script>
+  </body>
+</html>

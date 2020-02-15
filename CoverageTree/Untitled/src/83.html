@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Layout\LayoutGroup.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Collections.ObjectModel;
+using System.Xml.Serialization;
+
+namespace Xceed.Wpf.AvalonDock.Layout
+{
+    [Serializable]
+    public abstract class LayoutGroup&lt;T&gt; : LayoutGroupBase, ILayoutContainer, ILayoutGroup, IXmlSerializable where T : class, ILayoutElement
+    {
+        internal LayoutGroup()
+        {
+            _children.CollectionChanged += new System.Collections.Specialized.NotifyCollectionChangedEventHandler(_children_CollectionChanged);
+        }
+
+        void _children_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Remove ||
+                e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Replace)
+            {
+                if (e.OldItems != null)
+                {
+                    foreach (LayoutElement element in e.OldItems)
+                    {
+                        if (element.Parent == this)
+                            element.Parent = null;
+                    }
+                }
+            }
+
+            if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add ||
+                e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Replace)
+            {
+                if (e.NewItems != null)
+                {
+                    foreach (LayoutElement element in e.NewItems)
+                    {
+                        if (element.Parent != this)
+                        {
+                            if (element.Parent != null)
+                                element.Parent.RemoveChild(element);
+                            element.Parent = this;
+                        }
+
+                    }
+                }
+            }
+
+            ComputeVisibility();
+            OnChildrenCollectionChanged();
+            NotifyChildrenTreeChanged(ChildrenTreeChange.DirectChildrenChanged);
+            RaisePropertyChanged(&quot;ChildrenCount&quot;);
+        }
+
+        ObservableCollection&lt;T&gt; _children = new ObservableCollection&lt;T&gt;();
+
+        public ObservableCollection&lt;T&gt; Children
+        {
+            get { return _children; }
+        }
+
+        IEnumerable&lt;ILayoutElement&gt; ILayoutContainer.Children
+        {
+            get { return _children.Cast&lt;ILayoutElement&gt;(); }
+        }
+
+
+        #region IsVisible
+
+        private bool _isVisible = true;
+        public bool IsVisible
+        {
+            get { return _isVisible; }
+            protected set
+            {
+                if (_isVisible != value)
+                {
+                    RaisePropertyChanging(&quot;IsVisible&quot;);
+                    _isVisible = value;
+                    OnIsVisibleChanged();
+                    RaisePropertyChanged(&quot;IsVisible&quot;);
+                }
+            }
+        }
+
+        protected virtual void OnIsVisibleChanged()
+        {
+            UpdateParentVisibility();
+        }
+
+        void UpdateParentVisibility()
+        {
+            var parentPane = Parent as ILayoutElementWithVisibility;
+            if (parentPane != null)
+                parentPane.ComputeVisibility();
+        }
+
+
+        public void ComputeVisibility()
+        {
+            IsVisible = GetVisibility();
+        }
+
+        protected abstract bool GetVisibility();
+
+        protected override void OnParentChanged(ILayoutContainer oldValue, ILayoutContainer newValue)
+        {
+            base.OnParentChanged(oldValue, newValue);
+
+            ComputeVisibility();
+        }
+
+        #endregion
+
+
+        public void MoveChild(int oldIndex, int newIndex)
+        {
+            if (oldIndex == newIndex)
+                return;
+            _children.Move(oldIndex, newIndex);
+            ChildMoved(oldIndex, newIndex);
+        }
+
+        protected virtual void ChildMoved(int oldIndex, int newIndex)
+        { 
+
+        }
+
+        public void RemoveChildAt(int childIndex)
+        {
+            _children.RemoveAt(childIndex);
+        }
+
+        public int IndexOfChild(ILayoutElement element)
+        {
+            return _children.Cast&lt;ILayoutElement&gt;().ToList().IndexOf(element);
+        }
+
+        public void InsertChildAt(int index, ILayoutElement element)
+        {
+            _children.Insert(index, (T)element);
+        }
+
+        public void RemoveChild(ILayoutElement element)
+        {
+            _children.Remove((T)element);
+        }
+
+        public void ReplaceChild(ILayoutElement oldElement, ILayoutElement newElement)
+        {
+            int index = _children.IndexOf((T)oldElement);
+            _children.Insert(index, (T)newElement);
+            _children.RemoveAt(index + 1);
+        }
+
+        public int ChildrenCount
+        {
+            get { return _children.Count; }
+        }
+
+        public void ReplaceChildAt(int index, ILayoutElement element)
+        {
+            _children[index] = (T)element;
+        }
+
+
+        public System.Xml.Schema.XmlSchema GetSchema()
+        {
+            return null;
+        }
+
+        public virtual void ReadXml(System.Xml.XmlReader reader)
+        {
+            reader.MoveToContent();
+            if (reader.IsEmptyElement)
+            {
+                reader.Read();
+                ComputeVisibility();
+                return;
+            }
+            string localName = reader.LocalName;
+            reader.Read();
+            while (true)
+            {
+                if (reader.LocalName == localName &amp;&amp;
+                    reader.NodeType == System.Xml.XmlNodeType.EndElement)
+                {
+                    break;
+                }
+
+                XmlSerializer serializer = null;
+                if (reader.LocalName == &quot;LayoutAnchorablePaneGroup&quot;)
+                    serializer = new XmlSerializer(typeof(LayoutAnchorablePaneGroup));
+                else if (reader.LocalName == &quot;LayoutAnchorablePane&quot;)
+                    serializer = new XmlSerializer(typeof(LayoutAnchorablePane));
+                else if (reader.LocalName == &quot;LayoutAnchorable&quot;)
+                    serializer = new XmlSerializer(typeof(LayoutAnchorable));
+                else if (reader.LocalName == &quot;LayoutDocumentPaneGroup&quot;)
+                    serializer = new XmlSerializer(typeof(LayoutDocumentPaneGroup));
+                else if (reader.LocalName == &quot;LayoutDocumentPane&quot;)
+                    serializer = new XmlSerializer(typeof(LayoutDocumentPane));
+                else if (reader.LocalName == &quot;LayoutDocument&quot;)
+                    serializer = new XmlSerializer(typeof(LayoutDocument));
+                else if (reader.LocalName == &quot;LayoutAnchorGroup&quot;)
+                    serializer = new XmlSerializer(typeof(LayoutAnchorGroup));
+                else if (reader.LocalName == &quot;LayoutPanel&quot;)
+                    serializer = new XmlSerializer(typeof(LayoutPanel));
+
+                Children.Add((T)serializer.Deserialize(reader));
+            }
+
+            reader.ReadEndElement();
+        }
+
+        public virtual void WriteXml(System.Xml.XmlWriter writer)
+        {
+            foreach (var child in Children)
+            {
+                var type = child.GetType();
+                XmlSerializer serializer = new XmlSerializer(type);
+                serializer.Serialize(writer, child);
+            }
+
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[29,9,29,31,0],[30,9,30,10,0],[31,13,31,144,0],[32,9,32,10,0],[35,9,35,10,0],[36,13,37,98,0],[38,13,38,14,0],[39,17,39,40,0],[40,17,40,18,0],[41,21,41,28,0],[41,30,41,51,0],[41,52,41,54,0],[41,55,41,65,0],[42,21,42,22,0],[43,25,43,52,0],[44,29,44,51,0],[45,21,45,22,0],[46,17,46,18,0],[47,13,47,14,0],[49,13,50,98,0],[51,13,51,14,0],[52,17,52,40,0],[53,17,53,18,0],[54,21,54,28,0],[54,30,54,51,0],[54,52,54,54,0],[54,55,54,65,0],[55,21,55,22,0],[56,25,56,52,0],[57,25,57,26,0],[58,29,58,56,0],[59,33,59,69,0],[60,29,60,51,0],[61,25,61,26,0],[63,21,63,22,0],[64,17,64,18,0],[65,13,65,14,0],[67,13,67,33,0],[68,13,68,43,0],[69,13,69,81,0],[70,13,70,51,0],[71,9,71,10,0],[73,9,73,75,0],[77,17,77,18,0],[77,19,77,36,0],[77,37,77,38,0],[82,17,82,18,0],[82,19,82,59,0],[82,60,82,61,0],[88,9,88,40,0],[91,17,91,18,0],[91,19,91,37,0],[91,38,91,39,0],[93,13,93,14,0],[94,17,94,41,0],[95,17,95,18,0],[96,21,96,56,0],[97,21,97,40,0],[98,21,98,42,0],[99,21,99,55,0],[100,17,100,18,0],[101,13,101,14,0],[105,9,105,10,0],[106,13,106,38,0],[107,9,107,10,0],[110,9,110,10,0],[111,13,111,69,0],[112,13,112,36,0],[113,17,113,48,0],[114,9,114,10,0],[118,9,118,10,0],[119,13,119,41,0],[120,9,120,10,0],[125,9,125,10,0],[126,13,126,54,0],[128,13,128,33,0],[129,9,129,10,0],[135,9,135,10,0],[136,13,136,38,0],[137,17,137,24,0],[138,13,138,48,0],[139,13,139,44,0],[140,9,140,10,0],[143,9,143,10,0],[145,9,145,10,0],[148,9,148,10,0],[149,13,149,44,0],[150,9,150,10,0],[153,9,153,10,0],[154,13,154,79,0],[155,9,155,10,0],[158,9,158,10,0],[159,13,159,49,0],[160,9,160,10,0],[163,9,163,10,0],[164,13,164,42,0],[165,9,165,10,0],[168,9,168,10,0],[169,13,169,58,0],[170,13,170,52,0],[171,13,171,43,0],[172,9,172,10,0],[176,17,176,18,0],[176,19,176,42,0],[176,43,176,44,0],[180,9,180,10,0],[181,13,181,43,0],[182,9,182,10,0],[186,9,186,10,0],[187,13,187,25,0],[188,9,188,10,0],[191,9,191,10,0],[192,13,192,36,0],[193,13,193,39,0],[194,13,194,14,0],[195,17,195,31,0],[196,17,196,37,0],[197,17,197,24,0],[199,13,199,49,0],[200,13,200,27,0],[201,13,201,25,0],[202,13,202,14,0],[203,17,204,74,0],[205,17,205,18,0],[206,21,206,27,0],[209,17,209,49,0],[210,17,210,69,0],[211,21,211,87,0],[212,22,212,69,0],[213,21,213,82,0],[214,22,214,65,0],[215,21,215,78,0],[216,22,216,72,0],[217,21,217,85,0],[218,22,218,67,0],[219,21,219,80,0],[220,22,220,63,0],[221,21,221,76,0],[222,22,222,66,0],[223,21,223,79,0],[224,22,224,60,0],[225,21,225,73,0],[227,17,227,65,0],[228,13,228,14,0],[230,13,230,37,0],[231,9,231,10,0],[234,9,234,10,0],[235,13,235,20,0],[235,22,235,31,0],[235,32,235,34,0],[235,35,235,43,0],[236,13,236,14,0],[237,17,237,44,0],[238,17,238,68,0],[239,17,239,53,0],[240,13,240,14,0],[242,9,242,10,0]]);
+    </script>
+  </body>
+</html>

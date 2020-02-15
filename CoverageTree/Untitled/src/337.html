@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Logic\ConfiguratorRelayCommand.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using Swr.Configurator.Data;
+using SwrUILogic;
+
+namespace Swr.Configurator.View.Logic
+{
+	public class ConfiguratorRelayCommand : RelayCommand
+	{
+		public ConfiguratorRelayCommand(Action&lt;object&gt; execute, ConfiguratonCommand commandType, string name = &quot;&quot;, string description = &quot;&quot;, string defaultShortcut = &quot;&quot;, CommandGroup group = CommandGroup.Other)
+			: base(execute)
+		{
+			Type = commandType;
+			Name = name;
+			Description = description;
+			DefaultShortcut = defaultShortcut;
+		}
+
+		public ConfiguratorRelayCommand(Action&lt;object&gt; execute, Predicate&lt;object&gt; canExecute, ConfiguratonCommand commandType, string name = &quot;&quot;,
+			string description = &quot;&quot;, string defaultShortcut = &quot;&quot;, string icon = &quot;&quot;, CommandGroup group = CommandGroup.Other, int top = 0, int left = 0)
+			: base(execute, canExecute)
+		{
+			Type = commandType;
+			Name = name;
+			Description = description;
+			DefaultShortcut = defaultShortcut;
+			IconData = icon;
+			Group = group;
+			Top = top;
+			Left = left;
+		}
+
+		public CommandGroup Group { get; set; }
+
+        /// &lt;summary&gt;
+        /// ������ ������ ��� �������� ������
+        /// &lt;/summary&gt;
+		public int Top { get; set; }
+
+	    /// &lt;summary&gt;
+	    /// ������ ����� ��� �������� ������
+	    /// &lt;/summary&gt;
+		public int Left { get; set; }
+
+		public ConfiguratonCommand Type { get; private set; }
+
+		public string Name { get; private set; }
+
+		public string Description { get; private set; }
+
+		public string DefaultShortcut { get; private set; }
+
+		public string IconData { get; private set; }
+	}
+
+	public enum CommandGroup
+	{
+		Other,
+		Specification,
+		Order,
+		Structure
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[10,6,10,19,0],[11,3,11,4,0],[12,4,12,23,0],[13,4,13,16,0],[14,4,14,30,0],[15,4,15,38,0],[16,3,16,4,0],[20,6,20,31,0],[21,3,21,4,0],[22,4,22,23,0],[23,4,23,16,0],[24,4,24,30,0],[25,4,25,38,0],[26,4,26,20,0],[27,4,27,18,0],[28,4,28,14,0],[29,4,29,16,0],[30,3,30,4,0],[32,31,32,35,0],[32,36,32,40,0],[37,20,37,24,0],[37,25,37,29,0],[42,21,42,25,0],[42,26,42,30,0],[44,37,44,41,0],[44,42,44,54,0],[46,24,46,28,0],[46,29,46,41,0],[48,31,48,35,0],[48,36,48,48,0],[50,35,50,39,0],[50,40,50,52,0],[52,28,52,32,0],[52,33,52,45,0]]);
+    </script>
+  </body>
+</html>

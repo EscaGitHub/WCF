@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\WebApiControllers\StructureControllerTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Microsoft.AspNetCore.Mvc;
+using RestSharp;
+using RestSharp.Serialization.Json;
+using Swr.Configurator.Common.Data.Api;
+using SWR.ConfiguratorApi.Controllers;
+using SWR.ConfiguratorApi.Data;
+using SWR.ConfiguratorApi.Logic;
+using Xunit;
+
+namespace Swr.Configurator.Test.WebApiControllers
+{
+    public class StructureControllerTest : IDisposable
+    {
+        [Fact]
+        public void GetStructureTest()
+        {
+            SetTestSettingsConnection();
+
+            var settings = new SettingsService();
+
+            var controller = new StructureController(settings)
+            {
+                ControllerContext = new ControllerContext { HttpContext = HttpContextMock.Get() }
+            };
+
+            var actionResult = controller.GetChildren(&quot;bcaed4a3-92a6-4081-8bfe-69aa5c0a0edd&quot;);
+
+            Assert.IsType&lt;JsonResult&gt;(actionResult);
+
+            var result = ((JsonResult)actionResult).Value as List&lt;SpecificationComponentApi&gt;;
+
+            Assert.NotNull(result);
+            Assert.Equal(4, result.Count);
+        }
+
+        private void SetTestSettingsConnection()
+        {
+            var settings = new DBSettings { DatabaseName = &quot;swr_configurator&quot;, Host = &quot;192.168.0.109&quot;, UserName = &quot;postgres&quot;, Password = &quot;newtime&quot;, Port = 5432 };
+
+            DbSettingsSingleton.Instance.SetValues(settings);
+        }
+
+        public void Dispose()
+        {
+            
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[19,9,19,10,1],[20,13,20,41,1],[22,13,22,50,1],[24,13,27,15,1],[29,13,29,95,1],[31,13,31,53,1],[33,13,33,94,1],[35,13,35,36,1],[36,13,36,43,1],[37,9,37,10,1],[40,9,40,10,1],[41,13,41,163,1],[43,13,43,62,1],[44,9,44,10,1],[47,9,47,10,1],[49,9,49,10,1]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Panels\ViewModels\SpecificationPageVM.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Linq;
+using System.Windows.Controls;
+using NLog;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.Common.Logic;
+using Swr.Configurator.Common.Settings;
+using Swr.Configurator.Common.Settings.Columns;
+using Swr.Configurator.Common.Settings.Lists;
+using Swr.Configurator.Data.EventArgs;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.Logic;
+using Swr.Configurator.Logic.Commands;
+using Swr.Configurator.View.Controls;
+using Swr.Configurator.View.DataViewModels;
+using SwrUI;
+using SWR_Tools.Extention;
+using SWR_Tools.Logic;
+using Xceed.Wpf.AvalonDock.Layout;
+using IProduct = Swr.Configurator.Data.ProductModel.IProduct;
+
+namespace Swr.Configurator.View.Panels.ViewModels
+{
+    // �������� ������������ ��� ������ ����������. VM ��� SpecificationUC
+    public class SpecificationPageVM : SpecificationPanelVMBase
+    {
+        private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
+        private readonly SpecificationsController _specificationsController;
+
+        //private readonly QuickSearchController _quickSearchController;
+
+        private readonly IEnumerable&lt;string&gt; _variablesForCardRead; // ���������� ��� ������ ��� ������ ������
+        private SpecificationTabVM _activeTab;
+        private List&lt;string&gt; _productVariablesForDynamicLists;
+
+        public IProduct Product { get; private set; }
+
+        /// &lt;summary&gt;
+        /// �������� �������� ��� ������������
+        /// &lt;/summary&gt;
+        public ProductsCollection Children { get; private set; }
+
+        public SpecificationPageVM(IProduct rootProduct, Common.Settings.Settings settings, SpecificationsController specificationsController)
+        {
+            _specificationsController = specificationsController;
+
+            Settings = settings;
+            SpecificationTypeVariableName = &quot;��� ������������&quot;/*settings.SpecificationTypes.TypeVariable*/;
+
+            //var role = ConfiguratorMainWindowVM.Instance.CurrentUserRole;
+            //RoleSpecifcations = Settings.SpecificationTypes.GetTypesByIdentifiers(role.SpecificationTypes).ToArray();
+
+            Product = rootProduct;
+
+            Children = new ProductsCollection();
+
+            foreach (var reference in Product.References)
+            {
+                var item = new ProductForSpecificationTabVM(reference);
+                AddNecessarilySpecificationTypeProperty(item);
+                Children.Add(item);
+            }
+
+            Children.ItemEndEdit += vm_ItemEndEdit;
+            Children.SomethingChanged += OnSomethingChanged;
+
+            Product.NewReferenceAdded += Product_NewReferenceAdded;
+            Product.ReferenceRemoved += Product_ReferenceRemoved;
+
+            //Product.Changed += Product_Changed;
+            Product.NameChanged += Product_NameChanged;
+            //Product.PropertyChanged += Product_PropertyChanged;
+
+            Tabs = new ObservableCollection&lt;SpecificationTabVM&gt;();
+            AssembleViewModel();
+
+            //_quickSearchController = new QuickSearchController(ConfiguratorMainWindowVM.Instance.SharedSettingsController);
+
+            //_variablesForCardRead = _quickSearchController.GetVariablesForCardRead();
+
+            //FillProductVariablesForDynamicLists();
+        }
+
+        //private void FillProductVariablesForDynamicLists()
+        //{
+        //	var usedLists = Settings.SpecificationTypes.Types
+        //		.SelectMany(t =&gt; t.Columns.Columns)
+        //		.Where(c =&gt; c.ListId != Guid.Empty)
+        //		.Select(c =&gt; c.ListId)
+        //		.Distinct()
+        //		.ToArray();
+
+        //	var dynamicListValues = Settings.Common.Lists.Lists
+        //		.OfType&lt;DynamicUserListSettings&gt;()
+        //		.Where(l =&gt; usedLists.Contains(l.Id))
+        //		.SelectMany(l =&gt; l.Records)
+        //		.Select(r =&gt; r.Value)
+        //		.ToArray();
+
+        //	_productVariablesForDynamicLists = new List&lt;string&gt;();
+
+        //	foreach (var value in dynamicListValues)
+        //	{
+        //		NameTemplateParser.Parse(value, out var variables);
+
+        //		_productVariablesForDynamicLists.AddRange(variables);
+        //	}
+
+        //	_productVariablesForDynamicLists = _productVariablesForDynamicLists.Distinct().ToList();
+        //}
+
+        //public QuickSearchController QuickSearchController
+        //{
+        //	get { return _quickSearchController; }
+        //}
+
+        //public IEnumerable&lt;string&gt; VariablesForCardRead
+        //{
+        //	get { return _variablesForCardRead; }
+        //}
+
+        //public SpecificationTypeObject[] RoleSpecifcations { get; set; }
+
+        private void AddNecessarilySpecificationTypeProperty(ProductForSpecificationTabVM item)
+        {
+            if (SpecificationTypeVariableName != null &amp;&amp; !item.ReferenceProperties.SafeAny(x =&gt; x.Property.Variable.Equals(SpecificationTypeVariableName)))
+            {
+                using (new EntityChangedSuspender(item.Reference))
+                {
+                    var property = item.Reference.SetProperty(SpecificationTypeVariableName, null);
+
+                    var specificationTypePropertyVM = new PropertyVM(property);
+                    item.ReferenceProperties.Add(specificationTypePropertyVM);
+                }
+            }
+        }
+
+        //public void AddMissingPropertiesOfTheLinkForSpecificTab(ProductForSpecificationTabVM item,
+        //    SpecificationTabVM validTab,
+        //    bool newRow = false, bool fromRootProduct = false)
+        //{
+        //    //1) �������� ����� �����
+        //    //       ������ ����������� ���������� ����� �� ���������� �� ���������
+        //    //       ������ ����������� ���������� ����� �� ���������� �� ���������, � ����� ������ �������� �� �� ���������
+
+        //    // 2) ���������� �� ������
+        //    //        ������ ����������� ���������� ����� � ������� ����������
+
+        //    //        �������� ���������� ����� �� ���������� �� ���������
+
+        //    // 3) ���������� ��� �������� ������
+
+        //    //        ������ ����������� ���������� ����� � ������� ����������
+        //    //        ������ ����������� ���������� ����� � ������� ����������
+
+
+        //    if (SpecificationTypeVariableName != null &amp;&amp;
+        //        !item.ReferenceProperties.SafeAny(x =&gt; x.Property.Variable.Equals(SpecificationTypeVariableName)))
+        //    {
+        //        var property = item.Reference.SetProperty(SpecificationTypeVariableName, validTab.SpecificationTypeObject.Name);
+        //        var specificationTypePropertyVM = new PropertyVM(property);
+        //        item.ReferenceProperties.Add(specificationTypePropertyVM);
+        //    }
+
+        //    var columns = validTab.SpecificationTypeObject.Attributes;//.Columns.Columns;
+
+        //    foreach (var column in columns)
+        //    {
+        //        switch (column.ColumnType) // ������ ��������� �������, � �������� ������� �� ����� ��������
+        //        {
+        //            case ColumnType.FileId:
+        //            case ColumnType.FileName:
+        //            case ColumnType.ProductName:
+        //            case ColumnType.MultipleReferenceCounter:
+        //            case ColumnType.TimeStamp:
+        //                continue;
+        //        }
+
+        //        if (column.Attribute.Type == AttributeTypeEnum.Link)
+        //        {
+        //            //���������� �����
+        //            var reference = item.Reference;
+
+        //            var refProp = reference.GetProperty(column.TableAlias);
+        //            if (fromRootProduct)
+        //            {
+        //                // ���� ��� ���������� - ����� ������ ��������
+        //                if (refProp == null)
+        //                    using (new EntityChangedSuspender(reference))
+        //                    {
+        //                        reference.SetProperty(column.TableAlias/*.Variable*/, null);
+        //                    }
+        //            }
+        //            else
+        //            {
+        //                //���� ���������� ��� ��� ���� ���������� ������ - ����� �������� �� ���������
+        //                if (refProp == null || String.IsNullOrWhiteSpace(refProp.Value))
+        //                    using (new EntityChangedSuspender(reference))
+        //                    {
+        //                        reference.SetProperty(column.TableAlias/*.Variable*/, &quot;&quot;/*column.DefaultValue*/);
+        //                    }
+        //            }
+
+
+        //            if (item.ReferenceProperties[column.TableAlias/*.Variable*/] == null)
+        //            {
+        //                //���� ��� VM ���������� -���������
+        //                var property = reference.GetProperty(column.TableAlias/*.Variable*/);
+        //                if (property != null)
+        //                {
+        //                    var propertyVM = new PropertyVM(property);
+        //                    item.ReferenceProperties.Add(propertyVM);
+        //                }
+        //            }
+        //        }
+        //        else
+        //        {
+        //            //���������� �����
+        //            var product = item.Reference.Child;
+
+        //            var productType = product.Type;
+        //            var foundTypeAttribute =
+        //                productType.Attributes.FirstOrDefault(t =&gt; t.Attribute.Name == column.CardAlias);
+        //            if (foundTypeAttribute != null)
+        //            {
+        //                if (product.Properties.All(x =&gt; !x.Variable.Equals(column.CardAlias /*.Variable*/)))
+        //                {
+        //                    //��������� ���������� � ������ ���������
+        //                    using (new EntityChangedSuspender(product))
+        //                    {
+        //                        product.SetProperty(column.CardAlias /*.Variable*/,
+        //                            newRow ? &quot;&quot; /*column.DefaultValue*/ : null);
+        //                    }
+        //                }
+
+        //                if (item.Properties[column.CardAlias /*.Variable*/] == null)
+        //                {
+        //                    //���� ��� VM ���������� -���������
+        //                    var property = product.GetProperty(column.CardAlias /*.Variable*/);
+        //                    if (property != null)
+        //                    {
+        //                        var propertyVM = new PropertyVM(property);
+        //                        item.Properties.Add(propertyVM);
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
+
+        public void AddMissingPropertiesOfTheLinkForSpecificTab(ProductForSpecificationTabVM item, SpecificationTabVM validTab, bool newRow = false, bool fromRootProduct = false)
+        {
+            //1) �������� ����� �����
+            //       ������ ����������� ���������� ����� �� ���������� �� ���������
+            //       ������ ����������� ���������� ����� �� ���������� �� ���������, � ����� ������ �������� �� �� ���������
+
+            // 2) ���������� �� ������
+            //        ������ ����������� ���������� ����� � ������� ����������
+
+            //        �������� ���������� ����� �� ���������� �� ���������
+
+            // 3) ���������� ��� �������� ������
+
+            //        ������ ����������� ���������� ����� � ������� ����������
+            //        ������ ����������� ���������� ����� � ������� ����������
+
+
+            if (SpecificationTypeVariableName != null &amp;&amp; !item.ReferenceProperties.SafeAny(x =&gt; x.Property.Variable.Equals(SpecificationTypeVariableName)))
+            {
+                var property = item.Reference.SetProperty(SpecificationTypeVariableName, validTab.SpecificationTypeObject.Name);
+
+                var specificationTypePropertyVm = new PropertyVM(property);
+
+                item.ReferenceProperties.Add(specificationTypePropertyVm);
+            }
+
+            var columns = validTab.SpecificationTypeObject.Attributes;//.Columns.Columns;
+
+            foreach (var column in columns)
+            {
+                switch (column.ColumnType) // ������ ��������� �������, � �������� ������� �� ����� ��������
+                {
+                    case ColumnType.FileId:
+                    case ColumnType.FileName:
+                    case ColumnType.ProductName:
+                    case ColumnType.MultipleReferenceCounter:
+                    case ColumnType.TimeStamp:
+                        continue;
+                }
+
+                if (column.Attribute.Type == AttributeTypeEnum.Link)
+                {
+                    //���������� �����
+                    var reference = item.Reference;
+
+                    var refProp = reference.GetProperty(column.Attribute.Name);
+                    if (fromRootProduct)
+                    {
+                        // ���� ��� ���������� - ����� ������ ��������
+                        if (refProp == null)
+                            using (new EntityChangedSuspender(reference))
+                            {
+                                reference.SetProperty(column.Attribute.Name, null); // TODO: ��� �������. ������� column.TableAlias �����, �� ���
+                            }
+                    }
+                    else
+                    {
+                        //���� ���������� ��� ��� ���� ���������� ������ - ����� �������� �� ���������
+                        if (refProp == null || String.IsNullOrWhiteSpace(refProp.Value))
+                            using (new EntityChangedSuspender(reference))
+                            {
+                                reference.SetProperty(column.Attribute.Name, &quot;&quot;/*column.DefaultValue*/);
+                            }
+                    }
+
+
+                    if (item.ReferenceProperties[column.Attribute.Name] == null)
+                    {
+                        //���� ��� VM ���������� -���������
+                        var property = reference.GetProperty(column.Attribute.Name);
+                        if (property != null)
+                        {
+                            var propertyVM = new PropertyVM(property);
+                            item.ReferenceProperties.Add(propertyVM);
+                        }
+                    }
+                }
+                else
+                {
+                    //���������� �����
+                    var product = item.Reference.Child;
+
+                    var productType = product.Type;
+
+                    var foundTypeAttribute = productType.Attributes.FirstOrDefault(t =&gt; t.Attribute.Name == column.Attribute.Name);
+
+                    if (foundTypeAttribute != null)
+                    {
+                        if (product.Properties.All(x =&gt; !x.Variable.Equals(column.Attribute.Name)))
+                        {
+                            //��������� ���������� � ������ ���������
+                            using (new EntityChangedSuspender(product))
+                            {
+                                product.SetProperty(column.Attribute.Name,
+                                    newRow ? &quot;&quot; /*column.DefaultValue*/ : null);
+                            }
+                        }
+
+                        if (item.Properties[column.Attribute.Name] == null)
+                        {
+                            //���� ��� VM ���������� -���������
+                            var property = product.GetProperty(column.Attribute.Name);
+                            if (property != null)
+                            {
+                                var propertyVM = new PropertyVM(property);
+                                item.Properties.Add(propertyVM);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        public SpecificationTabVM ActiveTab
+        {
+            get { return _activeTab; }
+            set { _activeTab = value; }
+        }
+
+        //public ProductsCollection Children { get; private set; }
+
+        //public bool IsChanged
+        //{
+        //	get
+        //	{
+        //		if (Product == null)
+        //			return false;
+        //		return Product.IsChanged;
+        //	}
+        //}
+
+
+        public Common.Settings.Settings Settings { get; private set; }
+
+        public string SpecificationTypeVariableName { get; set; }
+
+        public ObservableCollection&lt;SpecificationTabVM&gt; Tabs { get; private set; }
+
+        public bool NoTabs
+        {
+            get { return !Tabs.SafeAny(); }
+        }
+
+        public override string Header
+        {
+            get { return Product.Name; }
+            set { }
+        }
+
+        public string LayoutId { get; set; }
+
+        public LayoutDocument LayoutDocument { get; set; }
+
+        public bool SuspendTabCollectionChanged { get; private set; }
+        //public bool IsInOrder { get; set; }
+        //public string InclusionIdentifer { get; set; }
+
+        private void AssembleViewModel()
+        {
+            //������� ���� ������������, ��������� ���� ���������� Product
+            //Product.Type.SpecificationTypeNames
+            var spTypes = Settings.SpecificationTypes.Where(t =&gt; Product.Type.SpecificationTypeNames.Contains(t.Name)).ToList();
+
+            foreach (var specificationTypeObject in spTypes)
+            {
+                var tab = new SpecificationTabVM(specificationTypeObject, this, SpecificationTypeVariableName, _specificationsController);
+
+                var productsWithTypeVar = Children.Where(x =&gt; x.ReferenceProperties[&quot;��� ������������&quot;] != null);
+                var productsForThisTab = productsWithTypeVar.Where(x =&gt;
+                    String.Equals(x.ReferenceProperties[&quot;��� ������������&quot;].ProperyValue, specificationTypeObject.Name,
+                        StringComparison.OrdinalIgnoreCase)).ToList();
+                tab.Products.AddRange(productsForThisTab);
+                tab.TabCollectionChanged += tab_TabCollectionChanged;
+
+                //������� ����������� ���� ������������ � ������ Speicifications
+                if (!Product.Specifications.ContainsKey(specificationTypeObject.Name)) Product.Specifications.Add(specificationTypeObject.Name, Guid.Empty);
+
+                Tabs.Add(tab);
+            }
+
+
+            //var role = ConfiguratorMainWindowVM.Instance.CurrentUserRole;
+
+            //var referencesForNormalTabs = new List&lt;ProductForSpecificationTabVM&gt;();
+
+            //#region ������� �� �������� ����� ���������� ��� ������� �������������� �������
+
+            //var alternatePositionDisplayPropertyName = Settings.Common.PropertyForAlternatePositionDisplay;
+            //string alteranatePositionPropertyName = null;
+
+
+            //var firstOrDefault = RoleSpecifcations.SelectMany(x =&gt; x.Columns.Columns).Distinct().FirstOrDefault(x =&gt; x.ColumnType == ColumnType.AlternatePosition);
+
+            //if (firstOrDefault != null)
+            //{
+            //    alteranatePositionPropertyName = firstOrDefault.Variable;
+            //}
+
+            //#endregion
+
+            //var typeVar = Settings.SpecificationTypes.TypeVariable;
+
+            //foreach (var specificationTypeObject in Settings.SpecificationTypes.Types)
+            //{
+            //    if (specificationTypeObject == null)
+            //        continue;
+
+            //    var specificationTypeId = specificationTypeObject.Identifier;
+            //    if (!role.SpecificationTypes.Contains(specificationTypeId))
+            //        continue;
+
+            //    var tab = new SpecificationTabVM(specificationTypeObject, this, SpecificationTypeVariableName,
+            //        _specificationsController, specificationTypeObject.Identifier == Settings.SpecificationTypes.DefaultType);
+
+            //    var typeVarValue = specificationTypeObject.TypeVariableValue;
+
+            //    var productsWithTypeVar = Children.Where(x =&gt; x.ReferenceProperties[typeVar] != null);
+            //    var productsForThisTab = productsWithTypeVar.Where(x =&gt; String.Equals(x.ReferenceProperties[typeVar].ProperyValue, typeVarValue, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            //    foreach (var productVM in productsForThisTab)
+            //    {
+            //        productVM.Location = tab;
+            //        AddMissingPropertiesOfTheLinkForSpecificTab(productVM, tab, fromRootProduct: true);
+            //    }
+
+            //    tab.Products.AddRange(productsForThisTab);
+
+            //    referencesForNormalTabs.AddRange(tab.Products);
+
+            //    tab.TabCollectionChanged += tab_TabCollectionChanged;
+
+            //    tab.AlteranatePositionDisplayPropertyName = alternatePositionDisplayPropertyName;
+            //    tab.AlteranatePositionPropertyName = alteranatePositionPropertyName;
+            //    tab.SpecificationTypeProperyName = Settings.SpecificationTypes.TypeVariable;
+
+            //    Tabs.Add(tab);
+            //}
+
+            //OnPropertyChanged(() =&gt; NoTabs);
+
+            ////if (Tabs.All(x =&gt; !x.IsDefaultTab))
+            ////{
+            ////    var type = Settings.SpecificationTypes.GetTypeByIdentifier(Settings.SpecificationTypes.DefaultType);
+
+            ////    var tab = new SpecificationTabVM(type, this, SpecificationTypeVariableName, _specificationsController, true);
+            ////    tab.TabCollectionChanged += tab_TabCollectionChanged;
+            ////    Tabs.Add(tab);
+            ////}
+
+            //var defaultTab = Tabs.FirstOrDefault(x =&gt; x.IsDefaultTab);
+            //if (defaultTab == null)
+            //    return;
+
+            ////����� ��������� ��� ������� �� ���������
+            //var specificatyonTypes = Settings.SpecificationTypes.Types.Select(x =&gt; x.TypeVariableValue).ToList();
+            //var productsForDefaultTab = Children.Where(x =&gt;
+            //    x.ReferenceProperties[typeVar] == null //���� ��� ���������� ��������
+            //    || String.IsNullOrWhiteSpace(x.ReferenceProperties[typeVar].ProperyValue) // ���� �������� ���������� ��� ����� ������ 
+            //    || !specificatyonTypes.Contains(x.ReferenceProperties[typeVar].ProperyValue)).ToArray(); // ���� �������� ���������� ��� ����� �� ���������� � ������ ��������� ������������
+
+            //defaultTab.Products.AddRange(productsForDefaultTab);
+
+            //foreach (var productVM in defaultTab.Products)
+            //{
+            //    productVM.Location = defaultTab;
+            //    AddMissingPropertiesOfTheLinkForSpecificTab(productVM, defaultTab, fromRootProduct: true);
+            //}
+
+            //foreach (var specificationTabVM in Tabs)
+            //{
+            //    specificationTabVM.UpdateAlternatePositions();
+            //}
+        }
+
+        private void Product_ReferenceRemoved(object sender, ProductReferenceRemovedEventArgs e)
+        {
+            var product = Children.FirstOrDefault(x =&gt; x.Reference == e.Reference);
+            if (product == null)
+                return;
+
+            ConfiguratorMainWindow.Instance.Dispatcher.Invoke(new Action(() =&gt;
+            {
+                Children.Remove(product);
+                foreach (var tab in Tabs)
+                {
+                    var item = tab.Products.FirstOrDefault(x =&gt; x.Reference == e.Reference);
+                    if (item != null)
+                    {
+                        tab.Products.Remove(item);
+                        return;
+                    }
+                }
+            }));
+        }
+
+        private void Product_NewReferenceAdded(object sender, ReferenceEventArgs e)
+        {
+            var dummyChild = Children.FirstOrDefault(x =&gt; x.Reference.Child.ObjectIdentificator == e.Reference.Child.ObjectIdentificator &amp;&amp; x.IsDummy);
+
+            if (!(e.Reference.Child is DummyProduct))
+            {
+                if (dummyChild == null)
+                {
+                    var child = new ProductForSpecificationTabVM(e.Reference);
+                    AddNecessarilySpecificationTypeProperty(child);
+                    Children.Add(child);
+                    MoveItemToValidTab(child);
+                }
+                else
+                {
+                    dummyChild.ChangeProduct(e.Reference);
+                    MoveItemToValidPlaceInListOfProductsOnTab(dummyChild);
+                }
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// �������� ��������� �� ������ ��� ������������
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;item&quot;&gt;&lt;/param&gt;
+        private void MoveItemToValidTab(ProductForSpecificationTabVM item)
+        {
+            #region �������� �� ������� ���������� �����
+
+            if (!item.ReferenceProperties.Exists(x =&gt;
+                String.Equals(x.Property.Variable, &quot;��� ������������&quot; /*Settings.SpecificationTypes.TypeVariable*/)))
+            {
+                var parent = item.Reference.Parent == null ? String.Empty : item.Reference.Parent.Name;
+                var child = item.Reference.Child == null ? String.Empty : item.Reference.Child.Name;
+
+                var message = String.Format(
+                    &quot;� ������ ����� ������������ &#39;{0}&#39;{2}� �������� &#39;{1}&#39; �����������{2}����������� ���������� ������������� �� ��� �����.&quot;,
+                    parent, child, Environment.NewLine);
+
+                _logger.Error(message);
+                SwrMessageBox.Show(ConfiguratorMainWindow.Instance, message,
+                    ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+
+                ConfiguratorMainWindow.Instance.CloseImmediately();
+                return;
+            }
+
+            #endregion
+
+            //IEditableCollectionView itemsView = ActiveTab.DataGrid.Items;
+            //if (itemsView.IsAddingNew || itemsView.IsEditingItem)
+            //{
+            //    ActiveTab.DataGrid.CommitEdit(DataGridEditingUnit.Row, true);
+            //}
+
+            SuspendTabCollectionChanged = true;
+
+            var typeVar = &quot;��� ������������&quot; /*Settings.SpecificationTypes.TypeVariable*/;
+            var specificatyonTypes = Settings.SpecificationTypes.Select(x =&gt; x.Name).ToList();
+
+            var typeVarValue = item.ReferenceProperties[typeVar].ProperyValue;
+
+            ConfiguratorMainWindow.Instance.Dispatcher.Invoke(new Action(() =&gt;
+            {
+                if (item.Location != null &amp;&amp; item.Location.Products.SafeAny())
+                    item.Location.Products.Remove(item);
+
+                var defaultTab = Tabs.FirstOrDefault(x =&gt; x.IsDefaultTab);
+                var validTab = Tabs.FirstOrDefault(x =&gt; String.Equals(x.SpecificationTypeObject.Name, typeVarValue));
+
+                if (validTab != null)
+                {
+                    AddProductToProductsOnTab(item, validTab);
+                }
+                else if (defaultTab != null &amp;&amp;
+                         (String.IsNullOrWhiteSpace(typeVarValue) || !specificatyonTypes.Contains(typeVarValue)))
+                {
+                    AddProductToProductsOnTab(item, defaultTab);
+                }
+
+                SuspendTabCollectionChanged = false;
+            }));
+        }
+
+        private void AddProductToProductsOnTab(ProductForSpecificationTabVM item, SpecificationTabVM validTab)
+        {
+            item.Location = validTab;
+
+            AddMissingPropertiesOfTheLinkForSpecificTab(item, validTab);
+
+            var existedProduct = validTab.Products.Except(new[] {item}).LastOrDefault(x =&gt;
+                x.Reference.Child.DbIdentificator == item.Reference.Child.DbIdentificator);
+            if (existedProduct != null) //8.	������ ������ ���������� � ������� ������ ������������� �����.
+            {
+                validTab.Products.Insert(validTab.Products.IndexOf(existedProduct) + 1, item);
+            }
+            else
+            {
+                validTab.Products.Add(item);
+            }
+        }
+
+        private void MoveItemToValidPlaceInListOfProductsOnTab(ProductForSpecificationTabVM item)
+        {
+            //8.	������ ������ ���������� � ������� ������ ������������� �����.
+
+            var tab = item.Location;
+            if (tab == null)
+                return;
+
+            var existedProduct = tab.Products.Except(new[] { item }).LastOrDefault(x =&gt; x.Reference.Child.ObjectIdentificator == item.Reference.Child.ObjectIdentificator);
+            if (existedProduct != null)
+            {
+                tab.Products.Move(tab.Products.IndexOf(item), tab.Products.IndexOf(existedProduct) + 1);
+            }
+        }
+
+        private void OnSomethingChanged(object sender, EventArgs e)
+        {
+            // ���� ���������� �������� ���������� ������ ��������� ���� �� ��� ���������� �� ������ ��� � ���� �� - ����������
+            var item = sender as ProductForSpecificationTabVM;
+            if (item == null)
+                return;
+
+            if (item.Location == null
+            ) //���� ���������� �������� � ����������, �������� ��� �� ��������� ������������ �������� ������������, �� ���� ������ ���������
+                return;
+
+            var itemOnDefaultTab = item.Location.IsDefaultTab;
+
+            if (!item.ReferenceProperties.Exists(x =&gt;
+                String.Equals(x.Property.Variable, &quot;��� ������������&quot; /*Settings.SpecificationTypes.TypeVariable*/)))
+                return;
+
+            var specificationTypePropertyValue = item
+                .ReferenceProperties[&quot;��� ������������&quot; /*Settings.SpecificationTypes.TypeVariable*/].ProperyValue;
+
+            if (itemOnDefaultTab)
+            {
+                var itemSpecificationTypePropertyValidForTab = Tabs.Where(x =&gt; !x.IsDefaultTab).All(x =&gt;
+                    !String.Equals(x.SpecificationTypeObject.Name, specificationTypePropertyValue));
+                if (!itemSpecificationTypePropertyValidForTab)
+                    MoveItemToValidTab(item);
+            }
+            else
+            {
+                var itemSpecificationTypePropertyValidForTab = String.Equals(item.Location.SpecificationTypeObject.Name,
+                    specificationTypePropertyValue);
+                if (!itemSpecificationTypePropertyValidForTab)
+                    MoveItemToValidTab(item);
+            }
+        }
+
+        private void Product_NameChanged(object sender, EventArgs e)
+        {
+            // ��������� ��� ������������ ��� ��������� ����� ����������, ��� �������� ������� ��� ������
+            if (LayoutDocument == null)
+                return;
+
+            LayoutDocument.Title = Header;
+        }
+
+        //private void Product_PropertyChanged(object sender, Common.Data.EventArgs.PropertyChangedEventArgs e)
+        //{
+        //	if (ActiveTab == null)
+        //		return;
+
+        //	if (!_productVariablesForDynamicLists.Contains(e.Variable))
+        //		return;
+
+        //	var comparer = new ListRecordContentComparer();
+
+        //	foreach (var column in ActiveTab.DataGrid.Columns.OfType&lt;ListDataGridEditableComboBoxColumn&gt;())
+        //	{
+        //		if (column.Source is ObservableCollection&lt;ListRecordContent&gt; content &amp;&amp; column.Settings is DynamicUserListSettings settings)
+        //		{
+        //			var newValues = UIColumnGenerator.GetDynamicListRecordContent(Product, settings);
+
+        //			var remove = content.Except(newValues, comparer).ToArray();
+        //			var add = newValues.Except(content, comparer).ToArray();
+
+        //			content.RemoveRange(remove);
+        //			content.AddRange(add);
+        //		}
+        //	}
+        //}
+
+        //Update/Insert
+        private void vm_ItemEndEdit(IEditableObject sender)
+        {
+            var product = sender as ProductForSpecificationTabVM;
+
+            try
+            {
+
+                // ����� ������� ���������� ���������� ����� ���������� �������������� ������ 
+                if (product != null)
+                {
+                    if (product.IsDummy) //Insert
+                    {
+                        var variables = new Dictionary&lt;string, string&gt;(StringComparer.OrdinalIgnoreCase);
+
+                        foreach (var referenceProperty in product.ReferenceProperties) // �������� ��� ����������� ������������� ���������� �����
+                        {
+                            variables[referenceProperty.Property.Variable] = product.ReferenceProperties[referenceProperty.Property.Variable].Property.Value;
+                        }
+
+                       // var settings = ConfiguratorMainWindowVM.Instance.SharedSettingsController.Settings;
+
+                        var command = new AddChildProductCommand(Product, product.Reference.Child, variables/*, ConfiguratorMainWindowVM.Instance.Cache,
+                            settings.ComponentTypes.CopyMeasureUnits/*, settings.SpecificationTypes.IsEnableMultipleReferences()*/);
+                        ConfiguratorMainWindowVM.Instance.CommandManager.ExecuteCommand(command);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e);
+            }
+        }
+
+        //private void Product_Changed(object sender, EventArgs e)
+        //{
+        //	OnPropertyChanged(() =&gt; IsChanged);
+        //}
+
+        private void tab_TabCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            // ������������� ������ ������ �� �������� �� �����
+            if (SuspendTabCollectionChanged)
+                return;
+
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                foreach (var item in e.NewItems)
+                {
+                    var vm = item as ProductForSpecificationTabVM;
+                    if (vm == null)
+                        continue;
+                    Children.Add(vm);
+                }
+            }
+        }
+
+        ///// &lt;summary&gt;
+        ///// ������� ��������� ����� �������������� �� �������
+        ///// &lt;/summary&gt;
+        ///// &lt;param name=&quot;vms&quot;&gt;&lt;/param&gt;
+        ///// &lt;param name=&quot;tab&quot;&gt;&lt;/param&gt;
+        //public void OnDrop(List&lt;IProduct&gt; vms, SpecificationTabVM tab)
+        //{
+        //	if (CheckIfLocked())
+        //		return;
+
+        //	var variables = new Dictionary&lt;string, string&gt;(StringComparer.OrdinalIgnoreCase);
+        //	variables[tab.SpecificationTypeVariableName] = tab.SpecificationTypeObject.TypeVariableValue;
+
+        //	var errors = new List&lt;ErrorData&gt;();
+        //	foreach (var childProduct in vms)
+        //	{
+        //		IProduct structureProduct = null;
+        //		var fromCache = ConfiguratorMainWindowVM.Instance.Cache.GetProductByIdentifier(childProduct.Identifier);
+
+        //		if (fromCache != null)
+        //			structureProduct = fromCache;
+        //		else
+        //		{
+        //			fromCache = ConfiguratorMainWindowVM.Instance.Cache.GetProductByFileId(childProduct.PdmFile.FileId, childProduct.PdmFile.Configuration);
+        //			structureProduct = fromCache ?? childProduct;
+        //		}
+
+        //		try
+        //		{
+        //			if (structureProduct.PdmFile.Exist() &amp;&amp; fromCache == null)
+        //			{
+        //				var readPropertiesCommand = new ReadProductPropertiesCommand(structureProduct, ConfiguratorMainWindowVM.Instance.PdmDBProvider, ConfiguratorMainWindowVM.Instance.Cache, ConfiguratorMainWindowVM.Instance.SharedSettingsController.Settings);
+        //				readPropertiesCommand.Execute();
+        //			}
+
+        //			var settings = ConfiguratorMainWindowVM.Instance.SharedSettingsController.Settings;
+
+        //			var addCommand = new AddChildProductCommand(Product, structureProduct, variables, ConfiguratorMainWindowVM.Instance.Cache,
+        //				settings.ComponentTypes.CopyMeasureUnits, settings.SpecificationTypes.IsEnableMultipleReferences());
+        //			ConfiguratorMainWindowVM.Instance.CommandManager.ExecuteCommand(addCommand);
+        //		}
+        //		catch (Exception exception)
+        //		{
+        //			_logger.Error(exception);
+        //			errors.Add(new ErrorData {Text = exception.Message, ParentName = Product == null ? String.Empty : Product.Name, ProductName = structureProduct.Name});
+        //		}
+        //	}
+
+        //	if (errors.Any())
+        //	{
+        //		ConfiguratorMainWindowVM.Instance.ErrorsVM.Update(errors);
+        //		ConfiguratorMainWindowVM.Instance.LayoutController.ShowErrorsPanel();
+        //	}
+        //}
+
+        public bool CheckIfLocked(bool silent = false)
+        {
+            return false;
+            //var role = ConfiguratorMainWindowVM.Instance.CurrentUserRole;
+            //var libraryPaths = ConfiguratorMainWindowVM.Instance.SharedSettingsController.Settings.Library.RelativeLibraryFolderPaths;
+
+            //if (Product.IsLibrary &amp;&amp; Product.IsLockedForEdit(role, libraryPaths))
+            //{
+            //    if (!silent)
+            //        SwrMessageBox.Show(ConfiguratorMainWindow.Instance,
+            //            $&quot;� ��� ��� ���� �� �������������� ������������ �����������.{Environment.NewLine}���������� � ��������������&quot;,
+            //            ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Information);
+            //    return true;
+            //}
+
+            //if (!ConfiguratorMainWindowVM.Instance.LicenseManagerController.IsLicenseReceived)
+            //{
+            //    if (!silent)
+            //        SwrMessageBox.Show(ConfiguratorMainWindow.Instance, &quot;�������� ����� � ���������� ��������.\n�������� �������� ������� � ������� ������� �� �������� ����� &#39;���������&#39; ��� ���������� � ��������������&quot;,
+            //            ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Exclamation);
+            //    return true;
+            //}
+
+            //var isAnyOrderInStructure = ConfiguratorMainWindowVM.Instance.ProductStructureContainer.Products.SafeAny(p =&gt; p.TypeObject.Id == ComponentFabric.OrderType);
+            //return isAnyOrderInStructure;
+        }
+
+        public override void Close(bool isExecuteCommand = true)
+        {
+            if (Product != null)
+            {
+                //Product.Changed -= Product_Changed;
+                //Product.NameChanged -= Product_NameChanged;
+                //Product.PropertyChanged -= Product_PropertyChanged;
+
+                Product.NewReferenceAdded -= Product_NewReferenceAdded;
+                //Product.ReferenceRemoved -= Product_ReferenceRemoved;
+            }
+
+            foreach (var tab in Tabs)
+            {
+                tab.TabCollectionChanged -= tab_TabCollectionChanged;
+                tab.Dispose();
+            }
+
+            Children.ItemEndEdit -= vm_ItemEndEdit;
+            Children.SomethingChanged -= OnSomethingChanged;
+
+            var documentItem = ConfiguratorMainWindowVM.Instance.LayoutController.Manager.LayoutItems.FirstOrDefault(x =&gt; Equals(x.LayoutElement, LayoutDocument));
+            if (documentItem != null)
+            {
+                if (documentItem.CloseCommand.CanExecute(null) &amp;&amp; isExecuteCommand)
+                    documentItem.CloseCommand.Execute(null);
+            }
+
+            base.Close();
+        }
+
+        public void ChangeDeletedRowsVisibility(bool isVisible)
+        {
+            foreach (var tab in Tabs)
+            {
+                tab.FilteredProducts.Filter = x =&gt; { return !((ProductForSpecificationTabVM)x).IsDeleted || (((ProductForSpecificationTabVM)x).IsDeleted &amp;&amp; isVisible); };
+            }
+        }
+    }
+
+    internal class ListRecordContentComparer : IEqualityComparer&lt;ListRecordContent&gt;
+    {
+        #region Implementation of IEqualityComparer&lt;in ListRecordContent&gt;
+
+        /// &lt;summary&gt;Determines whether the specified objects are equal.&lt;/summary&gt;
+        /// &lt;param name=&quot;x&quot;&gt;The first object of type &lt;paramref name=&quot;T&quot; /&gt; to compare.&lt;/param&gt;
+        /// &lt;param name=&quot;y&quot;&gt;The second object of type &lt;paramref name=&quot;T&quot; /&gt; to compare.&lt;/param&gt;
+        /// &lt;returns&gt;
+        /// &lt;see langword=&quot;true&quot; /&gt; if the specified objects are equal; otherwise, &lt;see langword=&quot;false&quot; /&gt;.&lt;/returns&gt;
+        public bool Equals(ListRecordContent x, ListRecordContent y)
+        {
+            if (x == null &amp;&amp; y == null)
+                return true;
+
+            if (x == null)
+                return false;
+
+            if (y == null)
+                return false;
+
+            return string.Equals(x.Value, y.Value);
+        }
+
+        /// &lt;summary&gt;Returns a hash code for the specified object.&lt;/summary&gt;
+        /// &lt;param name=&quot;obj&quot;&gt;The &lt;see cref=&quot;T:System.Object&quot; /&gt; for which a hash code is to be returned.&lt;/param&gt;
+        /// &lt;returns&gt;A hash code for the specified object.&lt;/returns&gt;
+        /// &lt;exception cref=&quot;T:System.ArgumentNullException&quot;&gt;The type of &lt;paramref name=&quot;obj&quot; /&gt; is a reference type and &lt;paramref name=&quot;obj&quot; /&gt; is &lt;see langword=&quot;null&quot; /&gt;.&lt;/exception&gt;
+        public int GetHashCode(ListRecordContent obj)
+        {
+            return obj.Value == null ? 0 : obj.Value.GetHashCode();
+        }
+
+        #endregion
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[32,9,32,78,0],[42,35,42,39,0],[42,40,42,52,0],[47,46,47,50,0],[47,51,47,63,0],[49,9,49,143,0],[50,9,50,10,0],[51,13,51,66,0],[53,13,53,33,0],[54,13,54,108,0],[59,13,59,35,0],[61,13,61,49,0],[63,13,63,20,0],[63,22,63,35,0],[63,36,63,38,0],[63,39,63,57,0],[64,13,64,14,0],[65,17,65,72,0],[66,17,66,63,0],[67,17,67,36,0],[68,13,68,14,0],[70,13,70,52,0],[71,13,71,61,0],[73,13,73,68,0],[74,13,74,66,0],[77,13,77,56,0],[80,13,80,67,0],[81,13,81,33,0],[88,9,88,10,0],[131,9,131,10,0],[132,13,132,97,0],[132,97,132,154,0],[132,154,132,156,0],[132,13,132,156,0],[133,13,133,14,0],[134,17,134,67,0],[135,17,135,18,0],[136,21,136,100,0],[138,21,138,80,0],[139,21,139,79,0],[140,17,140,18,0],[141,13,141,14,0],[142,9,142,10,0],[258,9,258,10,0],[274,13,274,97,0],[274,97,274,154,0],[274,154,274,156,0],[274,13,274,156,0],[275,13,275,14,0],[276,17,276,129,0],[278,17,278,76,0],[280,17,280,75,0],[281,13,281,14,0],[283,13,283,71,0],[285,13,285,20,0],[285,22,285,32,0],[285,33,285,35,0],[285,36,285,43,0],[286,13,286,14,0],[287,17,287,43,0],[294,25,294,34,0],[297,17,297,69,0],[298,17,298,18,0],[300,21,300,52,0],[302,21,302,80,0],[303,21,303,41,0],[304,21,304,22,0],[306,25,306,45,0],[307,29,307,74,0],[308,29,308,30,0],[309,33,309,84,0],[310,29,310,30,0],[311,21,311,22,0],[313,21,313,22,0],[315,25,315,89,0],[316,29,316,74,0],[317,29,317,30,0],[318,33,318,105,0],[319,29,319,30,0],[320,21,320,22,0],[323,21,323,81,0],[324,21,324,22,0],[326,25,326,85,0],[327,25,327,46,0],[328,25,328,26,0],[329,29,329,71,0],[330,29,330,70,0],[331,25,331,26,0],[332,21,332,22,0],[333,17,333,18,0],[335,17,335,18,0],[337,21,337,56,0],[339,21,339,52,0],[341,21,341,89,0],[341,89,341,130,0],[341,130,341,132,0],[341,21,341,132,0],[343,21,343,52,0],[344,21,344,22,0],[345,25,345,57,0],[345,57,345,98,0],[345,98,345,100,0],[345,25,345,100,0],[346,25,346,26,0],[348,29,348,72,0],[349,29,349,30,0],[350,33,351,81,0],[352,29,352,30,0],[353,25,353,26,0],[355,25,355,76,0],[356,25,356,26,0],[358,29,358,87,0],[359,29,359,50,0],[360,29,360,30,0],[361,33,361,75,0],[362,33,362,65,0],[363,29,363,30,0],[364,25,364,26,0],[365,21,365,22,0],[366,17,366,18,0],[367,13,367,14,0],[368,9,368,10,0],[373,17,373,18,0],[373,19,373,37,0],[373,38,373,39,0],[374,17,374,18,0],[374,19,374,38,0],[374,39,374,40,0],[390,52,390,56,0],[390,57,390,69,0],[392,55,392,59,0],[392,60,392,64,0],[394,64,394,68,0],[394,69,394,81,0],[398,17,398,18,0],[398,19,398,42,0],[398,43,398,44,0],[403,17,403,18,0],[403,19,403,39,0],[403,40,403,41,0],[404,17,404,18,0],[404,19,404,20,0],[407,34,407,38,0],[407,39,407,43,0],[409,48,409,52,0],[409,53,409,57,0],[411,51,411,55,0],[411,56,411,68,0],[416,9,416,10,0],[419,13,419,66,0],[419,66,419,118,0],[419,118,419,129,0],[419,13,419,129,0],[421,13,421,20,0],[421,22,421,49,0],[421,50,421,52,0],[421,53,421,60,0],[422,13,422,14,0],[423,17,423,139,0],[425,17,425,63,0],[425,63,425,112,0],[425,112,425,114,0],[425,17,425,114,0],[426,17,427,21,0],[427,21,428,60,0],[428,60,428,71,0],[426,17,428,71,0],[429,17,429,59,0],[430,17,430,70,0],[433,17,433,87,0],[433,88,433,157,0],[435,17,435,31,0],[436,13,436,14,0],[530,9,530,10,0],[533,9,533,10,0],[534,13,534,56,0],[534,56,534,82,0],[534,82,534,84,0],[534,13,534,84,0],[535,13,535,33,0],[536,17,536,24,0],[538,13,539,13,0],[539,13,539,14,0],[539,14,540,17,0],[540,17,540,42,0],[540,42,541,17,0],[541,17,541,24,0],[541,24,541,26,0],[541,26,541,33,0],[541,33,541,34,0],[541,34,541,36,0],[541,36,541,37,0],[541,37,541,41,0],[541,41,542,17,0],[542,17,542,18,0],[542,18,543,21,0],[543,21,543,65,0],[543,65,543,91,0],[543,91,543,93,0],[543,21,543,93,0],[543,93,544,21,0],[544,21,544,38,0],[544,38,545,21,0],[545,21,545,22,0],[545,22,546,25,0],[546,25,546,51,0],[546,51,547,25,0],[547,25,547,32,0],[547,32,549,17,0],[549,17,549,18,0],[549,18,550,13,0],[550,13,550,14,0],[550,14,550,17,0],[538,13,550,17,0],[551,9,551,10,0],[554,9,554,10,0],[555,13,555,59,0],[555,59,555,150,0],[555,150,555,152,0],[555,13,555,152,0],[557,13,557,54,0],[558,13,558,14,0],[559,17,559,40,0],[560,17,560,18,0],[561,21,561,79,0],[562,21,562,68,0],[563,21,563,41,0],[564,21,564,47,0],[565,17,565,18,0],[567,17,567,18,0],[568,21,568,59,0],[569,21,569,75,0],[570,17,570,18,0],[571,13,571,14,0],[572,9,572,10,0],[579,9,579,10,0],[582,13,583,17,0],[583,17,583,116,0],[583,116,583,118,0],[582,13,583,118,0],[584,13,584,14,0],[585,17,585,104,0],[586,17,586,101,0],[588,17,590,57,0],[592,17,592,40,0],[593,17,594,118,0],[596,17,596,68,0],[597,17,597,24,0],[608,13,608,48,0],[610,13,610,91,0],[611,13,611,78,0],[611,78,611,84,0],[611,84,611,95,0],[611,13,611,95,0],[613,13,613,79,0],[615,13,616,13,0],[616,13,616,14,0],[616,14,617,17,0],[617,17,617,79,0],[617,79,618,21,0],[618,21,618,57,0],[618,57,620,17,0],[620,17,620,59,0],[620,59,620,73,0],[620,73,620,75,0],[620,17,620,75,0],[620,75,621,17,0],[621,17,621,57,0],[621,57,621,116,0],[621,116,621,118,0],[621,17,621,118,0],[621,118,623,17,0],[623,17,623,38,0],[623,38,624,17,0],[624,17,624,18,0],[624,18,625,21,0],[625,21,625,63,0],[625,63,626,17,0],[626,17,626,18,0],[626,18,627,22,0],[627,22,628,114,0],[628,114,629,17,0],[629,17,629,18,0],[629,18,630,21,0],[630,21,630,65,0],[630,65,631,17,0],[631,17,631,18,0],[631,18,633,17,0],[633,17,633,53,0],[633,53,634,13,0],[634,13,634,14,0],[634,14,634,17,0],[615,13,634,17,0],[635,9,635,10,0],[638,9,638,10,0],[639,13,639,38,0],[641,13,641,73,0],[643,13,644,17,0],[644,17,644,90,0],[644,90,644,92,0],[643,13,644,92,0],[645,13,645,40,0],[646,13,646,14,0],[647,17,647,95,0],[648,13,648,14,0],[650,13,650,14,0],[651,17,651,45,0],[652,13,652,14,0],[653,9,653,10,0],[656,9,656,10,0],[659,13,659,37,0],[660,13,660,29,0],[661,17,661,24,0],[663,13,663,89,0],[663,89,663,170,0],[663,170,663,172,0],[663,13,663,172,0],[664,13,664,40,0],[665,13,665,14,0],[666,17,666,105,0],[667,13,667,14,0],[668,9,668,10,0],[671,9,671,10,0],[673,13,673,63,0],[674,13,674,30,0],[675,17,675,24,0],[677,13,678,14,0],[679,17,679,24,0],[681,13,681,63,0],[683,13,684,17,0],[684,17,684,116,0],[684,116,684,118,0],[683,13,684,118,0],[685,17,685,24,0],[687,13,688,116,0],[690,13,690,34,0],[691,13,691,14,0],[692,17,692,80,0],[692,80,692,95,0],[692,95,693,21,0],[693,21,693,99,0],[693,99,693,101,0],[692,17,693,101,0],[694,17,694,63,0],[695,21,695,46,0],[696,13,696,14,0],[698,13,698,14,0],[699,17,700,53,0],[701,17,701,63,0],[702,21,702,46,0],[703,13,703,14,0],[704,9,704,10,0],[707,9,707,10,0],[709,13,709,40,0],[710,17,710,24,0],[712,13,712,43,0],[713,9,713,10,0],[742,9,742,10,0],[743,13,743,66,0],[746,13,746,14,0],[749,17,749,37,0],[750,17,750,18,0],[751,21,751,41,0],[752,21,752,22,0],[753,25,753,106,0],[755,25,755,32,0],[755,34,755,55,0],[755,56,755,58,0],[755,59,755,86,0],[756,25,756,26,0],[757,29,757,158,0],[758,25,758,26,0],[762,25,763,133,0],[764,25,764,98,0],[765,21,765,22,0],[766,17,766,18,0],[767,13,767,14,0],[768,13,768,32,0],[769,13,769,14,0],[770,17,770,34,0],[771,13,771,14,0],[772,9,772,10,0],[780,9,780,10,0],[782,13,782,45,0],[783,17,783,24,0],[785,13,785,63,0],[786,13,786,14,0],[787,17,787,24,0],[787,26,787,34,0],[787,35,787,37,0],[787,38,787,48,0],[788,17,788,18,0],[789,21,789,67,0],[790,21,790,36,0],[791,25,791,34,0],[792,21,792,38,0],[793,17,793,18,0],[794,13,794,14,0],[795,9,795,10,0],[853,9,853,10,0],[854,13,854,26,0],[877,9,877,10,0],[880,9,880,10,0],[881,13,881,33,0],[882,13,882,14,0],[887,17,887,72,0],[889,13,889,14,0],[891,13,891,20,0],[891,22,891,29,0],[891,30,891,32,0],[891,33,891,37,0],[892,13,892,14,0],[893,17,893,70,0],[894,17,894,31,0],[895,13,895,14,0],[897,13,897,52,0],[898,13,898,61,0],[900,13,900,123,0],[900,123,900,162,0],[900,162,900,164,0],[900,13,900,164,0],[901,13,901,38,0],[902,13,902,14,0],[903,17,903,84,0],[904,21,904,61,0],[905,13,905,14,0],[907,13,907,26,0],[908,9,908,10,0],[911,9,911,10,0],[912,13,912,20,0],[912,22,912,29,0],[912,30,912,32,0],[912,33,912,37,0],[913,13,913,14,0],[914,17,914,52,0],[914,52,914,53,0],[914,53,914,54,0],[914,54,914,168,0],[914,168,914,169,0],[914,169,914,170,0],[914,170,914,171,0],[914,17,914,171,0],[915,13,915,14,0],[916,9,916,10,0],[929,9,929,10,0],[930,13,930,40,0],[931,17,931,29,0],[933,13,933,27,0],[934,17,934,30,0],[936,13,936,27,0],[937,17,937,30,0],[939,13,939,52,0],[940,9,940,10,0],[947,9,947,10,0],[948,13,948,68,0],[949,9,949,10,0]]);
+    </script>
+  </body>
+</html>

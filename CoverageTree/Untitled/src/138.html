@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Domain\Services\Nomenclatures\ItemsFactory.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Okei;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models.In;
+using Swr.Capital1C.Service.Infrastructure.Nomenclatures;
+using Swr.Capital1C.Service.Logger;
+using Swr.Capital1C.Service.Settings;
+using Swr.Capital1C.Service.Settings.Model;
+
+namespace Swr.Capital1C.Service.Domain.Services.Nomenclatures
+{
+    public class ItemsFactory
+    {
+        private readonly NLog.Logger _logger = LogHelper.Instance.GetLogger(&quot;Преобразование номенклатур&quot;);
+
+        private readonly ICommonSettings _commonSettings;
+        private readonly IOkeiService _okeiService;
+        private readonly List&lt;string&gt; _errors;
+
+        public List&lt;string&gt; Errors =&gt; _errors;
+
+        public ItemsFactory(ICommonSettings commonSettings, IOkeiService okeiService)
+        {
+            _commonSettings = commonSettings;
+            _okeiService = okeiService;
+            _errors = new List&lt;string&gt;();
+        }
+
+        public ITEM[] Create(ref List&lt;Nomenclature&gt; nomenclatures)
+        {
+            _errors.Clear();
+
+            _logger.Debug($&quot;Пришло номенклатур для преобразования &#39;{nomenclatures.Count}&#39;&quot;);
+
+            var settings = _commonSettings.NomenclatureDefinition;
+
+            var result = new List&lt;ITEM&gt;();
+            var correctNomenclature = new List&lt;Nomenclature&gt;();
+
+            foreach (var nomenclature in nomenclatures)
+            {
+                try
+                {
+                    var item = new ITEM
+                    {
+                        ID = nomenclature.GetValueOrDefault(settings.GetAttributeNameByMessageAttribute(&quot;ID&quot;)),
+                        NAME = GetNotation(nomenclature),
+                        UOM = GetOkeiCode(nomenclature.GetValueOrDefault(settings.GetAttributeNameByMessageAttribute(&quot;UOM&quot;))),
+                        BOM_PART = nomenclature.GetValueOrDefault(settings.GetAttributeNameByMessageAttribute(&quot;BOM_PART&quot;)),
+                        TYPE = GetView(nomenclature),
+                        IS_PRODUCT = nomenclature.GetValueOrDefault(settings.GetAttributeNameByMessageAttribute(&quot;IS_PRODUCT&quot;)),
+                        PURCHASED = nomenclature.GetValueOrDefault(settings.GetAttributeNameByMessageAttribute(&quot;PURCHASED&quot;)),
+                        MATERIAL = nomenclature.GetValueOrDefault(settings.GetAttributeNameByMessageAttribute(&quot;MATERIAL&quot;)),
+                        DENSITY = nomenclature.GetFloatOrNullValue(settings.GetAttributeNameByMessageAttribute(&quot;DENSITY&quot;)),
+                        WEIGHT = nomenclature.GetFloatOrNullValue(settings.GetAttributeNameByMessageAttribute(&quot;WEIGHT&quot;)),
+                        AREA = nomenclature.GetFloatOrNullValue(settings.GetAttributeNameByMessageAttribute(&quot;AREA&quot;)),
+                        BEND = nomenclature.GetIntOrNullValue(settings.GetAttributeNameByMessageAttribute(&quot;BEND&quot;)),
+                        LENGTH = nomenclature.GetFloatOrNullValue(settings.GetAttributeNameByMessageAttribute(&quot;LENGTH&quot;)),
+                        WIDTH = nomenclature.GetFloatOrNullValue(settings.GetAttributeNameByMessageAttribute(&quot;WIDTH&quot;)),
+                        THICK = nomenclature.GetFloatOrNullValue(settings.GetAttributeNameByMessageAttribute(&quot;THICK&quot;)),
+                        LENGTH_CUT = nomenclature.GetFloatOrNullValue(settings.GetAttributeNameByMessageAttribute(&quot;LENGTH_CUT&quot;))
+                    };
+
+                    if (string.IsNullOrWhiteSpace(item.ID))
+                    {
+                        var message = $&quot;Не удалось получить Артикул номенклатуры с идентификатором &#39;{nomenclature.Id}&#39;. Номенклатура будет пропущена.&quot;;
+
+                        _errors.Add(message);
+
+                        _logger.Warn(message);
+
+                        continue;
+                    }
+
+                    result.Add(item);
+                    correctNomenclature.Add(nomenclature);
+                }
+                catch (OkeiCodeNotFoundException e)
+                {
+                    var article = nomenclature.GetValueOrDefault(settings.GetAttributeNameByMessageAttribute(&quot;ID&quot;));
+
+                    var message = $&quot;Ошибка запроса кода ОКЕИ для номенклатуры с артикулом &#39;{article}&#39;&quot;;
+
+                    _errors.Add(message + Environment.NewLine + e.Message);
+
+                    _logger.Error(e, message);
+                }
+                catch (Exception e)
+                {
+                    var article = nomenclature.GetValueOrDefault(settings.GetAttributeNameByMessageAttribute(&quot;ID&quot;));
+
+                    var message = $&quot;Ошибка обработки номенклатуры с артикулом &#39;{article}&#39;&quot;;
+
+                    _errors.Add(message + Environment.NewLine + e.Message);
+
+                    _logger.Error(e, message);
+                }
+            }
+
+            _logger.Debug($&quot;Преобразовано номенклатур для передачи &#39;{result.Count}&#39;&quot;);
+
+            nomenclatures = correctNomenclature; // собираем оставшиеся для запипси в эксппортированные
+
+            return result.ToArray();
+        }
+
+        private string GetView(Nomenclature nomenclature)
+        {
+            var view = &quot;21 Полуфабрикат собствен&quot;;
+
+            if (string.Equals(&quot;Материалы&quot;, nomenclature.GetValueOrDefault(&quot;Раздел спецификации&quot;), StringComparison.OrdinalIgnoreCase))
+            {
+                view = &quot;10-01 Сырье и материалы&quot;;
+            }
+            else if (string.Equals(&quot;Покупное&quot;, nomenclature.GetValueOrDefault(&quot;Вид воспроизводства&quot;), StringComparison.OrdinalIgnoreCase))
+            {
+                view = &quot;10-01 Сырье и материалы&quot;;
+            }
+            else if (string.Equals(&quot;1&quot;, nomenclature.GetValueOrDefault(&quot;Признак готовой продукции&quot;), StringComparison.OrdinalIgnoreCase))
+            {
+                view = &quot;43 Готовая продукция&quot;;
+            }
+
+            return view;
+        }
+
+        private string GetOkeiCode(string unitOfMeasure)
+        {
+            if (string.IsNullOrWhiteSpace(unitOfMeasure)) return string.Empty;
+
+            _logger.Info($&quot;Запрос кода ОКЕИ по обозначению &#39;{unitOfMeasure}&#39;...&quot;);
+
+            var code = _okeiService.GetOkeiCodeAsync(unitOfMeasure).Result;
+
+            _logger.Info($&quot;Запрос кода ОКЕИ по обозначению &#39;{unitOfMeasure}&#39; выполнен.&quot;);
+
+            if (code == null)
+                throw new OkeiCodeNotFoundException(unitOfMeasure);
+
+            return code;
+        }
+
+        private string GetNotation(Nomenclature nomenclature)
+        {
+            var notation = nomenclature.GetValueOrDefault(&quot;Наименование&quot;);
+
+            var section = nomenclature.GetValueOrDefault(&quot;Раздел спецификации&quot;);
+
+            if (string.Equals(section, &quot;Детали&quot;, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(section, &quot;Сборочные единицы&quot;, StringComparison.OrdinalIgnoreCase))
+            {
+                notation += &quot; &quot; + nomenclature.GetValueOrDefault(&quot;Обозначение&quot;);
+            }
+
+            return notation.Trim();
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[19,9,19,107,1],[25,39,25,46,1],[27,9,27,86,1],[28,9,28,10,1],[29,13,29,46,1],[30,13,30,40,1],[31,13,31,42,1],[32,9,32,10,1],[35,9,35,10,1],[36,13,36,29,1],[38,13,38,93,1],[40,13,40,67,1],[42,13,42,43,1],[43,13,43,64,1],[45,13,45,20,1],[45,22,45,38,1],[45,39,45,41,1],[45,42,45,55,1],[46,13,46,14,1],[48,17,48,18,1],[49,21,67,23,1],[69,21,69,60,1],[70,21,70,22,1],[71,25,71,152,1],[73,25,73,46,1],[75,25,75,47,1],[77,25,77,34,1],[80,21,80,38,1],[81,21,81,59,1],[82,17,82,18,1],[83,17,83,52,1],[84,17,84,18,1],[85,21,85,117,1],[87,21,87,104,1],[89,21,89,76,1],[91,21,91,47,1],[92,17,92,18,1],[93,17,93,36,0],[94,17,94,18,0],[95,21,95,117,0],[97,21,97,92,0],[99,21,99,76,0],[101,21,101,47,0],[102,17,102,18,0],[103,13,103,14,1],[105,13,105,87,1],[107,13,107,49,1],[109,13,109,37,1],[110,9,110,10,1],[113,9,113,10,1],[114,13,114,51,1],[116,13,116,135,1],[117,13,117,14,1],[118,17,118,50,1],[119,13,119,14,1],[120,18,120,139,1],[121,13,121,14,1],[122,17,122,50,1],[123,13,123,14,1],[124,18,124,138,1],[125,13,125,14,1],[126,17,126,47,1],[127,13,127,14,1],[129,13,129,25,1],[130,9,130,10,1],[133,9,133,10,1],[134,13,134,58,1],[134,59,134,79,1],[136,13,136,83,1],[138,13,138,76,1],[140,13,140,90,1],[142,13,142,30,1],[143,17,143,68,0],[145,13,145,25,1],[146,9,146,10,1],[149,9,149,10,1],[150,13,150,75,1],[152,13,152,81,1],[154,13,155,97,1],[156,13,156,14,1],[157,17,157,81,1],[158,13,158,14,1],[160,13,160,36,1],[161,9,161,10,1]]);
+    </script>
+  </body>
+</html>

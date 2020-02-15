@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test.Net\MaskNameParserTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Swr.Configurator.Logic;
+
+namespace Swr.Configurator.Test.Net
+{
+    [TestClass]
+    public class MaskNameParserTest
+    {
+        [TestMethod]
+        [DataRow(&quot;%обозначение% - %Наименование%&quot;, &quot;наименование&quot;, true)]
+        [DataRow(&quot;%обозначение% - %Наименование%&quot;, &quot;Наименование&quot;, true)]
+        [DataRow(&quot;%обозначение% - %Наимено вание%&quot;, &quot;наимено вание&quot;, true)]
+        [DataRow(&quot;%% - %Наименование%&quot;, &quot;наименование&quot;, true)]
+        [DataRow(&quot;%обозначение% - %Наименование11%&quot;, &quot;наименование11&quot;, true)]
+        [DataRow(&quot;%обозначение% - %Наименование%&quot;, &quot;Примечание&quot;, false)]
+        [DataRow(&quot;%обозначение% - %Наименование.%&quot;, &quot;наименование&quot;, false)]
+        public void RegexpTest(string mask, string property, bool resultRow)
+        {
+            var result = MaskNameParser.PropertyInMask(mask, property);
+
+            Assert.AreEqual(result, resultRow);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[18,9,18,10,1],[19,13,19,72,1],[21,13,21,48,1],[22,9,22,10,1]]);
+    </script>
+  </body>
+</html>

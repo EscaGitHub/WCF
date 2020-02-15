@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\LayoutAutoHideWindowControl.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Interop;
+using System.Windows.Controls;
+using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Data;
+using System.Windows.Media;
+using Xceed.Wpf.AvalonDock.Layout;
+using System.Diagnostics;
+using System.Windows.Threading;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public class LayoutAutoHideWindowControl : HwndHost, ILayoutControl
+    {
+        static LayoutAutoHideWindowControl()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(LayoutAutoHideWindowControl), new FrameworkPropertyMetadata(typeof(LayoutAutoHideWindowControl)));
+            UIElement.FocusableProperty.OverrideMetadata(typeof(LayoutAutoHideWindowControl), new FrameworkPropertyMetadata(true));
+            Control.IsTabStopProperty.OverrideMetadata(typeof(LayoutAutoHideWindowControl), new FrameworkPropertyMetadata(true));
+            VisibilityProperty.OverrideMetadata(typeof(LayoutAutoHideWindowControl), new FrameworkPropertyMetadata(Visibility.Hidden));
+        }
+
+        internal LayoutAutoHideWindowControl()
+        {
+        }
+
+        internal void Show(LayoutAnchorControl anchor)
+        {
+            if (_model != null)
+                throw new InvalidOperationException();
+
+            _anchor = anchor;
+            _model = anchor.Model as LayoutAnchorable;
+            _side = (anchor.Model.Parent.Parent as LayoutAnchorSide).Side;
+            _manager = _model.Root.Manager;
+            CreateInternalGrid();
+
+            _model.PropertyChanged += new System.ComponentModel.PropertyChangedEventHandler(_model_PropertyChanged);
+
+            Visibility = System.Windows.Visibility.Visible;
+            InvalidateMeasure();
+            UpdateWindowPos();
+            Trace.WriteLine(&quot;LayoutAutoHideWindowControl.Show()&quot;);
+        }
+
+        internal void Hide()
+        {
+            if (_model == null)
+                return;
+
+            _model.PropertyChanged -= new System.ComponentModel.PropertyChangedEventHandler(_model_PropertyChanged);
+
+            RemoveInternalGrid();
+            _anchor = null;
+            _model = null;
+            _manager = null;
+            Visibility = System.Windows.Visibility.Hidden;
+
+            Trace.WriteLine(&quot;LayoutAutoHideWindowControl.Hide()&quot;);
+        }
+
+        LayoutAnchorControl _anchor;
+
+        LayoutAnchorable _model;
+
+        public ILayoutElement Model
+        {
+            get { return _model; }
+        }
+
+        HwndSource _internalHwndSource = null;
+        IntPtr parentWindowHandle;
+        protected override System.Runtime.InteropServices.HandleRef BuildWindowCore(System.Runtime.InteropServices.HandleRef hwndParent)
+        {
+            parentWindowHandle = hwndParent.Handle;
+            _internalHwndSource = new HwndSource(new HwndSourceParameters()
+            {
+                ParentWindow = hwndParent.Handle,
+                WindowStyle = Win32Helper.WS_CHILD | Win32Helper.WS_VISIBLE | Win32Helper.WS_CLIPSIBLINGS | Win32Helper.WS_CLIPCHILDREN,
+                Width = 0,
+                Height = 0,
+            });
+
+            _internalHost_ContentRendered = false;
+            _internalHwndSource.ContentRendered += _internalHwndSource_ContentRendered;
+            _internalHwndSource.RootVisual = _internalHostPresenter;
+            AddLogicalChild(_internalHostPresenter);
+            Win32Helper.BringWindowToTop(_internalHwndSource.Handle);
+            return new HandleRef(this, _internalHwndSource.Handle);
+        }
+
+        private bool _internalHost_ContentRendered = false;
+
+        void _internalHwndSource_ContentRendered(object sender, EventArgs e)
+        {
+            _internalHost_ContentRendered = true;
+        }
+
+        protected override IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+			//if (msg == Win32Helper.WM_WINDOWPOSCHANGING)
+			//{
+			//    if (_internalHost_ContentRendered)
+			//        Win32Helper.SetWindowPos(_internalHwndSource.Handle, Win32Helper.HWND_TOP, 0, 0, 0, 0, Win32Helper.SetWindowPosFlags.IgnoreMove | Win32Helper.SetWindowPosFlags.IgnoreResize);
+			//}
+            return base.WndProc(hwnd, msg, wParam, lParam, ref handled);
+        }
+
+        protected override void DestroyWindowCore(System.Runtime.InteropServices.HandleRef hwnd)
+        {
+            if (_internalHwndSource != null)
+            {
+                _internalHwndSource.ContentRendered -= _internalHwndSource_ContentRendered;
+                _internalHwndSource.Dispose();
+                _internalHwndSource = null;
+            }
+        }
+
+        public override void OnApplyTemplate()
+        {
+            base.OnApplyTemplate();
+
+
+        }
+
+        ContentPresenter _internalHostPresenter = new ContentPresenter();
+        Grid _internalGrid = null;
+        LayoutAnchorableControl _internalHost = null;
+        AnchorSide _side;
+        LayoutGridResizerControl _resizer = null;
+        DockingManager _manager;
+
+        void _model_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == &quot;IsAutoHidden&quot;)
+            {
+                if (!_model.IsAutoHidden)
+                {
+                    _manager.HideAutoHideWindow(_anchor);
+                }
+            }
+        }
+
+        void CreateInternalGrid()
+        {
+            _internalGrid = new Grid() { FlowDirection = System.Windows.FlowDirection.LeftToRight};
+            _internalGrid.SetBinding(Grid.BackgroundProperty, new Binding(&quot;Background&quot;) { Source = this });
+
+
+            _internalHost = new LayoutAnchorableControl() { Model = _model, Style = AnchorableStyle };
+            _internalHost.SetBinding(FlowDirectionProperty, new Binding(&quot;Model.Root.Manager.FlowDirection&quot;) { Source = this });
+
+            KeyboardNavigation.SetTabNavigation(_internalGrid, KeyboardNavigationMode.Cycle);
+
+            _resizer = new LayoutGridResizerControl();
+
+            _resizer.DragStarted += new System.Windows.Controls.Primitives.DragStartedEventHandler(OnResizerDragStarted);
+            _resizer.DragDelta += new System.Windows.Controls.Primitives.DragDeltaEventHandler(OnResizerDragDelta);
+            _resizer.DragCompleted += new System.Windows.Controls.Primitives.DragCompletedEventHandler(OnResizerDragCompleted);
+
+            if (_side == AnchorSide.Right)
+            {
+                _internalGrid.ColumnDefinitions.Add(new ColumnDefinition(){ Width = new GridLength(_manager.GridSplitterWidth)});
+                _internalGrid.ColumnDefinitions.Add(new ColumnDefinition(){
+                    Width = _model.AutoHideWidth == 0.0 ? new GridLength(_model.AutoHideMinWidth) : new GridLength(_model.AutoHideWidth, GridUnitType.Pixel)});
+
+                Grid.SetColumn(_resizer, 0);
+                Grid.SetColumn(_internalHost, 1);
+
+                _resizer.Cursor = Cursors.SizeWE;
+
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
+                VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
+            }
+            else if (_side == AnchorSide.Left)
+            {
+                _internalGrid.ColumnDefinitions.Add(new ColumnDefinition()
+                {
+                    Width = _model.AutoHideWidth == 0.0 ? new GridLength(_model.AutoHideMinWidth) : new GridLength(_model.AutoHideWidth, GridUnitType.Pixel),
+                });
+                _internalGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(_manager.GridSplitterWidth) });
+
+                Grid.SetColumn(_internalHost, 0);
+                Grid.SetColumn(_resizer, 1);
+
+                _resizer.Cursor = Cursors.SizeWE;
+
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
+            }
+            else if (_side == AnchorSide.Top)
+            {
+                _internalGrid.RowDefinitions.Add(new RowDefinition()
+                {
+                    Height = _model.AutoHideHeight == 0.0 ? new GridLength(_model.AutoHideMinHeight) : new GridLength(_model.AutoHideHeight, GridUnitType.Pixel),
+                });
+                _internalGrid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(_manager.GridSplitterHeight) });
+
+                Grid.SetRow(_internalHost, 0);
+                Grid.SetRow(_resizer, 1);
+
+                _resizer.Cursor = Cursors.SizeNS;
+
+                VerticalAlignment = System.Windows.VerticalAlignment.Top;
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
+
+            }
+            else if (_side == AnchorSide.Bottom)
+            {
+                _internalGrid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(_manager.GridSplitterHeight) });
+                _internalGrid.RowDefinitions.Add(new RowDefinition()
+                {
+                    Height = _model.AutoHideHeight == 0.0 ? new GridLength(_model.AutoHideMinHeight) : new GridLength(_model.AutoHideHeight, GridUnitType.Pixel),
+                });
+
+                Grid.SetRow(_resizer, 0);
+                Grid.SetRow(_internalHost, 1);
+
+                _resizer.Cursor = Cursors.SizeNS;
+
+                VerticalAlignment = System.Windows.VerticalAlignment.Bottom;
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
+            }
+
+
+            _internalGrid.Children.Add(_resizer);
+            _internalGrid.Children.Add(_internalHost);
+            _internalHostPresenter.Content = _internalGrid;
+        }
+
+        void RemoveInternalGrid()
+        {
+            _resizer.DragStarted -= new System.Windows.Controls.Primitives.DragStartedEventHandler(OnResizerDragStarted);
+            _resizer.DragDelta -= new System.Windows.Controls.Primitives.DragDeltaEventHandler(OnResizerDragDelta);
+            _resizer.DragCompleted -= new System.Windows.Controls.Primitives.DragCompletedEventHandler(OnResizerDragCompleted);
+
+            _internalHostPresenter.Content = null;
+        }
+
+
+        protected override bool HasFocusWithinCore()
+        {
+            return false;
+        }
+
+        #region Resizer
+
+        Border _resizerGhost = null;
+        Window _resizerWindowHost = null;
+        Vector _initialStartPoint;
+
+        void ShowResizerOverlayWindow(LayoutGridResizerControl splitter)
+        {
+            _resizerGhost = new Border()
+            {
+                Background = splitter.BackgroundWhileDragging,
+                Opacity = splitter.OpacityWhileDragging
+            };
+
+            var areaElement = _manager.GetAutoHideAreaElement();
+            var modelControlActualSize = this._internalHost.TransformActualSizeToAncestor();
+
+            Point ptTopLeftScreen = areaElement.PointToScreenDPIWithoutFlowDirection(new Point());
+
+            var managerSize = areaElement.TransformActualSizeToAncestor();
+
+            Size windowSize;
+
+            if (_side == AnchorSide.Right || _side == AnchorSide.Left)
+            {
+                windowSize = new Size(
+                    managerSize.Width - 25.0 + splitter.ActualWidth,
+                    managerSize.Height);
+
+                _resizerGhost.Width = splitter.ActualWidth;
+                _resizerGhost.Height = windowSize.Height;
+                ptTopLeftScreen.Offset(25, 0.0);
+            }
+            else
+            {
+                windowSize = new Size(
+                    managerSize.Width,
+                    managerSize.Height - _model.AutoHideMinHeight - 25.0 + splitter.ActualHeight);
+
+                _resizerGhost.Height = splitter.ActualHeight;
+                _resizerGhost.Width = windowSize.Width;
+                ptTopLeftScreen.Offset(0.0, 25.0);
+            }
+
+            _initialStartPoint = splitter.PointToScreenDPIWithoutFlowDirection(new Point()) - ptTopLeftScreen;
+
+            if (_side == AnchorSide.Right || _side == AnchorSide.Left)
+            {
+                Canvas.SetLeft(_resizerGhost, _initialStartPoint.X);
+            }
+            else
+            {
+                Canvas.SetTop(_resizerGhost, _initialStartPoint.Y);
+            }
+
+            Canvas panelHostResizer = new Canvas()
+            {
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
+                VerticalAlignment = System.Windows.VerticalAlignment.Stretch
+            };
+
+            panelHostResizer.Children.Add(_resizerGhost);
+
+
+            _resizerWindowHost = new Window()
+            {
+                ResizeMode = ResizeMode.NoResize,
+                WindowStyle = System.Windows.WindowStyle.None,
+                ShowInTaskbar = false,
+                AllowsTransparency = true,
+                Background = null,
+                Width = windowSize.Width,
+                Height = windowSize.Height,
+                Left = ptTopLeftScreen.X,
+                Top = ptTopLeftScreen.Y,
+                ShowActivated = false,
+                Owner = Window.GetWindow(this),
+                Content = panelHostResizer
+            };
+
+            _resizerWindowHost.Show();
+        }
+
+        void HideResizerOverlayWindow()
+        {
+            if (_resizerWindowHost != null)
+            {
+                _resizerWindowHost.Close();
+                _resizerWindowHost = null;
+            }
+        }
+
+        internal bool IsResizing
+        {
+            get;
+            private set;
+        }
+
+        void OnResizerDragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            LayoutGridResizerControl splitter = sender as LayoutGridResizerControl;
+            var rootVisual = this.FindVisualTreeRoot() as Visual;
+
+            var trToWnd = TransformToAncestor(rootVisual);
+            Vector transformedDelta = trToWnd.Transform(new Point(e.HorizontalChange, e.VerticalChange)) -
+                trToWnd.Transform(new Point());
+
+            double delta;
+            if (_side == AnchorSide.Right || _side == AnchorSide.Left)
+                delta = Canvas.GetLeft(_resizerGhost) - _initialStartPoint.X;
+            else
+                delta = Canvas.GetTop(_resizerGhost) - _initialStartPoint.Y;
+
+            if (_side == AnchorSide.Right)
+            {
+                if (_model.AutoHideWidth == 0.0)
+                    _model.AutoHideWidth = _internalHost.ActualWidth - delta;
+                else
+                    _model.AutoHideWidth -= delta;
+
+                _internalGrid.ColumnDefinitions[1].Width = new GridLength(_model.AutoHideWidth, GridUnitType.Pixel);
+            }
+            else if (_side == AnchorSide.Left)
+            {
+                if (_model.AutoHideWidth == 0.0)
+                    _model.AutoHideWidth = _internalHost.ActualWidth + delta;
+                else
+                    _model.AutoHideWidth += delta;
+
+                _internalGrid.ColumnDefinitions[0].Width = new GridLength(_model.AutoHideWidth, GridUnitType.Pixel);
+            }
+            else if (_side == AnchorSide.Top)
+            {
+                if (_model.AutoHideHeight == 0.0)
+                    _model.AutoHideHeight = _internalHost.ActualHeight + delta;
+                else
+                    _model.AutoHideHeight += delta;
+
+                _internalGrid.RowDefinitions[0].Height = new GridLength(_model.AutoHideHeight, GridUnitType.Pixel);
+            }
+            else if (_side == AnchorSide.Bottom)
+            {
+                if (_model.AutoHideHeight == 0.0)
+                    _model.AutoHideHeight = _internalHost.ActualHeight - delta;
+                else
+                    _model.AutoHideHeight -= delta;
+
+                _internalGrid.RowDefinitions[1].Height = new GridLength(_model.AutoHideHeight, GridUnitType.Pixel);
+            }
+
+            HideResizerOverlayWindow();
+
+            IsResizing = false;
+            InvalidateMeasure();
+        }
+
+        void OnResizerDragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            LayoutGridResizerControl splitter = sender as LayoutGridResizerControl;
+            var rootVisual = this.FindVisualTreeRoot() as Visual;
+
+            var trToWnd = TransformToAncestor(rootVisual);
+            Vector transformedDelta = trToWnd.Transform(new Point(e.HorizontalChange, e.VerticalChange)) -
+                trToWnd.Transform(new Point());
+
+            if (_side == AnchorSide.Right || _side == AnchorSide.Left)
+            {
+                if (FrameworkElement.GetFlowDirection(_internalHost) == System.Windows.FlowDirection.RightToLeft)
+                    transformedDelta.X = -transformedDelta.X;
+                Canvas.SetLeft(_resizerGhost, MathHelper.MinMax(_initialStartPoint.X + transformedDelta.X, 0.0, _resizerWindowHost.Width - _resizerGhost.Width));
+            }
+            else
+            {
+                Canvas.SetTop(_resizerGhost, MathHelper.MinMax(_initialStartPoint.Y + transformedDelta.Y, 0.0, _resizerWindowHost.Height - _resizerGhost.Height));
+            }
+        }
+
+        void OnResizerDragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        {
+            var resizer = sender as LayoutGridResizerControl;
+            ShowResizerOverlayWindow(resizer);
+            IsResizing = true;
+        }
+        #endregion
+
+        protected override System.Collections.IEnumerator LogicalChildren
+        {
+            get
+            {
+                if (_internalHostPresenter == null)
+                    return new UIElement[] { }.GetEnumerator();
+                return new UIElement[] { _internalHostPresenter }.GetEnumerator();
+            }
+        }
+
+        protected override Size MeasureOverride(Size constraint)
+        {
+            if (_internalHostPresenter == null)
+                return base.MeasureOverride(constraint);
+
+            _internalHostPresenter.Measure(constraint);
+            //return base.MeasureOverride(constraint);
+            return _internalHostPresenter.DesiredSize;
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            if (_internalHostPresenter == null)
+                return base.ArrangeOverride(finalSize);
+
+            _internalHostPresenter.Arrange(new Rect(finalSize));
+            return base.ArrangeOverride(finalSize);// new Size(_internalHostPresenter.ActualWidth, _internalHostPresenter.ActualHeight);
+        }
+
+        #region Background
+
+        /// &lt;summary&gt;
+        /// Background Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty BackgroundProperty =
+            DependencyProperty.Register(&quot;Background&quot;, typeof(Brush), typeof(LayoutAutoHideWindowControl),
+                new FrameworkPropertyMetadata((Brush)null));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the Background property.  This dependency property 
+        /// indicates background of the autohide childwindow.
+        /// &lt;/summary&gt;
+        public Brush Background
+        {
+            get { return (Brush)GetValue(BackgroundProperty); }
+            set { SetValue(BackgroundProperty, value); }
+        }
+
+        #endregion
+
+        internal bool IsWin32MouseOver
+        {
+            get
+            {
+                var ptMouse = new Win32Helper.Win32Point();
+                if (!Win32Helper.GetCursorPos(ref ptMouse))
+                    return false;
+
+                Point location = this.PointToScreenDPI(new Point());
+
+                Rect rectWindow = this.GetScreenArea();
+                if (rectWindow.Contains(new Point(ptMouse.X, ptMouse.Y)))
+                    return true;
+
+                var manager = Model.Root.Manager;
+                var anchor = manager.FindVisualChildren&lt;LayoutAnchorControl&gt;().Where(c =&gt; c.Model == Model).FirstOrDefault();
+
+                if (anchor == null)
+                    return false;
+
+                location = anchor.PointToScreenDPI(new Point());
+
+                if (anchor.IsMouseOver)
+                    return true;
+
+                return false;
+            }
+        }
+
+        #region AnchorableStyle
+
+        /// &lt;summary&gt;
+        /// AnchorableStyle Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty AnchorableStyleProperty =
+            DependencyProperty.Register(&quot;AnchorableStyle&quot;, typeof(Style), typeof(LayoutAutoHideWindowControl),
+                new FrameworkPropertyMetadata((Style)null));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the AnchorableStyle property. This dependency property 
+        /// indicates the style to apply to the LayoutAnchorableControl hosted in this auto hide window.
+        /// &lt;/summary&gt;
+        public Style AnchorableStyle
+        {
+            get { return (Style)GetValue(AnchorableStyleProperty); }
+            set { SetValue(AnchorableStyleProperty, value); }
+        }
+
+        #endregion
+
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[37,9,37,10,0],[38,13,38,159,0],[39,13,39,132,0],[40,13,40,130,0],[41,13,41,136,0],[42,9,42,10,0],[44,9,44,47,0],[45,9,45,10,0],[46,9,46,10,0],[49,9,49,10,0],[50,13,50,32,0],[51,17,51,55,0],[53,13,53,30,0],[54,13,54,55,0],[55,13,55,75,0],[56,13,56,44,0],[57,13,57,34,0],[59,13,59,117,0],[61,13,61,60,0],[62,13,62,33,0],[63,13,63,31,0],[65,9,65,10,0],[68,9,68,10,0],[69,13,69,32,0],[70,17,70,24,0],[72,13,72,117,0],[74,13,74,34,0],[75,13,75,28,0],[76,13,76,27,0],[77,13,77,29,0],[78,13,78,59,0],[81,9,81,10,0],[89,17,89,18,0],[89,19,89,33,0],[89,34,89,35,0],[92,9,92,47,0],[95,9,95,10,0],[96,13,96,52,0],[97,13,103,16,0],[105,13,105,51,0],[106,13,106,88,0],[107,13,107,69,0],[108,13,108,53,0],[109,13,109,70,0],[110,13,110,68,0],[111,9,111,10,0],[113,9,113,60,0],[116,9,116,10,0],[117,13,117,50,0],[118,9,118,10,0],[121,9,121,10,0],[127,13,127,73,0],[128,9,128,10,0],[131,9,131,10,0],[132,13,132,45,0],[133,13,133,14,0],[134,17,134,92,0],[135,17,135,47,0],[136,17,136,44,0],[137,13,137,14,0],[138,9,138,10,0],[141,9,141,10,0],[142,13,142,36,0],[145,9,145,10,0],[147,9,147,74,0],[148,9,148,35,0],[149,9,149,54,0],[151,9,151,50,0],[155,9,155,10,0],[156,13,156,50,0],[157,13,157,14,0],[158,17,158,42,0],[159,17,159,18,0],[160,21,160,58,0],[161,17,161,18,0],[162,13,162,14,0],[163,9,163,10,0],[166,9,166,10,0],[167,13,167,100,0],[168,13,168,108,0],[171,13,171,103,0],[172,13,172,128,0],[174,13,174,94,0],[176,13,176,55,0],[178,13,178,122,0],[179,13,179,116,0],[180,13,180,128,0],[182,13,182,43,0],[183,13,183,14,0],[184,17,184,130,0],[185,17,186,160,0],[188,17,188,45,0],[189,17,189,50,0],[191,17,191,50,0],[193,17,193,80,0],[194,17,194,78,0],[195,13,195,14,0],[196,18,196,47,0],[197,13,197,14,0],[198,17,201,20,0],[202,17,202,132,0],[204,17,204,50,0],[205,17,205,45,0],[207,17,207,50,0],[209,17,209,79,0],[210,17,210,78,0],[211,13,211,14,0],[212,18,212,46,0],[213,13,213,14,0],[214,17,217,20,0],[218,17,218,128,0],[220,17,220,47,0],[221,17,221,42,0],[223,17,223,50,0],[225,17,225,74,0],[226,17,226,82,0],[228,13,228,14,0],[229,18,229,49,0],[230,13,230,14,0],[231,17,231,128,0],[232,17,235,20,0],[237,17,237,42,0],[238,17,238,47,0],[240,17,240,50,0],[242,17,242,77,0],[243,17,243,82,0],[244,13,244,14,0],[247,13,247,50,0],[248,13,248,55,0],[249,13,249,60,0],[250,9,250,10,0],[253,9,253,10,0],[254,13,254,122,0],[255,13,255,116,0],[256,13,256,128,0],[258,13,258,51,0],[259,9,259,10,0],[263,9,263,10,0],[264,13,264,26,0],[265,9,265,10,0],[269,9,269,37,0],[270,9,270,42,0],[274,9,274,10,0],[275,13,279,15,0],[281,13,281,65,0],[282,13,282,93,0],[284,13,284,99,0],[286,13,286,75,0],[290,13,290,71,0],[291,13,291,14,0],[292,17,294,41,0],[296,17,296,60,0],[297,17,297,58,0],[298,17,298,49,0],[299,13,299,14,0],[301,13,301,14,0],[302,17,304,99,0],[306,17,306,62,0],[307,17,307,56,0],[308,17,308,51,0],[309,13,309,14,0],[311,13,311,111,0],[313,13,313,71,0],[314,13,314,14,0],[315,17,315,69,0],[316,13,316,14,0],[318,13,318,14,0],[319,17,319,68,0],[320,13,320,14,0],[322,13,326,15,0],[328,13,328,58,0],[331,13,345,15,0],[347,13,347,39,0],[348,9,348,10,0],[351,9,351,10,0],[352,13,352,44,0],[353,13,353,14,0],[354,17,354,44,0],[355,17,355,43,0],[356,13,356,14,0],[357,9,357,10,0],[361,13,361,17,0],[362,13,362,25,0],[366,9,366,10,0],[367,13,367,84,0],[368,13,368,66,0],[370,13,370,59,0],[371,13,372,48,0],[375,13,375,71,0],[376,17,376,78,0],[378,17,378,77,0],[380,13,380,43,0],[381,13,381,14,0],[382,17,382,49,0],[383,21,383,78,0],[385,21,385,51,0],[387,17,387,117,0],[388,13,388,14,0],[389,18,389,47,0],[390,13,390,14,0],[391,17,391,49,0],[392,21,392,78,0],[394,21,394,51,0],[396,17,396,117,0],[397,13,397,14,0],[398,18,398,46,0],[399,13,399,14,0],[400,17,400,50,0],[401,21,401,80,0],[403,21,403,52,0],[405,17,405,116,0],[406,13,406,14,0],[407,18,407,49,0],[408,13,408,14,0],[409,17,409,50,0],[410,21,410,80,0],[412,21,412,52,0],[414,17,414,116,0],[415,13,415,14,0],[417,13,417,40,0],[419,13,419,32,0],[420,13,420,33,0],[421,9,421,10,0],[424,9,424,10,0],[425,13,425,84,0],[426,13,426,66,0],[428,13,428,59,0],[429,13,430,48,0],[432,13,432,71,0],[433,13,433,14,0],[434,17,434,114,0],[435,21,435,62,0],[436,17,436,162,0],[437,13,437,14,0],[439,13,439,14,0],[440,17,440,163,0],[441,13,441,14,0],[442,9,442,10,0],[445,9,445,10,0],[446,13,446,62,0],[447,13,447,47,0],[448,13,448,31,0],[449,9,449,10,0],[455,13,455,14,0],[456,17,456,52,0],[457,21,457,64,0],[458,17,458,83,0],[459,13,459,14,0],[463,9,463,10,0],[464,13,464,48,0],[465,17,465,57,0],[467,13,467,56,0],[469,13,469,55,0],[470,9,470,10,0],[473,9,473,10,0],[474,13,474,48,0],[475,17,475,56,0],[477,13,477,65,0],[478,13,478,52,0],[479,9,479,10,0],[486,9,488,61,0],[496,17,496,18,0],[496,19,496,62,0],[496,63,496,64,0],[497,17,497,18,0],[497,19,497,55,0],[497,56,497,57,0],[505,13,505,14,0],[506,17,506,60,0],[507,17,507,60,0],[508,21,508,34,0],[510,17,510,69,0],[512,17,512,56,0],[513,17,513,74,0],[514,21,514,33,0],[516,17,516,50,0],[517,17,517,91,0],[517,91,517,107,0],[517,107,517,126,0],[517,17,517,126,0],[519,17,519,36,0],[520,21,520,34,0],[522,17,522,65,0],[524,17,524,40,0],[525,21,525,33,0],[527,17,527,30,0],[528,13,528,14,0],[536,9,538,61,0],[546,17,546,18,0],[546,19,546,67,0],[546,68,546,69,0],[547,17,547,18,0],[547,19,547,60,0],[547,61,547,62,0]]);
+    </script>
+  </body>
+</html>

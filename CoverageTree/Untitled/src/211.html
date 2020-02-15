@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Controls\SelectComponentTypeWindow.xaml.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+using Swr.Configurator.Common.Data.ObjectModel;
+using SwrUILogic;
+
+//using Swr.Configurator.Common.Data.Db;
+
+namespace Swr.Configurator.View.Controls
+{
+    /// &lt;summary&gt;
+    /// Interaction logic for SelectComponentTypeWindow.xaml
+    /// &lt;/summary&gt;
+    public partial class SelectComponentTypeWindow
+    {
+        private ObservableCollection&lt;ComponentTypeObject&gt; _componentTypes;
+        private ComponentTypeObject _componentType;
+        private RelayCommand _createCommand;
+
+        public SelectComponentTypeWindow(List&lt;ComponentTypeObject&gt; componentTypes)
+        {
+            InitializeComponent();
+
+            _componentTypes = new ObservableCollection&lt;ComponentTypeObject&gt;(componentTypes);
+
+            DataContext = this;
+        }
+
+        public ObservableCollection&lt;ComponentTypeObject&gt; ComponentTypes
+        {
+            get { return _componentTypes; }
+            set { _componentTypes = value; OnPropertyChanged(&quot;ComponentTypes&quot;); }
+        }
+
+        public ComponentTypeObject ComponentType
+        {
+            get { return _componentType; }
+            set { _componentType = value; OnPropertyChanged(&quot;ComponentType&quot;); }
+        }
+
+        private void Control_OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            DependencyObject obj = (DependencyObject)e.OriginalSource;
+
+            while (obj != null &amp;&amp; obj != ComponentTypeListBox)
+            {
+                if (obj.GetType() == typeof(ListBoxItem))
+                {
+                    DialogResult = true;
+
+                    break;
+                }
+                obj = VisualTreeHelper.GetParent(obj);
+            }
+        }
+
+        public RelayCommand CreateCommand =&gt; _createCommand ?? (_createCommand = new RelayCommand(Create, CanCreate));
+
+        private void Create(object obj)
+        {
+            DialogResult = true;
+        }
+
+        private bool CanCreate(object obj)
+        {
+            return ComponentType != null;
+        }
+
+        /// &lt;summary&gt;
+        /// TODO: Перенсти в ComponentTypeObject когда появятся настройки
+        /// &lt;/summary&gt;
+        //public ImageSource ElementIcon
+        //{
+        //    get { return ConfiguratorMainWindowVM.Instance.ImageCache.GetImage(Properties.Resources.PartIcon); }
+        //}
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[32,9,32,83,0],[33,9,33,10,0],[34,13,34,35,0],[36,13,36,93,0],[38,13,38,32,0],[39,9,39,10,0],[43,17,43,18,0],[43,19,43,42,0],[43,43,43,44,0],[44,17,44,18,0],[44,19,44,43,0],[44,44,44,80,0],[44,81,44,82,0],[49,17,49,18,0],[49,19,49,41,0],[49,42,49,43,0],[50,17,50,18,0],[50,19,50,42,0],[50,43,50,78,0],[50,79,50,80,0],[54,9,54,10,0],[55,13,55,71,0],[57,13,57,63,0],[58,13,58,14,0],[59,17,59,58,0],[60,17,60,18,0],[61,21,61,41,0],[63,21,63,27,0],[65,17,65,55,0],[66,13,66,14,0],[67,9,67,10,0],[69,46,69,118,0],[72,9,72,10,0],[73,13,73,33,0],[74,9,74,10,0],[77,9,77,10,0],[78,13,78,42,0],[79,9,79,10,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\BindingHelper.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.ComponentModel;
+using System.Windows.Data;
+using System.Windows.Threading;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    class BindingHelper
+    {
+        public static void RebindInactiveBindings(DependencyObject dependencyObject)
+        {
+            foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(dependencyObject.GetType()))
+            {
+                var dpd = DependencyPropertyDescriptor.FromProperty(property);
+                if (dpd != null)
+                {
+                    BindingExpressionBase binding = BindingOperations.GetBindingExpressionBase(dependencyObject, dpd.DependencyProperty);
+                    if (binding != null)
+                    {
+                        //if (property.Name == &quot;DataContext&quot; || binding.HasError || binding.Status != BindingStatus.Active)
+                        {
+                            // Ensure that no pending calls are in the dispatcher queue
+                            Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.SystemIdle, (Action)delegate
+                            {
+                                // Remove and add the binding to re-trigger the binding error
+                                dependencyObject.ClearValue(dpd.DependencyProperty);
+                                BindingOperations.SetBinding(dependencyObject, dpd.DependencyProperty, binding.ParentBindingBase);
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[31,9,31,10,0],[32,13,32,20,0],[32,22,32,49,0],[32,50,32,52,0],[32,53,32,109,0],[33,13,33,14,0],[34,17,34,79,0],[35,17,35,33,0],[36,17,36,18,0],[37,21,37,138,0],[38,21,38,41,0],[39,21,39,22,0],[41,25,41,26,0],[43,29,44,29,0],[44,29,44,30,0],[44,30,46,33,0],[46,33,46,85,0],[46,85,47,33,0],[47,33,47,131,0],[47,131,48,29,0],[48,29,48,30,0],[48,30,48,32,0],[43,29,48,32,0],[49,25,49,26,0],[50,21,50,22,0],[51,17,51,18,0],[52,13,52,14,0],[53,9,53,10,0]]);
+    </script>
+  </body>
+</html>

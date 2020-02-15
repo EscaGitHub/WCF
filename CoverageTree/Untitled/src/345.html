@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Logic\RibbonController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Globalization;
+using System.Linq;
+using System.Windows;
+using System.Windows.Data;
+using Fluent;
+using Swr.Configurator.Data;
+using Swr.Configurator.View.Controls;
+using SwrUILogic.Data;
+using SwrUILogic.Extensions;
+
+namespace Swr.Configurator.View.Logic
+{
+	public class RibbonController : NotifyBaseClass
+	{
+		private bool _isSpecificationRibbonTabVisible;
+		private bool _isStructureRibbonTabVisible;
+		private bool _isViewRibbonTabVisible;
+
+		public RibbonController(Ribbon ribbon)
+		{
+			Ribbon = ribbon;
+		}
+
+		public Ribbon Ribbon { get; private set; }
+
+        //		public SpecificationsController SpecificationsController {
+        //			get
+        //			{
+        //				if (ConfiguratorMainWindowVM.Instance == null)
+        //					return null;
+        //				return ConfiguratorMainWindowVM.Instance.SpecificationsController;
+        //			}
+        //		}
+
+        //		public LayoutController LayoutController
+        //		{
+        //			get
+        //			{
+        //				if (ConfiguratorMainWindowVM.Instance == null)
+        //					return null;
+        //				return ConfiguratorMainWindowVM.Instance.LayoutController;
+        //			}
+        //		}
+
+
+        public bool IsSpecificationRibbonTabVisible
+        {
+            get { return _isSpecificationRibbonTabVisible; }
+            set
+            {
+                _isSpecificationRibbonTabVisible = value;
+                OnPropertyChanged(() =&gt; IsSpecificationRibbonTabVisible);
+            }
+        }
+
+        public bool IsStructureRibbonTabVisible
+        {
+	        get { return _isStructureRibbonTabVisible; }
+	        set
+	        {
+		        _isStructureRibbonTabVisible = value;
+		        OnPropertyChanged(() =&gt; IsStructureRibbonTabVisible);
+	        }
+        }
+
+		public bool IsViewRibbonTabVisible
+        {
+            get { return _isViewRibbonTabVisible; }
+            set
+            {
+                _isViewRibbonTabVisible = value;
+                OnPropertyChanged(() =&gt; IsViewRibbonTabVisible);
+            }
+        }
+
+        public void SelectFirstVisibleTab()
+        {
+            Ribbon.Dispatcher.Invoke(new Action(() =&gt;
+            {
+                Ribbon.SelectedTabItem = Ribbon.Tabs.FirstOrDefault(x =&gt; x.Visibility == Visibility.Visible);
+            }));
+        }
+
+        //		public void HideRibbonTabs()
+        //		{
+        //			Ribbon.Dispatcher.Invoke(new Action(() =&gt;
+        //			{
+        //				IsViewRibbonTabVisible = false;
+        //				IsSpecificationRibbonTabVisible = false;
+        //				SelectFirstVisibleTab();
+        //			}));
+        //		}
+
+        public void Configure(/*Role currentRole*/)
+        {
+            Ribbon.Dispatcher.Invoke(new Action(() =&gt;
+            {
+                ConfigureStructureTab();
+                //ConfigureSpecificationTab();
+                ConfigureComponentTab();
+         
+				//                ConfigureOrderTab();
+				//#if DEBUG
+				//                        ConfigureTestTab();
+				//#endif
+
+
+				IsSpecificationRibbonTabVisible = true;
+				IsStructureRibbonTabVisible = true;
+                IsViewRibbonTabVisible = true;
+                SelectFirstVisibleTab();
+            }));
+        }
+
+        private void ConfigureStructureTab()
+        {
+	        if (!Ribbon.Tabs.SafeAny(x =&gt; x.Header.Equals(&quot;Структура&quot;)))
+	        {
+		        var componentTab = new RibbonTabItem { Header = &quot;Структура&quot;, KeyTip = &quot;R&quot; };
+		        var structureGroup = new RibbonGroupBox { Header = &quot;Создание&quot; };
+		        structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.CreateStructureCommand));
+		        structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.OpenStructureCommand));
+				structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.SaveStructureCommand));
+		        structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.CloseStructureCommand));
+
+		        componentTab.Groups.Add(structureGroup);
+		        Ribbon.Tabs.Insert(0, componentTab);
+		        BindingOperations.SetBinding(componentTab, UIElement.VisibilityProperty, new Binding(&quot;IsStructureRibbonTabVisible&quot;)
+		        {
+			        Converter = componentTab.FindResource(&quot;BooleanToVisibilityConverter&quot;) as IValueConverter
+		        });
+	        }
+
+		}
+
+		private void ConfigureComponentTab()
+	    {
+	        if (!Ribbon.Tabs.SafeAny(x =&gt; x.Header.Equals(&quot;Компонент&quot;)))
+	        {
+	            var componentTab = new RibbonTabItem { Header = &quot;Компонент&quot;, KeyTip = &quot;T&quot; };
+	            var structureGroup = new RibbonGroupBox { Header = &quot;Создание компонента&quot; };
+	            structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.CreateComponentCommand));
+	            structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.CloseComponentCommand));
+                componentTab.Groups.Add(structureGroup);
+
+                var structureGroupSp = new RibbonGroupBox { Header = &quot;Создание спецификации&quot; };
+                structureGroupSp.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.OpenSpecificationCommand));
+                structureGroupSp.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.SaveSpecificationCommand));
+                structureGroupSp.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.CloseSpecificationCommand));
+                structureGroupSp.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.RestoreCommand));
+                structureGroupSp.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.DeleteComponentFromSpecificationCommand));
+                structureGroupSp.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.ShowDeletedProductsCommand));
+                componentTab.Groups.Add(structureGroupSp);
+
+                Ribbon.Tabs.Insert(0, componentTab);
+
+	            BindingOperations.SetBinding(componentTab, UIElement.VisibilityProperty, new Binding(&quot;IsSpecificationRibbonTabVisible&quot;)
+	            {
+	                Converter = componentTab.FindResource(&quot;BooleanToVisibilityConverter&quot;) as IValueConverter
+	            });
+            }
+
+        }
+
+
+        private void ConfigureSpecificationTab()
+        {
+            if (!Ribbon.Tabs.SafeAny(x =&gt; x.Header.Equals(&quot;Спецификация&quot;)))
+            {
+                				var specificationTab = new RibbonTabItem { Header = &quot;Спецификация&quot;, KeyTip = &quot;S&quot; };
+
+                				var structureGroup = new RibbonGroupBox {Header = &quot;Создание&quot;};
+
+                structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.OpenSpecificationCommand));
+                structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.SaveSpecificationCommand));
+                structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandContainer.CloseSpecificationCommand));
+                //				structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.CloseStructureCommand));
+                //				structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.SaveStructureCommand));
+
+                //				var tableGroup = new RibbonGroupBox {Header = &quot;Таблица&quot;};
+
+                //				tableGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.InsertComponentCommand));
+                //				tableGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.DeleteCommand));
+                //				tableGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.RestoreCommand));
+                //				tableGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.CheckSpecificationCommand));
+
+                //				tableGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.SetPositionsCommand));
+                //				tableGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.ShowDeletedProductsCommand));
+
+
+                //				var alternatePositionGroup = new RibbonGroupBox {Header = &quot;Альтернативные позиции&quot;, MinWidth = 160};
+
+                //				var alternatePositionToggle = new ToggleButton
+                //												{
+                //													Header = &quot;Показать&quot;,
+                //													SizeDefinition = &quot;Large, Middle, Small&quot;,
+                //													LargeIcon = new VectorIconUC
+                //													{
+                //														Data = &quot;F1 M 7.52,21.48L 8.85,20.16L 12.66,23.97L 12,24C 5.71,24 0.559998,19.16 0.0500031,13L 1.55,13C 1.91,16.76 4.25,19.94 7.52,21.48 Z M 16.48,2.52002L 15.15,3.83986L 11.34,0.0300198L 12,1.71661e-005C 18.29,1.71661e-005 23.44,4.83986 23.95,11L 22.45,11C 22.0898,7.24025 19.75,4.07001 16.48,2.52002 Z M 7.6,9.3C 7.6,10.2435 6.83499,11 5.89999,11L 2.5,11L 2.5,9.3L 5.89999,9.3L 5.89999,7.6L 4.2,7.6L 4.2,5.9L 5.89999,5.9L 5.89999,4.2L 2.5,4.2L 2.5,2.50001L 5.89999,2.50001C 6.83499,2.50001 7.6,3.2565 7.6,4.2L 7.6,5.475C 7.6,6.18051 7.03056,6.75 6.325,6.75C 7.03056,6.75 7.6,7.3195 7.6,8.025L 7.6,9.3 Z M 21.5,19.8C 21.5,20.7435 20.735,21.5 19.8,21.5L 16.4,21.5L 16.4,19.8L 19.8,19.8L 19.8,18.1L 16.4,18.1L 16.4,13L 21.5,13L 21.5,14.7L 18.1,14.7L 18.1,16.4L 19.8,16.4C 20.735,16.4 21.5,17.1565 21.5,18.1L 21.5,19.8 Z &quot;,
+                //													IconColor = ConfiguratorMainWindowVM.Instance.SpecificationIconsBrush, DisabledIconColor = ConfiguratorMainWindowVM.Instance.SpecificationDisabledIconsBrush }
+                //												};
+
+                //				var toggleBinding = new Binding(&quot;SpecificationsController.ShowAlternatePositionColumn&quot;);
+                //				BindingOperations.SetBinding(alternatePositionToggle, System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, toggleBinding);
+
+                //				var toggleIsEnabledBinding = new Binding(&quot;SpecificationsController.ActiveSpecification&quot;) { Converter = new IsNotNullValueConverter() };
+                //				BindingOperations.SetBinding(alternatePositionToggle, UIElement.IsEnabledProperty, toggleIsEnabledBinding);
+
+                //				var alternatePositionGroupVisibilityBinding = new Binding(&quot;SpecificationsController.IsAlternateColumnsExistsInSettingsForCurrentRole&quot;)
+                //																{
+                //																	Mode = BindingMode.OneWay,
+                //																	Converter = specificationTab.FindResource(&quot;BooleanToVisibilityConverter&quot;) as IValueConverter
+                //																};
+                //				BindingOperations.SetBinding(alternatePositionGroup, UIElement.VisibilityProperty, alternatePositionGroupVisibilityBinding);
+
+                //				alternatePositionGroup.Items.Add(alternatePositionToggle);
+
+                specificationTab.Groups.Add(structureGroup);
+                //				specificationTab.Groups.Add(tableGroup);
+                //				specificationTab.Groups.Add(alternatePositionGroup);
+
+                Ribbon.Tabs.Insert(0, specificationTab);
+
+                BindingOperations.SetBinding(specificationTab, UIElement.VisibilityProperty, new Binding(&quot;IsSpecificationRibbonTabVisible&quot;)
+                {
+                    Converter = specificationTab.FindResource(&quot;BooleanToVisibilityConverter&quot;) as IValueConverter
+                });
+            }
+        }
+
+        private Button GetButton(string header, string sizeDefinition, ConfiguratorRelayCommand relayCommand)
+        {
+            var icon = new VectorIconUC { Data = relayCommand.IconData, Top = relayCommand.Top, Left = relayCommand.Left };
+
+            var iconColorBinding = new Binding(&quot;DataContext.Command&quot;) { RelativeSource = new RelativeSource { Mode = RelativeSourceMode.Self }, Converter = new IconColorConverter(), ConverterParameter = &quot;&quot; };
+            var disabledIconColorBinding = new Binding(&quot;DataContext.Command&quot;) { RelativeSource = new RelativeSource { Mode = RelativeSourceMode.Self }, Converter = new IconColorConverter(), ConverterParameter = &quot;disabled&quot; };
+
+            BindingOperations.SetBinding(icon, VectorIconUC.IconColorProperty, iconColorBinding);
+            BindingOperations.SetBinding(icon, VectorIconUC.DisabledIconColorProperty, disabledIconColorBinding);
+
+            var button = new Button
+            {
+                Header = header ?? relayCommand.Name,
+                SizeDefinition = sizeDefinition,
+                Command = relayCommand,
+                LargeIcon = icon
+            };
+
+            icon.DataContext = button;
+
+            var keyTipBinding = new Binding(&quot;Command&quot;)
+            {
+                Converter = new KeyTipFromCommandConverter(),
+                RelativeSource = new RelativeSource(RelativeSourceMode.Self)
+            };
+
+            BindingOperations.SetBinding(button, Button.KeyTipProperty, keyTipBinding);
+
+            return button;
+        }
+
+        //		private void ConfigureOrderTab()
+        //		{
+        //			var ordersTab = Ribbon.Tabs.FirstOrDefault(x =&gt; x.Header.Equals(&quot;Заказ&quot;));
+        //			if (ordersTab == null)
+        //			{
+        //				var orderTab = new RibbonTabItem { Header = &quot;Заказ&quot;, KeyTip = &quot;O&quot; };
+
+        //				var structureGroup = new RibbonGroupBox { Header = &quot;Заказ&quot; };
+
+        //				structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.CreateOrderCommand));
+        //				structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.OpenOrderCommand));
+        //				structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.CloseOrderCommand));
+        //				structureGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.SaveOrderCommand));
+
+        //				var orderGroup = new RibbonGroupBox { Header = &quot;Состав&quot; };
+
+        //				orderGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.AddProductToOrderCommand));
+        //				orderGroup.Items.Add(GetButton(null, &quot;Large, Middle, Small&quot;, ConfiguratorMainWindowVM.Instance.UICommandsContainer.UpdateProductToOrderCommand));
+
+        //				orderTab.Groups.Add(structureGroup);
+        //				orderTab.Groups.Add(orderGroup);
+
+        //				Ribbon.Tabs.Insert(1, orderTab);
+
+        //				BindingOperations.SetBinding(orderTab, UIElement.VisibilityProperty, new Binding(&quot;IsSpecificationRibbonTabVisible&quot;)
+        //				{
+        //					Converter = orderTab.FindResource(&quot;BooleanToVisibilityConverter&quot;) as IValueConverter
+        //				});
+        //			}
+        //		}
+
+        //	    private void ConfigureTestTab()
+        //	    {
+        //	        var testsTab = Ribbon.Tabs.FirstOrDefault(x =&gt; x.Header.Equals(&quot;Тесты&quot;));
+        //	        if (testsTab == null)
+        //	        {
+        //	            var testTab = new RibbonTabItem { Header = &quot;Тесты&quot; };
+
+        //	            var structureGroup = new RibbonGroupBox { Header = &quot;Нагрузочные тесты&quot; };
+
+        //	            structureGroup.Items.Add(GetButton(null, &quot;Large, Large, Large&quot;, Tests.Instance.SaveStructureTestCommand));
+
+        //	            var uiGroup = new RibbonGroupBox { Header = &quot;UI тесты&quot; };
+
+        //                uiGroup.Items.Add(GetButton(null, &quot;Large, Large, Large&quot;, Tests.Instance.ShowUsagePageStatusTestCommand));
+
+        //                testTab.Groups.Add(structureGroup);
+        //	            testTab.Groups.Add(uiGroup);
+
+        //                Ribbon.Tabs.Add(testTab);
+        //	        }
+        //        }
+
+        //        public void SetOrdersStatus(bool isEnabled)
+        //		{
+        //			Ribbon.Dispatcher.Invoke(new Action(() =&gt;
+        //			{
+        //				var ordersTab = Ribbon.Tabs.FirstOrDefault(x =&gt; x.Header.Equals(&quot;Заказ&quot;));
+        //				if (ordersTab != null)
+        //					ordersTab.Visibility = isEnabled ? Visibility.Visible : Visibility.Collapsed;	
+        //			}));
+
+        //		}
+    }
+
+    public class IconColorConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var command = value as ConfiguratorRelayCommand;
+            if (command == null)
+            {
+                return null;
+            }
+
+            var disabled = false;
+            if (parameter != null)
+            {
+                disabled = parameter.ToString().Equals(&quot;disabled&quot;, StringComparison.InvariantCultureIgnoreCase);
+            }
+
+            if (disabled)
+            {
+                switch (command.Group)
+                {
+                    //case CommandGroup.SpecificationObject:
+                    //    return ConfiguratorMainWindowVM.Instance.SpecificationDisabledIconsBrush;
+                    //case CommandGroup.Order:
+                    //    return ConfiguratorMainWindowVM.Instance.OrderDisabledIconsBrush;
+                    //default:
+                    //    return ConfiguratorMainWindowVM.Instance.DisabledIconsBrush;
+
+                }
+
+            }
+
+            switch (command.Group)
+            {
+                case CommandGroup.Specification:
+                    return ConfiguratorMainWindowVM.Instance.SpecificationIconsBrush;
+				case CommandGroup.Structure:
+					return ConfiguratorMainWindowVM.Instance.StructureIconsBrush;
+				//case CommandGroup.Order:
+				//    return ConfiguratorMainWindowVM.Instance.OrderIconsBrush;
+				default:
+                    return ConfiguratorMainWindowVM.Instance.IconsBrush;
+
+            }
+
+            return null; // TODO: СТЕРЕТЬ!
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return Binding.DoNothing;
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[20,3,20,41,0],[21,3,21,4,0],[22,4,22,20,0],[23,3,23,4,0],[25,26,25,30,0],[25,31,25,43,0],[49,17,49,18,0],[49,19,49,59,0],[49,60,49,61,0],[51,13,51,14,0],[52,17,52,58,0],[53,17,53,74,0],[54,13,54,14,0],[59,14,59,15,0],[59,16,59,52,0],[59,53,59,54,0],[61,10,61,11,0],[62,11,62,48,0],[63,11,63,64,0],[64,10,64,11,0],[69,17,69,18,0],[69,19,69,50,0],[69,51,69,52,0],[71,13,71,14,0],[72,17,72,49,0],[73,17,73,65,0],[74,13,74,14,0],[78,9,78,10,0],[79,13,80,13,0],[80,13,80,14,0],[80,14,81,17,0],[81,17,81,74,0],[81,74,81,108,0],[81,108,81,110,0],[81,17,81,110,0],[81,110,82,13,0],[82,13,82,14,0],[82,14,82,17,0],[79,13,82,17,0],[83,9,83,10,0],[96,9,96,10,0],[97,13,98,13,0],[98,13,98,14,0],[98,14,99,17,0],[99,17,99,41,0],[99,41,101,17,0],[101,17,101,41,0],[101,41,109,5,0],[109,5,109,44,0],[109,44,110,5,0],[110,5,110,40,0],[110,40,111,17,0],[111,17,111,47,0],[111,47,112,17,0],[112,17,112,41,0],[112,41,113,13,0],[113,13,113,14,0],[113,14,113,17,0],[97,13,113,17,0],[114,9,114,10,0],[117,9,117,10,0],[118,10,118,40,0],[118,40,118,68,0],[118,68,118,70,0],[118,10,118,70,0],[119,10,119,11,0],[120,11,120,87,0],[121,11,121,75,0],[122,11,122,154,0],[123,11,123,152,0],[124,5,124,146,0],[125,11,125,153,0],[127,11,127,51,0],[128,11,128,47,0],[129,11,132,14,0],[133,10,133,11,0],[135,3,135,4,0],[138,6,138,7,0],[139,10,139,40,0],[139,40,139,68,0],[139,68,139,70,0],[139,10,139,70,0],[140,10,140,11,0],[141,14,141,90,0],[142,14,142,89,0],[143,14,143,157,0],[144,14,144,156,0],[145,17,145,57,0],[147,17,147,96,0],[148,17,148,164,0],[149,17,149,164,0],[150,17,150,165,0],[151,17,151,154,0],[152,17,152,179,0],[153,17,153,166,0],[154,17,154,59,0],[156,17,156,53,0],[158,14,161,17,0],[162,13,162,14,0],[164,9,164,10,0],[168,9,168,10,0],[169,13,169,43,0],[169,43,169,74,0],[169,74,169,76,0],[169,13,169,76,0],[170,13,170,14,0],[171,21,171,104,0],[173,21,173,83,0],[175,17,175,162,0],[176,17,176,162,0],[177,17,177,163,0],[219,17,219,61,0],[223,17,223,57,0],[225,17,228,20,0],[229,13,229,14,0],[230,9,230,10,0],[233,9,233,10,0],[234,13,234,124,0],[236,13,236,209,0],[237,13,237,225,0],[239,13,239,98,0],[240,13,240,114,0],[242,13,248,15,0],[250,13,250,39,0],[252,13,256,15,0],[258,13,258,88,0],[260,13,260,27,0],[261,9,261,10,0],[331,9,331,10,0],[332,13,332,61,0],[333,13,333,33,0],[334,13,334,14,0],[335,17,335,29,0],[338,13,338,34,0],[339,13,339,35,0],[340,13,340,14,0],[341,17,341,113,0],[342,13,342,14,0],[344,13,344,26,0],[345,13,345,14,0],[346,17,346,39,0],[357,13,357,14,0],[359,13,359,35,0],[362,21,362,86,0],[364,6,364,67,0],[368,21,368,73,0],[373,9,373,10,0],[376,9,376,10,0],[377,13,377,38,0],[378,9,378,10,0]]);
+    </script>
+  </body>
+</html>

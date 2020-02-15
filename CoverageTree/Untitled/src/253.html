@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Controls\LibraryItemPropertiesControl.xaml.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Windows;
+
+namespace Swr.Configurator.View.Controls
+{
+	public partial class LibraryItemPropertiesControl
+	{
+		//public static readonly DependencyProperty PropertiesToShowProperty = DependencyProperty.Register(
+		//	&quot;PropertiesToShow&quot;, typeof (List&lt;NamedVariable&gt;), typeof (LibraryItemPropertiesControl), new PropertyMetadata(default(List&lt;NamedVariable&gt;), UpdateData));
+
+		//public static readonly DependencyProperty ProductVMProperty = DependencyProperty.Register(
+		//	&quot;ProductVM&quot;, typeof (LibraryProductVM), typeof (LibraryItemPropertiesControl), new PropertyMetadata(default(LibraryProductVM), UpdateData));
+
+		//public LibraryItemPropertiesControl()
+		//{
+		//	InitializeComponent();
+
+		//	PropertiesData = new ObservableCollection&lt;LibraryItemPropertyVM&gt;();
+		//}
+
+		//public ObservableCollection&lt;LibraryItemPropertyVM&gt; PropertiesData { get; private set; }
+
+		//public List&lt;NamedVariable&gt; PropertiesToShow
+		//{
+		//	get { return (List&lt;NamedVariable&gt;) GetValue(PropertiesToShowProperty); }
+		//	set { SetValue(PropertiesToShowProperty, value); }
+		//}
+
+		//public LibraryProductVM ProductVM
+		//{
+		//	get { return (LibraryProductVM) GetValue(ProductVMProperty); }
+		//	set { SetValue(ProductVMProperty, value); }
+		//}
+
+		//private static void UpdateData(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs dependencyPropertyChangedEventArgs)
+		//{
+		//	var control = dependencyObject as LibraryItemPropertiesControl;
+		//	if (control == null)
+		//		return;
+
+		//	control.UpdateData();
+		//}
+
+		//private void UpdateData()
+		//{
+		//	PropertiesData.Clear();
+		//	if (ProductVM == null || PropertiesToShow == null)
+		//		return;
+
+		//	foreach (var propertyName in PropertiesToShow)
+		//	{
+		//		var property = ProductVM.Product.GetProperty(propertyName.Variable);
+
+		//		var name = string.IsNullOrWhiteSpace(propertyName.Alias) ? propertyName.Variable : propertyName.Alias;
+
+		//		PropertiesData.Add(property == null ? new LibraryItemPropertyVM(name, string.Empty) : new LibraryItemPropertyVM(name, property.Value));
+		//	}
+		//}
+
+		public class LibraryItemPropertyVM
+		{
+			public LibraryItemPropertyVM(string name, string value)
+			{
+				Name = name;
+				Value = value;
+			}
+
+			public string Name { get; private set; }
+			public string Value { get; private set; }
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[63,4,63,59,0],[64,4,64,5,0],[65,5,65,17,0],[66,5,66,19,0],[67,4,67,5,0],[69,25,69,29,0],[69,30,69,42,0],[70,26,70,30,0],[70,31,70,43,0]]);
+    </script>
+  </body>
+</html>

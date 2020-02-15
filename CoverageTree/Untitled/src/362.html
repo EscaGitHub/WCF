@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\WebApiControllers\TestHelper.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Swr.Configurator.Common.Data;
+using SWR.ConfiguratorApi.Data.Db;
+
+namespace Swr.Configurator.Test.WebApiControllers
+{
+	class TestHelper
+	{
+		internal static Component[] FillComponentsWithAttributes(int count)
+		{
+			var components = new List&lt;Component&gt;();
+
+			for (int i = 0; i &lt; count; i++)
+			{
+				var component = new Component();
+
+				component.SetEmpty();
+
+				component.TypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+				component.Name = &quot;Имя &quot; + i;
+				component.Code = i.ToString();
+				component.StateEnum = StateEnum.Locked;
+
+				var componentAttribute = new ComponentAttribute();
+				componentAttribute.ComponentId = component.Id;
+				componentAttribute.ComponentTypeAttributeId = Guid.Parse(&quot;0F255A2C-6B7D-4466-A7E9-9B3EBEA41002&quot;);
+				componentAttribute.Value = i + &quot;-Наименование компонента&quot;;
+
+				var componentAttribute1 = new ComponentAttribute();
+				componentAttribute1.ComponentId = component.Id;
+				componentAttribute1.ComponentTypeAttributeId = Guid.Parse(&quot;22F7AAFB-AF68-4D07-AEF6-787549E7FCDA&quot;);
+				componentAttribute1.Value = i + &quot;-Обозначение компонента&quot;;
+
+				var componentAttribute2 = new ComponentAttribute();
+				componentAttribute2.ComponentId = component.Id;
+				componentAttribute2.ComponentTypeAttributeId = Guid.Parse(&quot;ADC6B211-4CD7-4128-B8C7-92B6846E8F6D&quot;);
+				componentAttribute2.Value = i + &quot;-Примечание&quot;;
+
+				var componentAttribute3 = new ComponentAttribute();
+				componentAttribute3.ComponentId = component.Id;
+				componentAttribute3.ComponentTypeAttributeId = Guid.Parse(&quot;13DCD639-228A-4C45-BE9E-E3D416DCDCC1&quot;);
+				componentAttribute3.Value = i + &quot;-Поле1&quot;;
+
+				var componentAttribute4 = new ComponentAttribute();
+				componentAttribute4.ComponentId = component.Id;
+				componentAttribute4.ComponentTypeAttributeId = Guid.Parse(&quot;2B978309-D69C-4F83-B030-1BF7FFD2D856&quot;);
+				componentAttribute4.Value = i + &quot;-Поле2&quot;;
+
+				var componentAttribute5 = new ComponentAttribute();
+				componentAttribute5.ComponentId = component.Id;
+				componentAttribute5.ComponentTypeAttributeId = Guid.Parse(&quot;B3677033-AB1E-40C7-BAAD-91EDD90FB60D&quot;);
+				componentAttribute5.Value = i + &quot;-Поле3&quot;;
+
+				var componentAttribute6 = new ComponentAttribute();
+				componentAttribute6.ComponentId = component.Id;
+				componentAttribute6.ComponentTypeAttributeId = Guid.Parse(&quot;36652085-E46C-45BB-A374-CF88D5380734&quot;);
+				componentAttribute6.Value = i + &quot;-Поле4&quot;;
+
+				var componentAttribute7 = new ComponentAttribute();
+				componentAttribute7.ComponentId = component.Id;
+				componentAttribute7.ComponentTypeAttributeId = Guid.Parse(&quot;0FD2BB21-F7EC-44EE-B118-A5F7F14E5747&quot;);
+				componentAttribute7.Value = i + &quot;-Поле5&quot;;
+
+				var componentAttribute8 = new ComponentAttribute();
+				componentAttribute8.ComponentId = component.Id;
+				componentAttribute8.ComponentTypeAttributeId = Guid.Parse(&quot;3D9F6BBB-CA57-40D6-84F3-1458C0657348&quot;);
+				componentAttribute8.Value = i + &quot;-Поле6&quot;;
+
+				var componentAttribute9 = new ComponentAttribute();
+				componentAttribute9.ComponentId = component.Id;
+				componentAttribute9.ComponentTypeAttributeId = Guid.Parse(&quot;373B151C-FDA4-43A6-81C8-1F821B528AE0&quot;);
+				componentAttribute9.Value = i + &quot;-Поле7&quot;;
+
+				component.ComponentAttributes.Add(componentAttribute);
+				component.ComponentAttributes.Add(componentAttribute1);
+				component.ComponentAttributes.Add(componentAttribute2);
+				component.ComponentAttributes.Add(componentAttribute3);
+				component.ComponentAttributes.Add(componentAttribute4);
+				component.ComponentAttributes.Add(componentAttribute5);
+				component.ComponentAttributes.Add(componentAttribute6);
+				component.ComponentAttributes.Add(componentAttribute7);
+				component.ComponentAttributes.Add(componentAttribute8);
+				component.ComponentAttributes.Add(componentAttribute9);
+
+
+				components.Add(component);
+			}
+
+			return components.ToArray();
+		}
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[12,3,12,4,1],[13,4,13,43,1],[15,9,15,18,1],[15,20,15,29,1],[15,31,15,34,1],[16,4,16,5,1],[17,5,17,37,1],[19,5,19,26,1],[21,5,21,75,1],[22,5,22,33,1],[23,5,23,35,1],[24,5,24,44,1],[26,5,26,55,1],[27,5,27,51,1],[28,5,28,102,1],[29,5,29,63,1],[31,5,31,56,1],[32,5,32,52,1],[33,5,33,103,1],[34,5,34,63,1],[36,5,36,56,1],[37,5,37,52,1],[38,5,38,103,1],[39,5,39,51,1],[41,5,41,56,1],[42,5,42,52,1],[43,5,43,103,1],[44,5,44,46,1],[46,5,46,56,1],[47,5,47,52,1],[48,5,48,103,1],[49,5,49,46,1],[51,5,51,56,1],[52,5,52,52,1],[53,5,53,103,1],[54,5,54,46,1],[56,5,56,56,1],[57,5,57,52,1],[58,5,58,103,1],[59,5,59,46,1],[61,5,61,56,1],[62,5,62,52,1],[63,5,63,103,1],[64,5,64,46,1],[66,5,66,56,1],[67,5,67,52,1],[68,5,68,103,1],[69,5,69,46,1],[71,5,71,56,1],[72,5,72,52,1],[73,5,73,103,1],[74,5,74,46,1],[76,5,76,59,1],[77,5,77,60,1],[78,5,78,60,1],[79,5,79,60,1],[80,5,80,60,1],[81,5,81,60,1],[82,5,82,60,1],[83,5,83,60,1],[84,5,84,60,1],[85,5,85,60,1],[88,5,88,31,1],[89,4,89,5,1],[91,4,91,32,1],[92,3,92,4,1]]);
+    </script>
+  </body>
+</html>

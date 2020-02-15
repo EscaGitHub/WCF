@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\Elastic\ElasticLogController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading.Tasks;
+using System.Web.UI.WebControls;
+using Swr.Configurator.Common.Logic;
+using Swr.Configurator.View;
+
+namespace Swr.Configurator.Logic.Elastic
+{
+    public static class ElasticLogController
+    {
+        public static void Log(LogTypeEnum logType, string message, EventEnum eventType, bool? isOk, ObjectTypeEnum objectType, string userName = null)
+        {
+            if (string.IsNullOrWhiteSpace(userName)) userName = ConfiguratorMainWindowVM.Instance.LoginName;
+
+            var data = new ElasticLog
+            {
+                TimeStamp = DateTime.Now,
+                Ip = GetLocalIpAddress(),
+                LogType = logType.GetEnumName(),
+                Result = isOk,
+                Event = eventType.GetEnumName(),
+                Message = message,
+                User = userName,
+                SoftwareType = SoftwareTypeEnum.Client.GetEnumName(),
+                ObjectType = Enum.GetName(typeof(ObjectTypeEnum), objectType)
+            };
+
+            Task.Run(() =&gt; LogAsync(data));
+        }
+
+        private static void LogAsync(ElasticLog data)
+        {
+            var client = ElasticClientProvider.Instance();
+            client?.IndexDocumentAsync(data);
+        }
+
+        private static string GetLocalIpAddress()
+        {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+
+            var ipV6 = string.Empty;
+
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    return ip.ToString(); 
+                }
+                else if (ip.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    ipV6 = ip.ToString();
+                }
+            }
+
+            return ipV6;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,9,14,10,0],[15,13,15,53,0],[15,54,15,109,0],[17,13,28,15,0],[30,13,30,28,0],[30,28,30,42,0],[30,42,30,44,0],[30,13,30,44,0],[31,9,31,10,0],[34,9,34,10,0],[35,13,35,59,0],[36,13,36,46,0],[37,9,37,10,0],[40,9,40,10,0],[41,13,41,60,0],[43,13,43,37,0],[45,13,45,20,0],[45,22,45,28,0],[45,29,45,31,0],[45,32,45,48,0],[46,13,46,14,0],[47,17,47,68,0],[48,17,48,18,0],[49,21,49,42,0],[51,22,51,75,0],[52,17,52,18,0],[53,21,53,42,0],[54,17,54,18,0],[55,13,55,14,0],[57,13,57,25,0],[58,9,58,10,0]]);
+    </script>
+  </body>
+</html>

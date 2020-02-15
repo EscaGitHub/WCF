@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Infrastructure\ChangedDocumentsFiltering.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures;
+using Swr.Capital1C.Service.Logger;
+using Swr.Capital1C.Service.Settings.Model;
+
+namespace Swr.Capital1C.Service.Infrastructure
+{
+    public static class ChangedDocumentsFiltering
+    {
+        public static List&lt;ChangedDocument&gt; Filter(List&lt;ChangedDocument&gt; currentDocuments)
+        {
+            var logger = LogHelper.Instance.GetLogger(&quot;Фильтрация&quot;);
+
+            var result = new List&lt;ChangedDocument&gt;();
+
+            foreach (var currentDocument in currentDocuments)
+            {
+                if (currentDocument.Version == 0 ||
+                    string.Equals(currentDocument.ConfigurationName, &quot;@&quot;, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(currentDocument.IsService, &quot;1&quot;, StringComparison.OrdinalIgnoreCase))
+                {
+                    logger.Debug($&quot;Документ с артикулом &#39;{currentDocument.Article}&#39; и идентификатором &#39;{currentDocument.GetUniqueId()}&#39; отфильтрован&quot;);
+                    continue;
+                }
+
+                result.Add(currentDocument);
+            }
+
+            logger.Debug($&quot;Количество документов после фильтрации &#39;{result.Count}&#39;&quot;);
+
+            return result;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[12,9,12,10,1],[13,13,13,69,1],[15,13,15,54,1],[17,13,17,20,1],[17,22,17,41,1],[17,42,17,44,1],[17,45,17,61,1],[18,13,18,14,1],[19,17,21,103,1],[22,17,22,18,1],[23,21,23,152,1],[24,21,24,30,1],[27,17,27,45,1],[28,13,28,14,1],[30,13,30,86,1],[32,13,32,27,1],[33,9,33,10,1]]);
+    </script>
+  </body>
+</html>

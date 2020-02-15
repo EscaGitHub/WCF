@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\UnitTests\BomServiceTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using Moq;
+using Swr.Capital1C.Service.Domain.Services.Boms;
+using Swr.Capital1C.Service.Domain.Services.Boms.Exceptions;
+using Swr.Capital1C.Service.Domain.Services.Boms.Models.In;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures;
+using Swr.Capital1C.Service.Infrastructure.Nomenclatures;
+using Xunit;
+
+namespace UnitTests
+{
+    public class BomServiceTest
+    {
+        private readonly Mock&lt;IBomCatalogService&gt; _catalogServiceMock;
+        private readonly Mock&lt;ICatalogItemQuery&gt; _nomenclatureQueryMock;
+        private Bom _bom;
+
+        public BomServiceTest()
+        {
+            _catalogServiceMock = new Mock&lt;IBomCatalogService&gt;();
+            _nomenclatureQueryMock = new Mock&lt;ICatalogItemQuery&gt;();
+        }
+
+        [Fact]
+        public async void BomExists_UpdateStatus_ShouldUpdateBomExportStatusByArticle()
+        {
+            _nomenclatureQueryMock.Setup(t =&gt; t.FindByArticleAsync(&quot;P001&quot;))
+                .ReturnsAsync(() =&gt; new CatalogItemId(1, &quot;-01&quot;, 3));
+
+            _catalogServiceMock.Setup(t =&gt; t.UpdateBomAsync(It.IsAny&lt;Bom&gt;())).Callback((Bom n) =&gt; _bom = n);
+
+            var service = new BomService(_catalogServiceMock.Object, _nomenclatureQueryMock.Object);
+
+            const string vendorCode = &quot;P001&quot;;
+            var state = new ExportState
+            {
+                Status = &quot;state&quot;,
+                Message = &quot;message&quot;
+            };
+
+            await service.UpdateStatusAsync(vendorCode, state);
+
+            _nomenclatureQueryMock.Verify(t =&gt; t.FindByArticleAsync(&quot;P001&quot;));
+
+            _catalogServiceMock.Verify(t =&gt; t.UpdateBomAsync(It.IsAny&lt;Bom&gt;()));
+
+            Assert.Equal(&quot;1:-01:3&quot;, _bom.Id);
+
+            Assert.Equal(&quot;Статус передачи спецификации&quot;, _bom.Attributes[0].Name);
+            Assert.Equal(&quot;state&quot;, _bom.Attributes[0].Value);
+
+            Assert.Equal(&quot;Описание ошибки спецификации&quot;, _bom.Attributes[1].Name);
+            Assert.Equal(&quot;message&quot;, _bom.Attributes[1].Value);
+        }
+
+        [Fact]
+        public async void BomNotExist_UpdateStatus_ShouldThrowException()
+        {
+            _nomenclatureQueryMock.Setup(t =&gt; t.FindByArticleAsync(&quot;P001&quot;))
+                .ReturnsAsync(() =&gt; null);
+
+            var service = new BomService(_catalogServiceMock.Object, _nomenclatureQueryMock.Object);
+
+            const string vendorCode = &quot;P001&quot;;
+            var state = new ExportState
+            {
+                Status = &quot;state&quot;,
+                Message = &quot;message&quot;
+            };
+
+            await Assert.ThrowsAsync&lt;BomNotFoundException&gt;(() =&gt; service.UpdateStatusAsync(vendorCode, state));
+
+            _catalogServiceMock.Verify(t =&gt; t.UpdateBomAsync(It.IsAny&lt;Bom&gt;()), Times.Never);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[17,9,17,32,1],[18,9,18,10,1],[19,13,19,66,1],[20,13,20,68,1],[21,9,21,10,1],[25,9,25,10,1],[26,13,27,37,1],[27,37,27,67,1],[27,67,27,69,1],[26,13,27,69,1],[29,13,29,99,1],[29,99,29,107,1],[29,107,29,109,1],[29,13,29,109,1],[31,13,31,101,1],[34,13,38,15,1],[40,13,40,64,1],[42,13,42,78,1],[44,13,44,80,1],[46,13,46,46,1],[48,13,48,83,1],[49,13,49,61,1],[51,13,51,83,1],[52,13,52,63,1],[53,9,53,10,1],[57,9,57,10,1],[58,13,59,37,1],[59,37,59,41,1],[59,41,59,43,1],[58,13,59,43,1],[61,13,61,101,1],[64,13,68,15,1],[70,13,70,66,1],[70,66,70,110,1],[70,110,70,112,1],[70,13,70,112,1],[72,13,72,93,1],[73,9,73,10,1]]);
+    </script>
+  </body>
+</html>

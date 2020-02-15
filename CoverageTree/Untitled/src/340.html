@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\CenterWinDialog.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Windows;
+using System.Windows.Interop;
+using NLog;
+
+namespace Swr.Configurator.View
+{
+	public class CenterWinDialog : IDisposable
+	{
+		private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
+		private int _tries;
+		private readonly Window _owner;
+		private readonly IntPtr _ownerHandle;
+		private readonly int _mainThreadId;
+		private readonly List&lt;IntPtr&gt; _windowsBefore = new List&lt;IntPtr&gt;();
+		private readonly List&lt;IntPtr&gt; _windowsAfter = new List&lt;IntPtr&gt;();
+
+		public CenterWinDialog(Window owner)
+		{
+			_owner = owner;
+
+			_ownerHandle = new WindowInteropHelper(_owner).Handle;
+
+			_mainThreadId = GetCurrentThreadId();
+
+			var callback = new EnumThreadWndProc(FindTrheadWindowsBefore);
+			EnumThreadWindows(_mainThreadId, callback, IntPtr.Zero);
+
+			var thread = new Thread(FindDialog);
+			thread.Start();
+		}
+
+		private bool FindTrheadWindowsBefore(IntPtr hWnd, IntPtr lp)
+		{
+			_windowsBefore.Add(hWnd);
+			return true;
+		}
+
+		private bool FindTrheadWindowsAfter(IntPtr hWnd, IntPtr lp)
+		{
+			_windowsAfter.Add(hWnd);
+			return true;
+		}
+
+		private void FindDialog()
+		{
+			try
+			{
+				while (_tries &lt; 100)
+				{
+					_windowsAfter.Clear();
+
+					var callback = new EnumThreadWndProc(FindTrheadWindowsAfter);
+					EnumThreadWindows(_mainThreadId, callback, IntPtr.Zero);
+
+					var hWnd = _windowsAfter.Except(_windowsBefore).FirstOrDefault(h =&gt; GetParent(h) == _ownerHandle);
+					if (hWnd != IntPtr.Zero)
+					{
+						RECT dlgRect;
+						GetWindowRect(hWnd, out dlgRect);
+
+						if (IsWindowVisible(hWnd))
+						{
+							IntPtr wnd = hWnd;
+							_owner.Dispatcher.Invoke(new Action(() =&gt; MoveWindow(dlgRect, wnd)));
+
+							return;
+						}
+					}
+
+					Thread.Sleep(100);
+					_tries++;
+				}
+			}
+			catch (Exception e)
+			{
+				_logger.Error(e);
+			}
+		}
+
+		private bool MoveWindow(RECT dlgRect, IntPtr wnd)
+		{
+			if (_owner.WindowState == WindowState.Maximized)
+			{
+				return MoveWindow(wnd,
+				                  (int) ((_owner.ActualWidth - dlgRect.Right + dlgRect.Left)/2),
+				                  (int) ((_owner.ActualHeight - dlgRect.Bottom + dlgRect.Top)/2),
+				                  dlgRect.Right - dlgRect.Left,
+				                  dlgRect.Bottom - dlgRect.Top, true);
+			}
+
+			return MoveWindow(wnd,
+			                  (int) (_owner.Left + (_owner.ActualWidth - dlgRect.Right + dlgRect.Left)/2),
+			                  (int) (_owner.Top + (_owner.ActualHeight - dlgRect.Bottom + dlgRect.Top)/2),
+			                  dlgRect.Right - dlgRect.Left,
+			                  dlgRect.Bottom - dlgRect.Top, true);
+		}
+
+		public void Dispose()
+		{
+			_tries = -1;
+		}
+
+		// P/Invoke declarations
+		private delegate bool EnumThreadWndProc(IntPtr hWnd, IntPtr lp);
+
+		[DllImport(&quot;user32.dll&quot;)]
+		private static extern bool EnumThreadWindows(int tid, EnumThreadWndProc callback, IntPtr lp);
+
+		[DllImport(&quot;kernel32.dll&quot;)]
+		private static extern int GetCurrentThreadId();
+
+		[DllImport(&quot;user32.dll&quot;)]
+		private static extern bool GetWindowRect(IntPtr hWnd, out RECT rc);
+
+		[DllImport(&quot;user32.dll&quot;)]
+		private static extern bool MoveWindow(IntPtr hWnd, int x, int y, int w, int h, bool repaint);
+
+		[DllImport(&quot;user32.dll&quot;)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		static extern bool IsWindowVisible(IntPtr hWnd);
+
+		[DllImport(&quot;user32.dll&quot;, ExactSpelling = true, CharSet = CharSet.Auto)]
+		public static extern IntPtr GetParent(IntPtr hWnd);
+
+		private struct RECT
+		{
+			public int Left;
+			public int Top;
+			public int Right;
+			public int Bottom;
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,3,14,72,0],[20,3,20,69,0],[21,3,21,68,0],[23,3,23,39,0],[24,3,24,4,0],[25,4,25,19,0],[27,4,27,58,0],[29,4,29,41,0],[31,4,31,66,0],[32,4,32,60,0],[34,4,34,40,0],[35,4,35,19,0],[36,3,36,4,0],[39,3,39,4,0],[40,4,40,29,0],[41,4,41,16,0],[42,3,42,4,0],[45,3,45,4,0],[46,4,46,28,0],[47,4,47,16,0],[48,3,48,4,0],[51,3,51,4,0],[53,4,53,5,0],[54,5,54,25,0],[55,5,55,6,0],[56,6,56,28,0],[58,6,58,67,0],[59,6,59,62,0],[61,6,61,74,0],[61,74,61,102,0],[61,102,61,104,0],[61,6,61,104,0],[62,6,62,30,0],[63,6,63,7,0],[65,7,65,40,0],[67,7,67,33,0],[68,7,68,8,0],[69,8,69,26,0],[70,8,70,50,0],[70,50,70,74,0],[70,74,70,77,0],[70,8,70,77,0],[72,8,72,15,0],[74,6,74,7,0],[76,6,76,24,0],[77,6,77,15,0],[78,5,78,6,0],[79,4,79,5,0],[80,4,80,23,0],[81,4,81,5,0],[82,5,82,22,0],[83,4,83,5,0],[84,3,84,4,0],[87,3,87,4,0],[88,4,88,52,0],[89,4,89,5,0],[90,5,94,59,0],[97,4,101,58,0],[102,3,102,4,0],[105,3,105,4,0],[106,4,106,16,0],[107,3,107,4,0]]);
+    </script>
+  </body>
+</html>

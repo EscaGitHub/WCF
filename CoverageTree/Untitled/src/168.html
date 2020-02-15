@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Serialization\XmlSerializationManager.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.IO;
+using System.Xml;
+using System.Xml.Serialization;
+
+namespace Swr.Configurator.Common.Serialization
+{
+    /// &lt;summary&gt;
+    /// Класс сериализации и десериализации xml
+    /// &lt;/summary&gt;
+    public static class XmlSerializationManager
+    {
+        /// &lt;summary&gt;
+        /// Метод сериализации настроек в строку xml
+        /// &lt;/summary&gt;
+        /// &lt;typeparam name=&quot;T&quot;&gt;&lt;/typeparam&gt;
+        /// &lt;param name=&quot;settings&quot;&gt;Настройки&lt;/param&gt;
+        /// &lt;returns&gt;Cтрока xml&lt;/returns&gt;
+        public static string Serialize&lt;T&gt;(this T settings)
+        {
+
+            using (var writer = new StringWriter())
+            {
+                var serializer = new XmlSerializer(settings.GetType());
+                serializer.Serialize(writer, settings);
+                return writer.ToString();
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// Метод десериализации xml строки в объект настроек
+        /// &lt;/summary&gt;
+        /// &lt;typeparam name=&quot;T&quot;&gt;&lt;/typeparam&gt;
+        /// &lt;param name=&quot;xml&quot;&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static T Deserialize&lt;T&gt;(this string xml) where T : new()
+        {
+            try
+            {
+                using (var strReader = new StringReader(xml))
+                {
+                    var serializer = new XmlSerializer(typeof(T));
+                    var xmlReader = new XmlTextReader(strReader);
+                    return (T)serializer.Deserialize(xmlReader);
+                }
+            }
+            catch (Exception e)
+            {
+                return default(T);
+            }
+            
+        }
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[20,9,20,10,1],[22,20,22,51,1],[23,13,23,14,1],[24,17,24,72,1],[25,17,25,56,1],[26,17,26,42,1],[28,9,28,10,1],[37,9,37,10,1],[39,13,39,14,1],[40,24,40,61,1],[41,17,41,18,1],[42,21,42,67,1],[43,21,43,66,1],[44,21,44,65,1],[47,13,47,32,0],[48,13,48,14,0],[49,17,49,35,0],[52,9,52,10,1]]);
+    </script>
+  </body>
+</html>

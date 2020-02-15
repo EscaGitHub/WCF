@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-ConfiguratorAPI\Logic\AttributeDbController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
+using Dapper;
+using SWR.ConfiguratorApi.Data.Db;
+using Attribute = SWR.ConfiguratorApi.Data.Db.Attribute;
+
+namespace SWR.ConfiguratorApi.Logic
+{
+    public static class AttributeDbController
+    {
+        private const string AddAttributeQuery =
+            &quot;INSERT INTO attribute(id, name, attrtypeid, datatype, \&quot;unique\&quot;) VALUES(@Id, @Name, @AttrTypeId, @DataType, @Unique)&quot;;
+
+        private const string AddAttributeTypeQuery = @&quot;INSERT INTO attributetype(id, name) VALUES(@Id, @Name)&quot;;
+
+        public static void AddAttribute(IDbConnection connection, IDbTransaction tr, Attribute attribute)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+
+            connection.Execute(AddAttributeQuery, attribute, tr);
+        }
+
+        public static void AddAttributeType(IDbConnection connection, IDbTransaction tr, AttributeType attributeType)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+
+            connection.Execute(AddAttributeTypeQuery, attributeType, tr);
+        }
+
+        public static void ClearAttributeTypes(IDbConnection connection, IDbTransaction tr)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+
+            connection.Query(&quot;truncate table attributetype cascade&quot;, tr);
+        }
+
+        public static void ClearAttributes(IDbConnection connection, IDbTransaction tr)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+
+            connection.Query(&quot;truncate table attribute cascade&quot;, tr);
+        }
+
+        public static bool IsAllowDeleteAttribute(IDbConnection connection, IDbTransaction tr, Guid attributeId)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+
+            var componentAttributeQuery =
+                &quot;select exists(select 1 from componentattribute join componenttypeattribute on componentattribute.componenttypeattributeid = componenttypeattribute.id  where componenttypeattribute.attributeid = @AttributeId);&quot;;
+            var specificationAttributeQuery =
+                &quot;select exists(select 1 from relationattribute join specificationtypeattribute on relationattribute.specificationtypeattrid = specificationtypeattribute.id  where specificationtypeattribute.attributeid = @AttributeId)&quot;;
+
+            var componentExistResult = connection.Query&lt;bool&gt;(componentAttributeQuery, new { AttributeId = attributeId }, tr);
+            var specificationExistResult = connection.Query&lt;bool&gt;(specificationAttributeQuery, new { AttributeId = attributeId }, tr);
+
+            return !componentExistResult.FirstOrDefault() &amp;&amp; !specificationExistResult.FirstOrDefault();
+
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[20,9,20,10,1],[21,13,21,36,1],[21,37,21,89,0],[23,13,23,66,1],[24,9,24,10,1],[27,9,27,10,0],[28,13,28,36,0],[28,37,28,89,0],[30,13,30,74,0],[31,9,31,10,0],[34,9,34,10,0],[35,13,35,36,0],[35,37,35,89,0],[37,13,37,74,0],[38,9,38,10,0],[41,9,41,10,0],[42,13,42,36,0],[42,37,42,89,0],[44,13,44,70,0],[45,9,45,10,0],[48,9,48,10,1],[49,13,49,36,1],[49,37,49,89,0],[51,13,52,228,1],[53,13,54,236,1],[56,13,56,127,1],[57,13,57,135,1],[59,13,59,105,1],[61,9,61,10,1]]);
+    </script>
+  </body>
+</html>

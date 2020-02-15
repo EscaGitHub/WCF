@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\Card\CardController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using Swr.Configurator.Data;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.Logic.EventArgs;
+using Swr.Configurator.View;
+using Swr.Configurator.View.DataViewModels;
+using Swr.Configurator.View.Logic;
+using Swr.Configurator.WebApi;
+using SwrUI;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using SWR_Tools.Extention;
+
+namespace Swr.Configurator.Logic.Card
+{
+	public class CardController : IDisposable
+	{
+		private readonly DataCardControl _cardControlControl;
+		private readonly Action&lt;object&gt; _clearStructureSelection;
+
+		public event EventHandler&lt;ProductEventArgs&gt; UpdateProductNameEvent;
+
+		public CardController(DataCardControl cardControlControl, Action&lt;object&gt; clearStructureSelection) 
+		{
+			_cardControlControl = cardControlControl;
+			_clearStructureSelection = clearStructureSelection;
+			_cardControlControl.SaveCardVariableEvent += _cardControlControl_SaveCardVariableEvent;
+		}
+
+		private IProduct CurrentProduct { get; set; }
+
+		private void _cardControlControl_SaveCardVariableEvent()
+		{
+			SaveChanges(false);
+		}
+
+		private void SaveChanges(bool needAsk)
+		{
+			var result = SaveCurrentProduct(needAsk);
+			_cardControlControl.SetResult(result);
+		}
+
+		public void SetEnable(bool isEnable)
+		{
+			_cardControlControl.IsEnabled = isEnable;
+		}
+
+		public void RefreshCardItem()
+		{
+			ShowCardItem(CurrentProduct, CurrentProductVm, null);
+		}
+
+
+		public void ShowCardItem(IProduct productComponentObject, ProductVM productVm, object source)
+		{
+			_clearStructureSelection(source);
+			var handle = UpdateProductNameEvent;
+			if (CurrentProduct != null &amp;&amp; CurrentProduct.Properties.Any(t =&gt; t.IsChanged))
+			{
+				//SaveUpdatedValues();
+				SaveCurrentProduct(true);
+				CurrentProduct.UpdateName();
+				handle?.Invoke(this, new ProductEventArgs(new List&lt;IProduct&gt; { CurrentProduct }, false));
+			}
+
+			_cardControlControl.IsEnabled = true;
+			CurrentProduct = productComponentObject;
+			CurrentProductVm = productVm;
+			var cardComponent = new CardComponent(productComponentObject);
+			_cardControlControl.UpdateControls(cardComponent.GetItems());
+		}
+
+		private ProductVM CurrentProductVm { get; set; }
+
+		public void ClearCard()
+		{
+			if (CurrentProduct != null &amp;&amp; CurrentProduct.Properties.Any(t =&gt; t.IsChanged))
+			{
+				var result = SaveCurrentProduct(true);
+			}
+
+			CurrentProduct = null;
+			CurrentProductVm = null;
+			_cardControlControl.IsEnabled = true;
+			_cardControlControl.UpdateControls(new List&lt;IDataCardItem&gt;());
+            _cardControlControl.IsEnabled = false;
+        }
+
+		private SaveResult SaveCurrentProduct(bool needAsk)
+		{
+			SwrDialogResult result = SwrDialogResult.Yes;
+
+			if (needAsk)
+			{
+				result = SwrMessageBox.Show(ConfiguratorMainWindow.Instance, &quot;Сохранить внесенные изменения?&quot;, ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.YesNo,
+					SwrMessageBoxImage.Question);
+			}
+
+			if (result == SwrDialogResult.Yes)
+            {
+                var errors = CurrentProduct != null ? CurrentProduct.Errors : new ObservableCollection&lt;string&gt;(); // Ошибка #5643
+
+                if (errors.SafeAny()) 
+                {
+                    var errorMessage = &quot;В изделии есть ошибки. Сохранение отменено.\n&quot;;
+
+                    errorMessage += string.Join(&quot;\n&quot;, errors);
+
+                    SwrMessageBox.Show(ConfiguratorMainWindow.Instance, errorMessage, ConfiguratorMainWindowVM.Instance.WindowTitle);
+
+                    return null;
+                }
+
+                SaveUpdatedValues();
+				SaveResult saveResult = new SaveResult() { IsSuccess = false };
+
+				try
+				{
+					if (CurrentProduct.IsNew)
+					{
+						ComponentApiCaller.Create(CurrentProduct);
+						foreach (var productProperty in CurrentProduct.Properties)
+						{
+							productProperty.IsChanged = false;
+						}
+					}
+					else
+					{
+						if (CurrentProduct.Properties.Any(t =&gt; t.IsChanged))
+						{
+							ComponentApiCaller.Update(CurrentProduct);
+							foreach (var productProperty in CurrentProduct.Properties)
+							{
+								productProperty.IsChanged = false;
+							}
+						}
+					}
+
+					CurrentProduct.UpdateName();
+					CurrentProduct.IsNew = false;
+					if (CurrentProductVm != null) CurrentProductVm.Name = CurrentProduct.Name;
+					saveResult.Message = &quot;Компонент сохранен успешно&quot;;
+					saveResult.IsSuccess = true;
+				}
+				catch (Exception e)
+				{
+					saveResult.Message = &quot;Ошибка сохранения компонента&quot;;
+					SwrMessageBox.Show(&quot;Ошибка сохранения компонента. &quot; + e.Message, &quot;&quot;, SwrMessageBoxButton.OK,
+						SwrMessageBoxImage.Error);
+				}
+
+				return saveResult;
+			}
+
+			return null;
+		}
+
+		public void SaveUpdatedValues()
+		{
+			_cardControlControl.SaveDataItems();
+		}
+
+        public void Dispose()
+        {
+            CurrentProduct?.Dispose();
+            CurrentProductVm?.Dispose();
+
+            _cardControlControl.SaveCardVariableEvent -= _cardControlControl_SaveCardVariableEvent;
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[24,3,24,100,0],[25,3,25,4,0],[26,4,26,45,0],[27,4,27,55,0],[28,4,28,91,0],[29,3,29,4,0],[31,37,31,41,0],[31,42,31,46,0],[34,3,34,4,0],[35,4,35,23,0],[36,3,36,4,0],[39,3,39,4,0],[40,4,40,45,0],[41,4,41,42,0],[42,3,42,4,0],[45,3,45,4,0],[46,4,46,45,0],[47,3,47,4,0],[50,3,50,4,0],[51,4,51,57,0],[52,3,52,4,0],[56,3,56,4,0],[57,4,57,37,0],[58,4,58,40,0],[59,4,59,69,0],[59,69,59,80,0],[59,80,59,82,0],[59,4,59,82,0],[60,4,60,5,0],[62,5,62,30,0],[63,5,63,33,0],[64,5,64,94,0],[65,4,65,5,0],[67,4,67,41,0],[68,4,68,44,0],[69,4,69,33,0],[70,4,70,66,0],[71,4,71,65,0],[72,3,72,4,0],[74,40,74,44,0],[74,45,74,49,0],[77,3,77,4,0],[78,4,78,69,0],[78,69,78,80,0],[78,80,78,82,0],[78,4,78,82,0],[79,4,79,5,0],[80,5,80,43,0],[81,4,81,5,0],[83,4,83,26,0],[84,4,84,28,0],[85,4,85,41,0],[86,4,86,66,0],[87,13,87,51,0],[88,9,88,10,0],[91,3,91,4,0],[92,4,92,49,0],[94,4,94,16,0],[95,4,95,5,0],[96,5,97,35,0],[98,4,98,5,0],[100,4,100,38,0],[101,13,101,14,0],[102,17,102,114,0],[104,17,104,38,0],[105,17,105,18,0],[106,21,106,88,0],[108,21,108,63,0],[110,21,110,134,0],[112,21,112,33,0],[115,17,115,37,0],[116,5,116,68,0],[119,5,119,6,0],[120,6,120,31,0],[121,6,121,7,0],[122,7,122,49,0],[123,7,123,14,0],[123,16,123,35,0],[123,36,123,38,0],[123,39,123,64,0],[124,7,124,8,0],[125,8,125,42,0],[126,7,126,8,0],[127,6,127,7,0],[129,6,129,7,0],[130,7,130,46,0],[130,46,130,57,0],[130,57,130,59,0],[130,7,130,59,0],[131,7,131,8,0],[132,8,132,50,0],[133,8,133,15,0],[133,17,133,36,0],[133,37,133,39,0],[133,40,133,65,0],[134,8,134,9,0],[135,9,135,43,0],[136,8,136,9,0],[137,7,137,8,0],[138,6,138,7,0],[140,6,140,34,0],[141,6,141,35,0],[142,6,142,35,0],[142,36,142,80,0],[143,6,143,56,0],[144,6,144,34,0],[145,5,145,6,0],[146,5,146,24,0],[147,5,147,6,0],[148,6,148,58,0],[149,6,150,33,0],[151,5,151,6,0],[153,5,153,23,0],[156,4,156,16,0],[157,3,157,4,0],[160,3,160,4,0],[161,4,161,40,0],[162,3,162,4,0],[165,9,165,10,0],[166,13,166,39,0],[167,13,167,41,0],[169,13,169,100,0],[170,9,170,10,0]]);
+    </script>
+  </body>
+</html>

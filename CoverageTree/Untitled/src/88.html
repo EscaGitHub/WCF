@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Layout\Serialization\XmlLayoutSerializer.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Xml.Serialization;
+using System.IO;
+
+namespace Xceed.Wpf.AvalonDock.Layout.Serialization
+{
+    public class XmlLayoutSerializer : LayoutSerializer
+    {
+        public XmlLayoutSerializer(DockingManager manager)
+            : base(manager)
+        { 
+
+        }
+
+        public void Serialize(System.Xml.XmlWriter writer)
+        {
+            var serializer = new XmlSerializer(typeof(LayoutRoot));
+            serializer.Serialize(writer, Manager.Layout);
+        }
+        public void Serialize(System.IO.TextWriter writer)
+        {
+            var serializer = new XmlSerializer(typeof(LayoutRoot));
+            serializer.Serialize(writer, Manager.Layout);
+        }
+        public void Serialize(System.IO.Stream stream)
+        {
+            var serializer = new XmlSerializer(typeof(LayoutRoot));
+            serializer.Serialize(stream, Manager.Layout);
+        }
+
+        public void Serialize(string filepath)
+        {
+            using (var stream = new StreamWriter(filepath))
+                Serialize(stream);
+        }
+
+        public void Deserialize(System.IO.Stream stream)
+        {
+            try
+            {
+                StartDeserialization();
+                var serializer = new XmlSerializer(typeof(LayoutRoot));
+                var layout = serializer.Deserialize(stream) as LayoutRoot;
+                FixupLayout(layout);
+                Manager.Layout = layout;
+            }
+            finally
+            {
+                EndDeserialization();
+            }
+        }
+
+        public void Deserialize(System.IO.TextReader reader)
+        {
+            try
+            {
+                StartDeserialization();
+                var serializer = new XmlSerializer(typeof(LayoutRoot));
+                var layout = serializer.Deserialize(reader) as LayoutRoot;
+                FixupLayout(layout);
+                Manager.Layout = layout;
+            }
+            finally
+            {
+                EndDeserialization();
+            }
+        }
+
+        public void Deserialize(System.Xml.XmlReader reader)
+        {
+            try
+            {
+                StartDeserialization();
+                var serializer = new XmlSerializer(typeof(LayoutRoot));
+                var layout = serializer.Deserialize(reader) as LayoutRoot;
+                FixupLayout(layout);
+                Manager.Layout = layout;
+            }
+            finally
+            {
+                EndDeserialization();
+            }
+        }
+
+        public void Deserialize(string filepath)
+        {
+            using (var stream = new StreamReader(filepath))
+                Deserialize(stream);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[29,15,29,28,0],[30,9,30,10,0],[32,9,32,10,0],[35,9,35,10,0],[36,13,36,68,0],[37,13,37,58,0],[38,9,38,10,0],[40,9,40,10,0],[41,13,41,68,0],[42,13,42,58,0],[43,9,43,10,0],[45,9,45,10,0],[46,13,46,68,0],[47,13,47,58,0],[48,9,48,10,0],[51,9,51,10,0],[52,20,52,59,0],[53,17,53,35,0],[54,9,54,10,0],[57,9,57,10,0],[59,13,59,14,0],[60,17,60,40,0],[61,17,61,72,0],[62,17,62,75,0],[63,17,63,37,0],[64,17,64,41,0],[65,13,65,14,0],[67,13,67,14,0],[68,17,68,38,0],[69,13,69,14,0],[70,9,70,10,0],[73,9,73,10,0],[75,13,75,14,0],[76,17,76,40,0],[77,17,77,72,0],[78,17,78,75,0],[79,17,79,37,0],[80,17,80,41,0],[81,13,81,14,0],[83,13,83,14,0],[84,17,84,38,0],[85,13,85,14,0],[86,9,86,10,0],[89,9,89,10,0],[91,13,91,14,0],[92,17,92,40,0],[93,17,93,72,0],[94,17,94,75,0],[95,17,95,37,0],[96,17,96,41,0],[97,13,97,14,0],[99,13,99,14,0],[100,17,100,38,0],[101,13,101,14,0],[102,9,102,10,0],[105,9,105,10,0],[106,20,106,59,0],[107,17,107,37,0],[108,9,108,10,0]]);
+    </script>
+  </body>
+</html>

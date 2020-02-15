@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Panels\ViewModels\SpecificationTabVM.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Controls;
+using System.Windows.Data;
+using NLog;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.Common.Logic;
+using Swr.Configurator.Logic;
+using Swr.Configurator.View.DataViewModels;
+using SWR_Tools.Extention;
+using SwrUILogic;
+using SwrUILogic.Data;
+
+namespace Swr.Configurator.View.Panels.ViewModels
+{
+    /// &lt;summary&gt;
+    /// ���� ��. Vm ��� ������� SpecificationTabUC
+    /// &lt;/summary&gt;
+    public class SpecificationTabVM : NotifyBaseClass, IDisposable, ISpecificationTab
+    {
+	    private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
+        private readonly ObservableCollection&lt;ProductForSpecificationTabVM&gt; _products;
+        //private readonly ProductStructureReader _reader;
+
+        //      internal AlternatePositionObserver AlternatePositionObserver { get; }
+
+        //      private readonly SearchProductsController _searchProductsController;
+
+        public Action&lt;DataGridColumn, object&gt; SetFocus;
+        private ProductForSpecificationTabVM _selectedProduct;
+
+        public SpecificationTabVM(SpecificationTypeObject specificationTypeObject, SpecificationPageVM specificationViewModel,
+            string specificationTypeVariableName, SpecificationsController specificationsController, bool isDefaultTab = false)
+        {
+            if (specificationTypeObject == null) throw new ArgumentNullException(&quot;specificationTypeObject&quot;);
+
+            IsDefaultTab = isDefaultTab;
+
+            _products = new ObservableCollection&lt;ProductForSpecificationTabVM&gt;();
+            _products.CollectionChanged += _products_CollectionChanged;
+
+            FilteredProducts = CollectionViewSource.GetDefaultView(_products);
+            FilteredProducts.Filter = x =&gt; !((ProductForSpecificationTabVM)x).IsDeleted;
+
+
+            SpecificationTypeObject = specificationTypeObject;
+            SpecificationViewModel = specificationViewModel;
+            SpecificationTypeVariableName = specificationTypeVariableName;
+            SpecificationsController = specificationsController;
+
+            //FoundProducts = new ObservableCollection&lt;ProductSimpleVM&gt;();
+
+            //_searchProductsController = new SearchProductsController(FoundProducts, 50, true);
+
+            //_reader = new ProductStructureReader(ConfiguratorMainWindowVM.Instance.PdmDBProvider);
+
+            //var alternatePositionColumn = SpecificationTypeObject.Columns.Columns.FirstOrDefault(x =&gt; x.ColumnType == ColumnType.AlternatePosition);
+            //var columnName = alternatePositionColumn == null ? &quot;&quot; : alternatePositionColumn.Header;
+
+            //AlternatePositionObserver = new AlternatePositionObserver(AlteranatePositionPropertyName, AlteranatePositionDisplayPropertyName, columnName, _products);
+        }
+
+        public ICollectionView FilteredProducts { get; set; }
+
+        public bool IsCollectionBusy
+        {
+            get
+            {
+                var collection = FilteredProducts as IEditableCollectionView;
+                if (collection == null)
+                    return false;
+                return collection.IsAddingNew || collection.IsEditingItem;
+            }
+        }
+
+        public string SpecificationTypeVariableName { get; set; }
+
+        public SpecificationsController SpecificationsController { get; private set; }
+
+        public bool IsDefaultTab { get; private set; }
+
+        public SpecificationTypeObject SpecificationTypeObject { get; private set; }
+
+        public SpecificationPageVM SpecificationViewModel { get; private set; }
+
+        //public bool IsInOrder
+        //{
+        //	get { return SpecificationViewModel.IsInOrder; }
+        //}
+
+        //public string InclusionIdentifer
+        //{
+        //	get { return SpecificationViewModel.InclusionIdentifer; }
+        //}
+
+        public string Header
+        {
+            get { return SpecificationTypeObject.Name; }
+        }
+
+        public ObservableCollection&lt;ProductForSpecificationTabVM&gt; Products
+        {
+            get { return _products; }
+        }
+
+        public string AlteranatePositionDisplayPropertyName
+        {
+            get { return string.Empty/*_alteranatePositionDisplayPropertyName*/; }
+            set
+            {
+                //_alteranatePositionDisplayPropertyName = value;
+                //AlternatePositionObserver.AlternatePositionDisplayPropertyName = value;
+            }
+        }
+
+        public string AlteranatePositionPropertyName
+        {
+            get { return String.Empty;/*_alteranatePositionPropertyName*/; }
+            set
+            {
+                //_alteranatePositionPropertyName = value;
+                //AlternatePositionObserver.AlternatePositionPropertyName = value;
+            }
+        }
+
+        public string SpecificationTypeProperyName { get; set; }
+
+        public ProductForSpecificationTabVM SelectedProduct
+        {
+            get { return _selectedProduct; }
+            set
+            {
+                _selectedProduct = value;
+                OnPropertyChanged(() =&gt; SelectedProduct);
+                if (_selectedProduct == null)
+                    SpecificationsController.SelectedProduct = null;
+                else if (!_selectedProduct.IsDummy &amp;&amp; _selectedProduct.Reference != null)
+                {
+                    SpecificationsController.SelectedProduct = _selectedProduct.Reference.Child;
+                }
+            }
+        }
+
+        //public ObservableCollection&lt;ProductSimpleVM&gt; FoundProducts { get; private set; }
+
+        public DataGrid DataGrid { get; set; }
+
+        public DataGridCellInfo LastCurrentCell { get; set; }
+
+        ///// &lt;summary&gt;
+        ///// �������a�� ��������� �� ����
+        ///// &lt;/summary&gt;
+        public event EventHandler&lt;NotifyCollectionChangedEventArgs&gt; TabCollectionChanged;
+
+        private void OnTabCollectionChanged(NotifyCollectionChangedEventArgs e)
+        {
+            var handler = TabCollectionChanged;
+            handler?.Invoke(this, e);
+        }
+
+        private void _products_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                foreach (ProductForSpecificationTabVM item in e.NewItems)
+                {
+                    if (!item.IsDummy) continue;
+
+                    using (new EntityChangedSuspender(item.Reference))
+                    {
+                        //�������� ������� ���������� �������� � ������� � ��������� �� ViewModel ������ ����������� ����������
+                        if (SpecificationTypeVariableName != null &amp;&amp; !item.ReferenceProperties.SafeAny(x =&gt; x.Property.Variable.Equals(SpecificationTypeVariableName)))
+                        {
+                            var property = item.Reference.SetProperty(SpecificationTypeVariableName, SpecificationTypeObject.Name);
+                            var specificationTypePropertyVM = new PropertyVM(property);
+                            item.ReferenceProperties.Add(specificationTypePropertyVM);
+                        }
+                    }
+
+                    //������� ��� ���������� � ������ �������� �� ���� �� ��������� ����� ����������� ��� ������� ���� ������������
+                    //var defaultComponentType = ConfiguratorMainWindowVM.Instance?.SettingsController?.Settings?.GetDefaultComponentTypeBySpecificationName(SpecificationTypeObject.Name);
+
+                    //if (defaultComponentType != null) item.CreateProduct(defaultComponentType);
+
+                    SpecificationViewModel.AddMissingPropertiesOfTheLinkForSpecificTab(item, this, true);
+
+                    item.Location = this;
+                    item.Reference.Parent = SpecificationViewModel.Product;
+                }
+                OnTabCollectionChanged(e);
+                return;
+            }
+
+            if (e.Action == NotifyCollectionChangedAction.Remove)
+            {
+                try
+                {
+                    foreach (object item in e.OldItems)
+                    {
+                        var product = item as ProductForSpecificationTabVM;
+
+                        if (product != null &amp;&amp; product.IsDummy) continue;
+                        // use the data access layer to delete the wrapped data object
+                    }
+                    OnTabCollectionChanged(e);
+                }
+                catch (Exception ex)
+                {
+                }
+            }
+        }
+
+        //public void UpdateAlternatePositions()
+        //{
+        //    var specificationController = ConfiguratorMainWindowVM.Instance.SpecificationsController;
+
+        //          if (!specificationController.IsAlternateColumnsExistsInSettingsForCurrentRole &amp;&amp; !specificationController.ShowAlternatePositionColumn)
+        //              return;
+
+        //          var errors = AlternatePositionObserver.GetAlternatePositionErrors(AlteranatePositionDisplayPropertyName, AlteranatePositionPropertyName, 
+        //              AlternatePositionObserver.AlternatePositionColumnName, Products, true);
+
+        //          if (errors.SafeAny())
+        //    {
+        //        _logger.Log(LogLevel.Warn, string.Join(Environment.NewLine, errors));
+
+        //        ConfiguratorMainWindowVM.Instance.ErrorsVM.Update(errors);
+        //        ConfiguratorMainWindowVM.Instance.LayoutController.ShowErrorsPanel();
+        //    }
+        //      }
+
+        #region DeleteRowCommand
+
+        private RelayCommand _deleteRowCommand;
+
+        public RelayCommand DeleteRowCommand
+        {
+            get { return _deleteRowCommand ?? (_deleteRowCommand = new RelayCommand(DeleteRow, CanDeleteRow)); }
+        }
+
+        private bool CanDeleteRow(object parameter)
+        {
+            return !SpecificationViewModel.CheckIfLocked();
+        }
+
+        private void DeleteRow(object parameter)
+        {
+            if (!LastCurrentCell.IsValid)
+                return;
+
+            var product = LastCurrentCell.Item as ProductForSpecificationTabVM;
+            if (product == null)
+                return;
+
+            var index = DataGrid.Items.IndexOf(product);
+
+            if (product.IsDummy)
+            {
+                DataGrid.CancelEdit();
+                return;
+            }
+
+            var itemToSelect = DataGrid.Items.GetItemAt(index + 1) ?? DataGrid.Items.GetItemAt(index - 1);
+
+            product.Reference.Parent.DeleteReference(product.Reference);
+
+            SetFocus(LastCurrentCell.Column, itemToSelect);
+        }
+
+        #endregion
+
+        #region RestoreCommand
+
+        private RelayCommand _restoreCommand;
+        private string _alteranatePositionDisplayPropertyName;
+        private string _alteranatePositionPropertyName;
+
+        public RelayCommand RestoreCommand
+        {
+            get { return _restoreCommand ?? (_restoreCommand = new RelayCommand(Restore, CanRestore)); }
+        }
+
+        private bool CanRestore(object parameter)
+        {
+            return !SpecificationViewModel.CheckIfLocked();
+        }
+
+        private void Restore(object parameter)
+        {
+            if (!LastCurrentCell.IsValid)
+                return;
+
+            var product = LastCurrentCell.Item as ProductForSpecificationTabVM;
+            if (product == null)
+                return;
+
+            if (product.IsDummy)
+            {
+                DataGrid.CancelEdit();
+                return;
+            }
+
+            //if (!ConfiguratorMainWindowVM.Instance.SharedSettingsController.Settings.SpecificationTypes.IsEnableMultipleReferences())
+            //{
+            //    if (product.Reference.Parent.References.Any(r =&gt; r.Child.Identifier == product.Reference.Child.Identifier &amp;&amp; !r.IsDeleted))
+            //    {
+            //        throw new InvalidOperationException(string.Format(&quot;������� ��� �������� ��������� &#39;{0}&#39;&quot;, product.Reference.Child.DisplayName));
+            //    }
+            //}
+
+            product.Reference.Parent.RestoreReference(product.Reference);
+        }
+
+        #endregion
+
+        //public void Search(SearchStartedEventArgs e)
+        //{
+        //	var search = new Task(() =&gt;
+        //	{
+        //		_searchProductsController.Stop();
+        //		FoundProducts.Clear();
+        //		_searchProductsController.Start(e.SearchString, e.PropertyName);
+
+        //		foreach (var newItem in FoundProducts.ToArray())
+        //		{
+        //			SpecificationViewModel.QuickSearchController.LoadInfoForDocumentByItsPath(newItem, SpecificationViewModel.VariablesForCardRead, _reader);
+        //		}
+        //		e.OnSearchEnded(FoundProducts);
+        //	});
+        //	search.Start();
+        //}
+
+        //public ColumnsSettings GetColumns()
+        //{
+        //    return SpecificationTypeObject.Columns;
+        //}
+
+        public List&lt;AttributeForTypeObject&gt; GetColumns()
+        {
+            return SpecificationTypeObject.Attributes;
+        }
+
+        public void Dispose()
+        {
+            if (_products != null) _products.CollectionChanged -= _products_CollectionChanged;
+            //AlternatePositionObserver.Dispose();
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[26,6,26,75,0],[38,9,39,128,0],[40,9,40,10,0],[41,13,41,49,0],[41,50,41,109,0],[43,13,43,41,0],[45,13,45,82,0],[46,13,46,72,0],[48,13,48,79,0],[49,13,49,44,0],[49,44,49,88,0],[49,88,49,89,0],[49,13,49,89,0],[52,13,52,63,0],[53,13,53,61,0],[54,13,54,75,0],[55,13,55,65,0],[67,9,67,10,0],[69,51,69,55,0],[69,56,69,60,0],[74,13,74,14,0],[75,17,75,78,0],[76,17,76,40,0],[77,21,77,34,0],[78,17,78,75,0],[79,13,79,14,0],[82,55,82,59,0],[82,60,82,64,0],[84,68,84,72,0],[84,73,84,85,0],[86,36,86,40,0],[86,41,86,53,0],[88,66,88,70,0],[88,71,88,83,0],[90,61,90,65,0],[90,66,90,78,0],[104,17,104,18,0],[104,19,104,55,0],[104,56,104,57,0],[109,17,109,18,0],[109,19,109,36,0],[109,37,109,38,0],[114,17,114,18,0],[114,19,114,81,0],[114,82,114,83,0],[116,13,116,14,0],[119,13,119,14,0],[124,17,124,18,0],[124,19,124,39,0],[124,76,124,77,0],[126,13,126,14,0],[129,13,129,14,0],[132,54,132,58,0],[132,59,132,63,0],[136,17,136,18,0],[136,19,136,43,0],[136,44,136,45,0],[138,13,138,14,0],[139,17,139,42,0],[140,17,140,58,0],[141,17,141,46,0],[142,21,142,69,0],[143,22,143,90,0],[144,17,144,18,0],[145,21,145,97,0],[146,17,146,18,0],[147,13,147,14,0],[152,36,152,40,0],[152,41,152,45,0],[154,51,154,55,0],[154,56,154,60,0],[162,9,162,10,0],[163,13,163,48,0],[164,13,164,38,0],[165,9,165,10,0],[168,9,168,10,0],[169,13,169,63,0],[170,13,170,14,0],[171,17,171,24,0],[171,26,171,59,0],[171,60,171,62,0],[171,63,171,73,0],[172,17,172,18,0],[173,21,173,39,0],[173,40,173,49,0],[175,21,175,71,0],[176,21,176,22,0],[178,25,178,109,0],[178,109,178,166,0],[178,166,178,168,0],[178,25,178,168,0],[179,25,179,26,0],[180,29,180,132,0],[181,29,181,88,0],[182,29,182,87,0],[183,25,183,26,0],[184,21,184,22,0],[191,21,191,106,0],[193,21,193,42,0],[194,21,194,76,0],[195,17,195,18,0],[196,17,196,43,0],[197,17,197,24,0],[200,13,200,66,0],[201,13,201,14,0],[203,17,203,18,0],[204,21,204,28,0],[204,30,204,41,0],[204,42,204,44,0],[204,45,204,55,0],[205,21,205,22,0],[206,25,206,76,0],[208,25,208,64,0],[208,65,208,74,0],[210,21,210,22,0],[211,21,211,47,0],[212,17,212,18,0],[213,17,213,37,0],[214,17,214,18,0],[215,17,215,18,0],[216,13,216,14,0],[217,9,217,10,0],[244,17,244,18,0],[244,19,244,111,0],[244,112,244,113,0],[248,9,248,10,0],[249,13,249,60,0],[250,9,250,10,0],[253,9,253,10,0],[254,13,254,42,0],[255,17,255,24,0],[257,13,257,80,0],[258,13,258,33,0],[259,17,259,24,0],[261,13,261,57,0],[263,13,263,33,0],[264,13,264,14,0],[265,17,265,39,0],[266,17,266,24,0],[269,13,269,107,0],[271,13,271,73,0],[273,13,273,60,0],[274,9,274,10,0],[286,17,286,18,0],[286,19,286,103,0],[286,104,286,105,0],[290,9,290,10,0],[291,13,291,60,0],[292,9,292,10,0],[295,9,295,10,0],[296,13,296,42,0],[297,17,297,24,0],[299,13,299,80,0],[300,13,300,33,0],[301,17,301,24,0],[303,13,303,33,0],[304,13,304,14,0],[305,17,305,39,0],[306,17,306,24,0],[317,13,317,74,0],[318,9,318,10,0],[345,9,345,10,0],[346,13,346,55,0],[347,9,347,10,0],[350,9,350,10,0],[351,13,351,35,0],[351,36,351,95,0],[353,9,353,10,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Data\ObjectModel\AttributeForTypeObject.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Swr.Configurator.Common.Settings.Columns;
+
+namespace Swr.Configurator.Common.Data.ObjectModel
+{
+    public class AttributeForTypeObject
+    {
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        public Guid Id { get; set; }
+
+        /// &lt;summary&gt;
+        /// Ссылка на атрибут из общего списка атрибутов
+        /// &lt;/summary&gt;
+        public AttributeObject Attribute { get; set; }
+
+        /// &lt;summary&gt;
+        /// Имя атрибута для отображения на карте
+        /// &lt;/summary&gt;
+        public string CardAlias { get; set; }
+
+        /// &lt;summary&gt;
+        /// Обязательность
+        /// &lt;/summary&gt;
+        public bool IsNecessary { get; set; }
+
+        /// &lt;summary&gt;
+        /// Позиция на карте данных
+        /// &lt;/summary&gt;
+        public int CardPosition { get; set; }
+
+        /// &lt;summary&gt;
+        /// Значение атрибута
+        /// &lt;/summary&gt;
+        public string Value { get; set; }
+
+        /// &lt;summary&gt;
+        /// Маска имени
+        /// &lt;/summary&gt;
+        public bool IsMask { get; set; }
+
+        /// &lt;summary&gt;
+        /// Тип колонки в спецификации
+        /// &lt;/summary&gt;
+        public ColumnType ColumnType { get; set; }
+
+        /// &lt;summary&gt;
+        /// Позиция в таблице спецификации
+        /// &lt;/summary&gt;
+        public int TablePosition { get; set; }
+
+        /// &lt;summary&gt;
+        /// Имя атрибута для отображения в таблице спецификации
+        /// &lt;/summary&gt;
+        public string TableAlias { get; set; }
+
+        /// &lt;summary&gt;
+        /// Признак удаленного атрибута типа
+        /// &lt;/summary&gt;
+        public bool IsDeleted { get; set; }
+
+        public void Dispose()
+        {
+            Attribute = null;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[13,26,13,30,1],[13,31,13,35,1],[18,44,18,48,1],[18,49,18,53,1],[23,35,23,39,1],[23,40,23,44,1],[28,35,28,39,1],[28,40,28,44,1],[33,35,33,39,1],[33,40,33,44,1],[38,31,38,35,1],[38,36,38,40,0],[43,30,43,34,1],[43,35,43,39,1],[48,40,48,44,1],[48,45,48,49,1],[53,36,53,40,1],[53,41,53,45,1],[58,36,58,40,1],[58,41,58,45,1],[63,33,63,37,1],[63,38,63,42,1],[66,9,66,10,0],[67,13,67,30,0],[68,9,68,10,0]]);
+    </script>
+  </body>
+</html>

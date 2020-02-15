@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\ConfiguratorMainWindow.xaml.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.ComponentModel;
+using System.Configuration;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Windows;
+using System.Windows.Interop;
+using Microsoft.Win32;
+using NLog;
+using Swr.Configurator.Common.Logic;
+using Swr.Configurator.Data;
+using Swr.Configurator.Logic;
+using Swr.Configurator.Logic.Elastic;
+using Swr.Configurator.View.Controls;
+using Swr.Configurator.View.Logic;
+using SwrUI;
+using Xceed.Wpf.AvalonDock.Layout.Serialization;
+
+namespace Swr.Configurator.View
+{
+	public partial class ConfiguratorMainWindow
+	{
+		private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
+		private readonly Assembly _assembly;
+		private bool _ignoreEverithing;
+
+		public ConfiguratorMainWindow()
+		{
+			InitializeComponent();
+			LayoutController = new LayoutController(AvalonDockingManager);
+			RibbonController = new RibbonController(Ribbon);
+
+			_assembly = Assembly.GetExecutingAssembly();
+
+            ElasticLogController.Log(LogTypeEnum.Info, &quot;Application started&quot;, EventEnum.Start, true, ObjectTypeEnum.None,  &quot;system&quot;);
+
+            Loaded += WindowLoaded;
+			Closed += ConfiguratorMainWindow_Closed;
+		}
+
+		void ConfiguratorMainWindow_Closed(object sender, EventArgs e)
+        {
+            ViewModel?.Dispose();
+
+            ElasticLogController.Log(LogTypeEnum.Info, &quot;Application closed&quot;, EventEnum.Exit, true, ObjectTypeEnum.None, &quot;system&quot;);
+        }
+
+		public RibbonController RibbonController { get; set; }
+
+		public LayoutController LayoutController { get; set; }
+
+		public static ConfiguratorMainWindow Instance { get; set; }
+
+		internal ConfiguratorMainWindowVM ViewModel
+		{
+			get { return DataContext as ConfiguratorMainWindowVM; }
+			set { DataContext = value; }
+		}
+
+		public String WindowTitle
+		{
+			get
+			{
+				try
+				{
+					var temp = _assembly.GetCustomAttributes(typeof (AssemblyProductAttribute), false)[0] as
+						AssemblyProductAttribute;
+					return (temp != null) ? temp.Product : Properties.Resources.ApplicationName;
+				}
+				catch (Exception)
+				{
+					return Properties.Resources.ApplicationName;
+				}
+			}
+		}
+
+		/// &lt;summary&gt;
+		/// Хэндл окна
+		/// &lt;/summary&gt;
+		public IntPtr WindowHandle { get; private set; }
+
+		private void WindowLoaded(object sender, RoutedEventArgs e)
+		{
+			Instance = this;
+			WindowHandle = new WindowInteropHelper(this).Handle;
+
+            var loginWindow = new LoginWindow { Owner = this };
+
+            var result = loginWindow.ShowDialog();
+
+            
+
+            if (result != true) CloseImmediately();
+            else
+            {
+                try
+                {
+                    ViewModel = ConfiguratorMainWindowVM.Instance ?? new ConfiguratorMainWindowVM();
+
+                    ViewModel.WindowTitle = WindowTitle;
+                    ViewModel.LayoutController = LayoutController;
+                    ViewModel.RibbonController = RibbonController;
+
+                    ViewModel.LocalSettingsLoaded += ViewModel_LocalSettingsLoaded;
+
+                    ViewModel.LoadSettings();
+                }
+                catch (Exception exception)
+                {
+                    SwrMessageBox.Show(this, exception.Message, ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+                    CloseImmediately();
+                }
+                
+            }
+        }
+
+		void ViewModel_LocalSettingsLoaded(object sender, EventArgs e)
+		{
+			Dispatcher.Invoke(new Action(() =&gt;
+			{
+                var localSettings = ViewModel.LocalSettingsController.Settings;
+                if (localSettings.WindowState != WindowState.Normal || localSettings.WindowHeight &lt; 1 || localSettings.WindowWidth &lt; 1)
+                    return;
+                Width = localSettings.WindowWidth;
+                Height = localSettings.WindowHeight;
+            }));
+		}
+
+		private void SaveLayout(object sender, RoutedEventArgs e)
+		{
+			var dialog = new SaveFileDialog {Title = &quot;Укажите файл для сохранения текущей рабочей среды&quot;, DefaultExt = &quot;.xml&quot;};
+			var result = dialog.ShowDialog(this);
+
+			if (result != true)
+				return;
+
+			var serializer = new XmlLayoutSerializer(AvalonDockingManager);
+
+			using (var stream = new StreamWriter(dialog.FileName))
+				serializer.Serialize(stream);
+
+			var argument = &quot;/select, \&quot;&quot; + dialog.FileName + &quot;\&quot;&quot;;
+
+			Process.Start(&quot;explorer.exe&quot;, argument);
+		}
+
+		private void MainWindow_OnClosing(object sender, CancelEventArgs e)
+		{
+			if (_ignoreEverithing)
+				return;
+
+			ViewModel.OnWindowClosing(e);
+
+			if (e.Cancel)
+				return;
+			//ViewModel.SaveLocalSettings(ActualWidth, ActualHeight);
+		}
+
+		private void OnOnShowAboutWindowButtonClick(object sender, EventArgs e)
+		{
+			var window = new InfoWindow(_assembly) {Owner = this, Scale = ViewModel.RibbonScale};
+			window.ShowDialog();
+		}
+
+		private void OnOnShowHelpWindowButtonClick(object sender, EventArgs e)
+		{
+			try
+			{
+				var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
+				var filePath = Path.Combine(path, &quot;SWR-Редактор конфигураций. Справка.chm&quot;);
+
+				Process.Start(filePath);
+			}
+			catch (Exception exception)
+			{
+				_logger.Error(e);
+
+				SwrMessageBox.Show(this, exception.Message, ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+			}
+		}
+
+		public void CloseImmediately()
+        {
+            _ignoreEverithing = true;
+            Dispatcher?.Invoke(new Action(Close));
+        }
+
+        private void ConfiguratorMainWindow_OnOnShowUserButtonClick(object sender, EventArgs e)
+        {
+
+
+            var url = StaticConnectionSettings.IdentityAddress;
+
+            if (!string.IsNullOrWhiteSpace(url)) Process.Start(url);
+        }
+
+        public void RestartApplication()
+        {
+            Process.Start(Application.ResourceAssembly.Location);
+            Application.Current.Shutdown();
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[24,3,24,72,0],[29,3,29,34,0],[30,3,30,4,0],[31,4,31,26,0],[32,4,32,66,0],[33,4,33,52,0],[35,4,35,48,0],[37,13,37,134,0],[39,13,39,36,0],[40,4,40,44,0],[41,3,41,4,0],[44,9,44,10,0],[45,13,45,34,0],[47,13,47,131,0],[48,9,48,10,0],[50,46,50,50,0],[50,51,50,55,0],[52,46,52,50,0],[52,51,52,55,0],[54,51,54,55,0],[54,56,54,60,0],[58,8,58,9,0],[58,10,58,57,0],[58,58,58,59,0],[59,8,59,9,0],[59,10,59,30,0],[59,31,59,32,0],[65,4,65,5,0],[67,5,67,6,0],[68,6,69,32,0],[70,6,70,82,0],[72,5,72,22,0],[73,5,73,6,0],[74,6,74,50,0],[76,4,76,5,0],[82,32,82,36,0],[82,37,82,49,0],[85,3,85,4,0],[86,4,86,20,0],[87,4,87,56,0],[89,13,89,64,0],[91,13,91,51,0],[95,13,95,32,0],[95,33,95,52,0],[97,13,97,14,0],[99,17,99,18,0],[100,21,100,101,0],[102,21,102,57,0],[103,21,103,67,0],[104,21,104,67,0],[106,21,106,84,0],[108,21,108,46,0],[109,17,109,18,0],[110,17,110,44,0],[111,17,111,18,0],[112,21,112,162,0],[113,21,113,40,0],[114,17,114,18,0],[116,13,116,14,0],[117,9,117,10,0],[120,3,120,4,0],[121,4,122,4,0],[122,4,122,5,0],[122,5,123,17,0],[123,17,123,80,0],[123,80,124,17,0],[124,17,124,136,0],[124,136,125,21,0],[125,21,125,28,0],[125,28,126,17,0],[126,17,126,51,0],[126,51,127,17,0],[127,17,127,53,0],[127,53,128,13,0],[128,13,128,14,0],[128,14,128,17,0],[121,4,128,17,0],[129,3,129,4,0],[132,3,132,4,0],[133,4,133,119,0],[134,4,134,41,0],[136,4,136,23,0],[137,5,137,12,0],[139,4,139,67,0],[141,11,141,57,0],[142,5,142,34,0],[144,4,144,58,0],[146,4,146,44,0],[147,3,147,4,0],[150,3,150,4,0],[151,4,151,26,0],[152,5,152,12,0],[154,4,154,33,0],[156,4,156,17,0],[157,5,157,12,0],[159,3,159,4,0],[162,3,162,4,0],[163,4,163,89,0],[164,4,164,24,0],[165,3,165,4,0],[168,3,168,4,0],[170,4,170,5,0],[171,5,171,80,0],[173,5,173,81,0],[175,5,175,29,0],[176,4,176,5,0],[177,4,177,31,0],[178,4,178,5,0],[179,5,179,22,0],[181,5,181,146,0],[182,4,182,5,0],[183,3,183,4,0],[186,9,186,10,0],[187,13,187,38,0],[188,13,188,51,0],[189,9,189,10,0],[192,9,192,10,0],[195,13,195,64,0],[197,13,197,49,0],[197,50,197,69,0],[198,9,198,10,0],[201,9,201,10,0],[202,13,202,66,0],[203,13,203,44,0],[204,9,204,10,0]]);
+    </script>
+  </body>
+</html>

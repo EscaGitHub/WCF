@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\ComponentConverter.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Configurator.Common.Data.Api;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.View;
+
+namespace Swr.Configurator.Logic
+{
+	static class ComponentConverter
+	{
+		internal static IProduct ApiExistToProduct(ComponentApiExist apiExist)
+		{
+			var componentTypes = ConfiguratorMainWindowVM.Instance.SettingsController.Settings.ComponentTypes;
+			var componentBehaviorController = new ComponentBehaviorController();
+			
+			IProduct product = Product.GetOrCreate(apiExist.Id, Guid.Empty);
+
+			if (product.DbIdentificator.IsEmpty()) product.DbIdentificator = apiExist.Id;
+
+			product.Type = componentTypes.FirstOrDefault(t =&gt; t.Name == apiExist.TypeName);
+
+			foreach (var foundComponentAttribute in apiExist.Attributes)
+			{
+				product.SetProperty(foundComponentAttribute.Name, foundComponentAttribute.Value);
+
+				var foundProperty = product.Properties.FirstOrDefault(t =&gt; t.Variable == foundComponentAttribute.Name);
+                var productComponentTypeProperty =
+                    product.Type.Attributes.FirstOrDefault(t =&gt; t.Attribute.Name == foundComponentAttribute.Name);
+				if (foundProperty != null &amp;&amp; productComponentTypeProperty != null)
+				{
+                    foundProperty.IsMask = productComponentTypeProperty.IsMask;
+                    foundProperty.IsNecessary = productComponentTypeProperty.IsNecessary;
+                    foundProperty.CardPosition = productComponentTypeProperty.CardPosition;
+                    foundProperty.CardAlias = productComponentTypeProperty.CardAlias;
+                }
+			}
+
+            foreach (var componentAttributeObject in product.Type.Attributes)
+            {
+                var foundProperty = product.Properties.FirstOrDefault(t =&gt; t.Variable == componentAttributeObject.Attribute.Name);
+                if (foundProperty == null)
+                {
+                    product.SetProperty(componentAttributeObject.Attribute.Name, &quot;&quot;);
+                    foundProperty = product.Properties.FirstOrDefault(t =&gt; t.Variable == componentAttributeObject.Attribute.Name);
+                    if (foundProperty != null)
+                    {
+                        foundProperty.IsNecessary = componentAttributeObject.IsNecessary;
+                        foundProperty.CardPosition = componentAttributeObject.CardPosition;
+                        foundProperty.CardAlias = componentAttributeObject.CardAlias;
+                    }
+                }
+            }
+
+			product.Name =
+				componentBehaviorController.GetComponentNameByTemplate(product.Type.ComponentNameTemplate,
+					product.Properties.ToList());
+			return product;
+		}
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[15,3,15,4,0],[16,4,16,102,0],[17,4,17,72,0],[19,4,19,68,0],[21,4,21,42,0],[21,43,21,81,0],[23,4,23,54,0],[23,54,23,81,0],[23,81,23,83,0],[23,4,23,83,0],[25,4,25,11,0],[25,13,25,40,0],[25,41,25,43,0],[25,44,25,63,0],[26,4,26,5,0],[27,5,27,86,0],[29,5,29,64,0],[29,64,29,106,0],[29,106,29,108,0],[29,5,29,108,0],[30,17,31,65,0],[31,65,31,113,0],[31,113,31,115,0],[30,17,31,115,0],[32,5,32,71,0],[33,5,33,6,0],[34,21,34,80,0],[35,21,35,90,0],[36,21,36,92,0],[37,21,37,86,0],[38,17,38,18,0],[39,4,39,5,0],[41,13,41,20,0],[41,22,41,50,0],[41,51,41,53,0],[41,54,41,77,0],[42,13,42,14,0],[43,17,43,76,0],[43,76,43,129,0],[43,129,43,131,0],[43,17,43,131,0],[44,17,44,43,0],[45,17,45,18,0],[46,21,46,86,0],[47,21,47,76,0],[47,76,47,129,0],[47,129,47,131,0],[47,21,47,131,0],[48,21,48,47,0],[49,21,49,22,0],[50,25,50,90,0],[51,25,51,92,0],[52,25,52,86,0],[53,21,53,22,0],[54,17,54,18,0],[55,13,55,14,0],[57,4,59,35,0],[60,4,60,19,0],[61,3,61,4,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\ProductStructureContainer.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Configurator.Data;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.Logic.EventArgs;
+using Swr.Configurator.View;
+
+namespace Swr.Configurator.Logic
+{
+    public class ProductStructureContainer 
+    {
+        private readonly List&lt;IProduct&gt; _products = new List&lt;IProduct&gt;();
+
+        public void AddProduct(IProduct product, bool fromSearch)
+        {
+            _products.Add(product);
+            OnProductAdded(product, fromSearch);
+        }
+
+        public IEnumerable&lt;IProduct&gt; Products
+        {
+            get { return _products; }
+        }
+
+        public event EventHandler&lt;ProductEventArgs&gt; ProductAdded;
+
+        private void OnProductAdded(IProduct product, bool fromSearch)
+        {
+            var handle = ProductAdded;
+            handle?.Invoke(this, new ProductEventArgs(new List&lt;IProduct&gt; {product}, fromSearch));
+
+        }
+
+
+        public void CloseProduct(List&lt;IProduct&gt; products)
+        {
+            foreach (var product in products)
+            {
+                _products.Remove(product);
+            }
+            OnProductClosed(products);
+
+        }
+
+        public event EventHandler&lt;ProductEventArgs&gt; ProductClosed;
+
+        private void OnProductClosed(List&lt;IProduct&gt; products)
+        {
+            var handle = ProductClosed;
+            handle?.Invoke(this, new ProductEventArgs(products, false));
+
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[15,9,15,74,0],[18,9,18,10,0],[19,13,19,36,0],[20,13,20,49,0],[21,9,21,10,0],[25,17,25,18,0],[25,19,25,36,0],[25,37,25,38,0],[31,9,31,10,0],[32,13,32,39,0],[33,13,33,98,0],[35,9,35,10,0],[39,9,39,10,0],[40,13,40,20,0],[40,22,40,33,0],[40,34,40,36,0],[40,37,40,45,0],[41,13,41,14,0],[42,17,42,43,0],[43,13,43,14,0],[44,13,44,39,0],[46,9,46,10,0],[51,9,51,10,0],[52,13,52,40,0],[53,13,53,73,0],[55,9,55,10,0]]);
+    </script>
+  </body>
+</html>

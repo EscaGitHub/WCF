@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Settings\Pages\SpecificationTypesPage.xaml.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using Swr.Configurator.View.Settings.ViewModels;
+using SwrUILogic.Data;
+
+namespace Swr.Configurator.View.Settings.Pages
+{
+    /// &lt;summary&gt;
+    /// Interaction logic for SpecificationTypesPage.xaml
+    /// &lt;/summary&gt;
+    public partial class SpecificationTypesPage : IValidationUpdate
+    {
+        private SpecificationTypesVM _viewModel;
+
+        public SpecificationTypesPage(string header, SpecificationTypesVM viewModel)
+        {
+            _viewModel = viewModel;
+            InitializeComponent();
+
+            Header = header;
+            ViewModel.Header = header;
+            ViewModel.ErrorsCollectionChanged += ViewModel_ErrorsCollectionChanged;
+
+            DataContext = ViewModel;
+        }
+
+        private void ViewModel_ErrorsCollectionChanged(object sender, EventArgs e)
+        {
+            _hasErrors = ViewModel.Errors.Any();
+
+            var errorsString = String.Join(Environment.NewLine, ViewModel.ErrorsText);
+
+            _errors = !String.IsNullOrWhiteSpace(errorsString) ? errorsString : null;
+        }
+
+        public SpecificationTypesVM ViewModel
+        {
+            get { return _viewModel; }
+        }
+
+        private bool _hasErrors;
+
+        public override bool HasErrors
+        {
+            get { return _hasErrors; }
+        }
+
+        private string _errors;
+
+        public override string Errors
+        {
+            get { return _errors; }
+        }
+
+        public sealed override string Header { get; set; }
+
+        private void OnError(object sender, ValidationErrorEventArgs validationErrorEventArgs)
+        {
+            _hasErrors = !string.IsNullOrWhiteSpace(ViewModel.Error);
+
+            var errorsString = String.Join(Environment.NewLine, ViewModel.Error);
+
+            _errors = !String.IsNullOrWhiteSpace(errorsString) ? errorsString : null;
+
+            OnPropertyChanged(&quot;Errors&quot;);
+            OnPropertyChanged(&quot;HasErrors&quot;);
+        }
+
+        public void UpdateValidation()
+        {
+            ViewModel.UpdateValidation();
+
+            OnError(this, null);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[27,9,27,85,0],[28,9,28,10,0],[29,13,29,36,0],[30,13,30,35,0],[32,13,32,29,0],[33,13,33,39,0],[34,13,34,84,0],[36,13,36,37,0],[37,9,37,10,0],[40,9,40,10,0],[41,13,41,49,0],[43,13,43,87,0],[45,13,45,86,0],[46,9,46,10,0],[50,17,50,18,0],[50,19,50,37,0],[50,38,50,39,0],[57,17,57,18,0],[57,19,57,37,0],[57,38,57,39,0],[64,17,64,18,0],[64,19,64,34,0],[64,35,64,36,0],[67,48,67,52,0],[67,53,67,57,0],[70,9,70,10,0],[71,13,71,70,0],[73,13,73,82,0],[75,13,75,86,0],[77,13,77,41,0],[78,13,78,44,0],[79,9,79,10,0],[82,9,82,10,0],[83,13,83,42,0],[85,13,85,33,0],[86,9,86,10,0]]);
+    </script>
+  </body>
+</html>

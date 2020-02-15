@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Data\Api\ComponentApiNew.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace Swr.Configurator.Common.Data.Api
+{
+    public class ComponentApiNew : IComponentApi
+    {
+        public ComponentApiNew()
+        {
+            Attributes = new List&lt;AttributeApi&gt;();
+        }
+
+        [Required(ErrorMessage = &quot;Field &#39;TypeName&#39; is required.&quot;)]
+        public string TypeName { get; set; }
+
+        [CannotBeEmpty(ErrorMessage = &quot;Field &#39;Attributes&#39; is required.&quot;)]
+        public List&lt;AttributeApi&gt; Attributes { get; set; }
+        public int Counter { get; set; }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[8,9,8,33,1],[9,9,9,10,1],[10,13,10,51,1],[11,9,11,10,1],[14,34,14,38,1],[14,39,14,43,1],[17,48,17,52,1],[17,53,17,57,1],[18,30,18,34,0],[18,35,18,39,0]]);
+    </script>
+  </body>
+</html>

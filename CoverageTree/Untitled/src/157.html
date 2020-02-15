@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Infrastructure\Email\EmailMessageFactory.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Swr.Capital1C.Okei;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Exceptions;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models.In;
+using Swr.Capital1C.Service.Infrastructure.Nomenclatures;
+using Swr.Capital1C.Service.Properties;
+using Swr.Infrastructure.Mailing;
+
+namespace Swr.Capital1C.Service.Infrastructure.Email
+{
+    public static class EmailMessageFactory
+    {
+        private const string NomenclatureExportError = &quot;Ошибки экспорта номенклатуры&quot;;
+        private const string MessageHeader = &quot;Ошибки в процессе экспорта номенклатуры из SWE-PDM в 1C:УПП&quot;;
+
+        //public static EmailMessage SetNomenclatureNotFound(string id,
+        //    NomenclatureNotFoundException exception)
+        //{
+        //    var builder = new HtmlEmailMessageBuilder();
+
+        //    builder.SetSubject(NomenclatureExportError);
+
+        //    builder.SetEventLevel(EventLevel.Error);
+        //    builder.SetHeader(MessageHeader);
+        //    builder.SetDescription($&quot;Номенклатура с идентификатором &#39;{id}&#39; не найдена.&quot;);
+        //    builder.SetDetails(&quot;Подробности&quot;, exception.Message);
+
+        //    return builder.GetMessage();
+        //}
+
+        //public static EmailMessage SetNomenclatureIsInvalid(string id,
+        //    NomenclatureIsInvalidException exception)
+        //{
+        //    var builder = new HtmlEmailMessageBuilder();
+
+        //    builder.SetSubject(NomenclatureExportError);
+
+        //    builder.SetEventLevel(EventLevel.Error);
+        //    builder.SetHeader(MessageHeader);
+        //    builder.SetDescription($&quot;Номенклатура с идентификатором &#39;{id}&#39; содержит ошибки.&quot;);
+        //    builder.SetDetails(&quot;Подробности&quot;, exception.Message);
+
+        //    return builder.GetMessage();
+        //}
+
+        //public static EmailMessage SetNomenclatureIsOutdated(Nomenclature nomenclature,
+        //    NomenclatureIsOutdatedException exception, string articleAttributeName)
+        //{
+        //    var builder = new HtmlEmailMessageBuilder();
+
+        //    builder.SetSubject(NomenclatureExportError);
+
+        //    builder.SetEventLevel(EventLevel.Error);
+        //    builder.SetHeader(MessageHeader);
+
+        //    var code = nomenclature.GetValueOrDefault(articleAttributeName);
+        //    builder.SetDescription($&quot;Ранее была передана новая версия номенклатуры с кодом &#39;{code}&#39; (идентификатор &#39;{nomenclature.Id}&#39;).&quot;);
+        //    builder.SetDetails(&quot;Подробности&quot;, exception.Message);
+
+        //    return builder.GetMessage();
+        //}
+
+        //public static EmailMessage SetOkeiCodeNotFound(Nomenclature nomenclature, OkeiCodeNotFoundException exception, string articleAttributeName)
+        //{
+        //    var builder = new HtmlEmailMessageBuilder();
+
+        //    builder.SetSubject(NomenclatureExportError);
+
+        //    builder.SetEventLevel(EventLevel.Error);
+        //    builder.SetHeader(MessageHeader);
+
+        //    var code = nomenclature.GetValueOrDefault(articleAttributeName);
+        //    builder.SetDescription($&quot;Код ОКЕИ не найден для номенклатуры с кодом &#39;{code}&#39; (идентификатор &#39;{nomenclature.Id}&#39;).&quot;);
+        //    builder.SetDetails(&quot;Подробности&quot;, exception.Message);
+
+        //    return builder.GetMessage();
+        //}
+
+        public static EmailMessage SetUnexpectedError(Exception exception)
+        {
+            var builder = new HtmlEmailMessageBuilder();
+
+            builder.SetSubject(NomenclatureExportError);
+
+            builder.SetEventLevel(EventLevel.Error);
+            builder.SetHeader(MessageHeader);
+            builder.SetDescription(&quot;Возникла непредвиденная ошибка.&quot;);
+            builder.SetDetails(&quot;Подробности&quot;, exception.ToString());
+
+            return builder.GetMessage();
+        }
+
+        public static EmailMessage SetErrorMessages(IEnumerable&lt;string&gt; errors, string subject, string header)
+        {
+            var builder = new HtmlEmailMessageBuilder();
+
+            builder.SetSubject(NomenclatureExportError);
+
+            builder.SetEventLevel(EventLevel.Error);
+            builder.SetHeader(MessageHeader);
+            builder.SetDescription(&quot;Возникли ошибки передачи.&quot;);
+            builder.SetDetails(&quot;Подробности&quot;, string.Join(Environment.NewLine, errors));
+
+            return builder.GetMessage();
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[83,9,83,10,0],[84,13,84,57,0],[86,13,86,57,0],[88,13,88,53,0],[89,13,89,46,0],[90,13,90,71,0],[91,13,91,69,0],[93,13,93,41,0],[94,9,94,10,0],[97,9,97,10,1],[98,13,98,57,1],[100,13,100,57,1],[102,13,102,53,1],[103,13,103,46,1],[104,13,104,65,1],[105,13,105,89,1],[107,13,107,41,1],[108,9,108,10,1]]);
+    </script>
+  </body>
+</html>

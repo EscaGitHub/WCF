@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Layout\LayoutAnchorGroup.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Collections.ObjectModel;
+using System.Windows.Markup;
+using System.Xml.Serialization;
+
+namespace Xceed.Wpf.AvalonDock.Layout
+{
+    [ContentProperty(&quot;Children&quot;)]
+    [Serializable]
+    public class LayoutAnchorGroup : LayoutGroup&lt;LayoutAnchorable&gt;, ILayoutPreviousContainer, ILayoutPaneSerializable
+    {
+        public LayoutAnchorGroup()
+        {
+        }
+
+        protected override bool GetVisibility()
+        {
+            return Children.Count &gt; 0;
+        }
+
+
+        #region PreviousContainer
+
+        [field:NonSerialized]
+        private ILayoutContainer _previousContainer = null;
+        [XmlIgnore]
+        ILayoutContainer ILayoutPreviousContainer.PreviousContainer
+        {
+            get { return _previousContainer; }
+            set
+            {
+                if (_previousContainer != value)
+                {
+                    _previousContainer = value;
+                    RaisePropertyChanged(&quot;PreviousContainer&quot;);
+                    var paneSerializable = _previousContainer as ILayoutPaneSerializable;
+                    if (paneSerializable != null &amp;&amp;
+                        paneSerializable.Id == null)
+                        paneSerializable.Id = Guid.NewGuid().ToString();
+                }
+            }
+        }
+
+        #endregion
+
+        string _id;
+        string ILayoutPaneSerializable.Id
+        {
+            get
+            {
+                return _id;
+            }
+            set
+            {
+                _id = value;
+            }
+        }
+
+        string ILayoutPreviousContainer.PreviousContainerId
+        {
+            get;
+            set;
+        }
+
+        public override void WriteXml(System.Xml.XmlWriter writer)
+        {
+            if (_id != null)
+                writer.WriteAttributeString(&quot;Id&quot;, _id);
+            if (_previousContainer != null)
+            {
+                var paneSerializable = _previousContainer as ILayoutPaneSerializable;
+                if (paneSerializable != null)
+                {
+                    writer.WriteAttributeString(&quot;PreviousContainerId&quot;, paneSerializable.Id);
+                }
+            }
+
+            base.WriteXml(writer);
+        }
+
+        public override void ReadXml(System.Xml.XmlReader reader)
+        {
+            if (reader.MoveToAttribute(&quot;Id&quot;))
+                _id = reader.Value;
+            if (reader.MoveToAttribute(&quot;PreviousContainerId&quot;))
+                ((ILayoutPreviousContainer)this).PreviousContainerId = reader.Value;
+
+
+            base.ReadXml(reader);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[31,9,31,35,0],[32,9,32,10,0],[33,9,33,10,0],[36,9,36,10,0],[37,13,37,39,0],[38,9,38,10,0],[44,9,44,60,0],[48,17,48,18,0],[48,19,48,45,0],[48,46,48,47,0],[50,13,50,14,0],[51,17,51,49,0],[52,17,52,18,0],[53,21,53,48,0],[54,21,54,63,0],[55,21,55,90,0],[56,21,57,53,0],[58,25,58,73,0],[59,17,59,18,0],[60,13,60,14,0],[69,13,69,14,0],[70,17,70,28,0],[71,13,71,14,0],[73,13,73,14,0],[74,17,74,29,0],[75,13,75,14,0],[80,13,80,17,0],[81,13,81,17,0],[85,9,85,10,0],[86,13,86,29,0],[87,17,87,56,0],[88,13,88,44,0],[89,13,89,14,0],[90,17,90,86,0],[91,17,91,46,0],[92,17,92,18,0],[93,21,93,93,0],[94,17,94,18,0],[95,13,95,14,0],[97,13,97,35,0],[98,9,98,10,0],[101,9,101,10,0],[102,13,102,46,0],[103,17,103,36,0],[104,13,104,63,0],[105,17,105,85,0],[108,13,108,34,0],[109,9,109,10,0]]);
+    </script>
+  </body>
+</html>

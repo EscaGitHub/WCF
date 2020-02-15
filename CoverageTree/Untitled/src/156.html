@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\LayoutAnchorControl.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using Xceed.Wpf.AvalonDock.Layout;
+using System.Windows.Threading;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public class LayoutAnchorControl : Control, ILayoutControl
+    {
+        static LayoutAnchorControl()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(LayoutAnchorControl), new FrameworkPropertyMetadata(typeof(LayoutAnchorControl)));
+            Control.IsHitTestVisibleProperty.AddOwner(typeof(LayoutAnchorControl), new FrameworkPropertyMetadata(true)); 
+        }
+
+
+        internal LayoutAnchorControl(LayoutAnchorable model)
+        {
+            _model = model;
+            _model.IsActiveChanged += new EventHandler(_model_IsActiveChanged);
+            _model.IsSelectedChanged += new EventHandler(_model_IsSelectedChanged);
+
+            SetSide(_model.FindParent&lt;LayoutAnchorSide&gt;().Side);
+        }
+
+        void _model_IsSelectedChanged(object sender, EventArgs e)
+        {
+            if (!_model.IsAutoHidden)
+                _model.IsSelectedChanged -= new EventHandler(_model_IsSelectedChanged);
+            else if (_model.IsSelected)
+            {
+                _model.Root.Manager.ShowAutoHideWindow(this);
+                _model.IsSelected = false;
+            }
+        }
+
+        void _model_IsActiveChanged(object sender, EventArgs e)
+        {
+            if (!_model.IsAutoHidden)
+                _model.IsActiveChanged -= new EventHandler(_model_IsActiveChanged);
+            else if (_model.IsActive)
+                _model.Root.Manager.ShowAutoHideWindow(this);
+        }
+
+        LayoutAnchorable _model;
+
+        public ILayoutElement Model
+        {
+            get { return _model; }
+        }
+
+        //protected override void OnVisualParentChanged(DependencyObject oldParent)
+        //{
+        //    base.OnVisualParentChanged(oldParent);
+
+        //    var contentModel = _model;
+
+        //    if (oldParent != null &amp;&amp; contentModel != null &amp;&amp; contentModel.Content is UIElement)
+        //    {
+        //        var oldParentPaneControl = oldParent.FindVisualAncestor&lt;LayoutAnchorablePaneControl&gt;();
+        //        if (oldParentPaneControl != null)
+        //        {
+        //            ((ILogicalChildrenContainer)oldParentPaneControl).InternalRemoveLogicalChild(contentModel.Content);
+        //        }
+        //    }
+
+        //    if (contentModel.Content != null &amp;&amp; contentModel.Content is UIElement)
+        //    {
+        //        var oldLogicalParentPaneControl = LogicalTreeHelper.GetParent(contentModel.Content as UIElement)
+        //            as ILogicalChildrenContainer;
+        //        if (oldLogicalParentPaneControl != null)
+        //            oldLogicalParentPaneControl.InternalRemoveLogicalChild(contentModel.Content);
+        //    }
+
+        //    if (contentModel != null &amp;&amp; contentModel.Content != null &amp;&amp; contentModel.Root != null &amp;&amp; contentModel.Content is UIElement)
+        //    {
+        //        ((ILogicalChildrenContainer)contentModel.Root.Manager).InternalAddLogicalChild(contentModel.Content);
+        //    }
+        //}
+
+
+        protected override void OnMouseDown(System.Windows.Input.MouseButtonEventArgs e)
+        {
+            base.OnMouseDown(e);
+
+            if (!e.Handled)
+            {
+                _model.Root.Manager.ShowAutoHideWindow(this);
+                _model.IsActive = true;
+            }
+        }
+
+
+        DispatcherTimer _openUpTimer = null;
+
+        protected override void OnMouseEnter(System.Windows.Input.MouseEventArgs e)
+        {
+            base.OnMouseEnter(e);
+
+            if (!e.Handled)
+            {
+                _openUpTimer = new DispatcherTimer(DispatcherPriority.ApplicationIdle);
+                _openUpTimer.Interval = TimeSpan.FromMilliseconds(400);
+                _openUpTimer.Tick += new EventHandler(_openUpTimer_Tick);
+                _openUpTimer.Start();
+            }
+        }
+
+        void _openUpTimer_Tick(object sender, EventArgs e)
+        {
+            _openUpTimer.Tick -= new EventHandler(_openUpTimer_Tick);
+            _openUpTimer.Stop();
+            _openUpTimer = null;
+            _model.Root.Manager.ShowAutoHideWindow(this);
+        }
+
+        protected override void OnMouseLeave(System.Windows.Input.MouseEventArgs e)
+        {
+            if (_openUpTimer != null)
+            {
+                _openUpTimer.Tick -= new EventHandler(_openUpTimer_Tick);
+                _openUpTimer.Stop();
+                _openUpTimer = null;
+            }
+            base.OnMouseLeave(e);
+        }
+
+
+        #region Side
+
+        /// &lt;summary&gt;
+        /// Side Read-Only Dependency Property
+        /// &lt;/summary&gt;
+        private static readonly DependencyPropertyKey SidePropertyKey
+            = DependencyProperty.RegisterReadOnly(&quot;Side&quot;, typeof(AnchorSide), typeof(LayoutAnchorControl),
+                new FrameworkPropertyMetadata((AnchorSide)AnchorSide.Left));
+
+        public static readonly DependencyProperty SideProperty
+            = SidePropertyKey.DependencyProperty;
+
+        /// &lt;summary&gt;
+        /// Gets the Side property.  This dependency property 
+        /// indicates the anchor side of the control.
+        /// &lt;/summary&gt;
+        public AnchorSide Side
+        {
+            get { return (AnchorSide)GetValue(SideProperty); }
+        }
+
+        /// &lt;summary&gt;
+        /// Provides a secure method for setting the Side property.  
+        /// This dependency property indicates the anchor side of the control.
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;value&quot;&gt;The new value for the property.&lt;/param&gt;
+        protected void SetSide(AnchorSide value)
+        {
+            SetValue(SidePropertyKey, value);
+        }
+
+        #endregion
+
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[31,9,31,10,0],[32,13,32,143,0],[33,13,33,121,0],[34,9,34,10,0],[37,9,37,61,0],[38,9,38,10,0],[39,13,39,28,0],[40,13,40,80,0],[41,13,41,84,0],[43,13,43,65,0],[44,9,44,10,0],[47,9,47,10,0],[48,13,48,38,0],[49,17,49,88,0],[50,18,50,40,0],[51,13,51,14,0],[52,17,52,62,0],[53,17,53,43,0],[54,13,54,14,0],[55,9,55,10,0],[58,9,58,10,0],[59,13,59,38,0],[60,17,60,84,0],[61,18,61,38,0],[62,17,62,62,0],[63,9,63,10,0],[69,17,69,18,0],[69,19,69,33,0],[69,34,69,35,0],[103,9,103,10,0],[104,13,104,33,0],[106,13,106,28,0],[107,13,107,14,0],[108,17,108,62,0],[109,17,109,40,0],[110,13,110,14,0],[111,9,111,10,0],[114,9,114,45,0],[117,9,117,10,0],[118,13,118,34,0],[120,13,120,28,0],[121,13,121,14,0],[122,17,122,88,0],[123,17,123,72,0],[124,17,124,74,0],[125,17,125,38,0],[126,13,126,14,0],[127,9,127,10,0],[130,9,130,10,0],[131,13,131,70,0],[132,13,132,33,0],[133,13,133,33,0],[134,13,134,58,0],[135,9,135,10,0],[138,9,138,10,0],[139,13,139,38,0],[140,13,140,14,0],[141,17,141,74,0],[142,17,142,37,0],[143,17,143,37,0],[144,13,144,14,0],[145,13,145,34,0],[146,9,146,10,0],[154,9,156,77,0],[158,9,159,50,0],[167,17,167,18,0],[167,19,167,61,0],[167,62,167,63,0],[176,9,176,10,0],[177,13,177,46,0],[178,9,178,10,0]]);
+    </script>
+  </body>
+</html>

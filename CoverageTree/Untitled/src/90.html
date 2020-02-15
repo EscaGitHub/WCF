@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Domain\Services\Nomenclatures\NomenclatureValidation.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Text;
+using System.Web.UI.WebControls;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Exceptions;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models.In;
+using Swr.Capital1C.Service.Infrastructure.Nomenclatures;
+using Swr.Capital1C.Service.Properties;
+using Swr.Capital1C.Service.Settings;
+using Swr.Capital1C.Service.Settings.Model;
+using Swr.Infrastructure.Validation.Domain.Models;
+using Swr.Infrastructure.Validation.Extensions;
+
+namespace Swr.Capital1C.Service.Domain.Services.Nomenclatures
+{
+    public class NomenclatureValidation : INomenclatureValidation
+    {
+        private ModelState&lt;Nomenclature&gt; _modelState;
+
+        public void Run(Nomenclature nomenclature, string codeAttributeName)
+        {
+            _modelState = new ModelState&lt;Nomenclature&gt;(nomenclature);
+            RuleFor(&quot;Артикул&quot;).Required().MaxLength(11);
+            RuleFor(&quot;Наименование&quot;).Required();
+            RuleFor(&quot;Единица измерения&quot;).Required();
+            RuleFor(&quot;Раздел спецификации&quot;).Required().InList(new[]
+            {
+                &quot;Детали&quot;,
+                &quot;Комплексы&quot;,
+                &quot;Комплекты&quot;,
+                &quot;Материалы&quot;,
+                &quot;Прочие изделия&quot;,
+                &quot;Сборочные единицы&quot;,
+                &quot;Стандартные изделия&quot;
+            });
+            //RuleFor(&quot;Вид номенклатуры&quot;).Required();
+            if(!Empty(&quot;Признак готовой продукции&quot;))
+                RuleFor(&quot;Признак готовой продукции&quot;).InList(new []
+                {
+                    &quot;1&quot;, &quot;0&quot;
+                });
+            RuleFor(&quot;Вид воспроизводства&quot;).Required().InList(new []
+            {
+                &quot;Покупное&quot;,
+                &quot;Собственного изготовления&quot;,
+                &quot;Покупное с доработкой&quot;,
+                &quot;По кооперации&quot;
+            });
+            RuleFor(&quot;Материал&quot;).MaxLength(11);
+            if(!Empty(&quot;Плотность&quot;)) RuleFor(&quot;Плотность&quot;).Float();
+            if (!Empty(&quot;Масса&quot;)) RuleFor(&quot;Масса&quot;).Float();
+            if (!Empty(&quot;Площадь поверхности&quot;)) RuleFor(&quot;Площадь поверхности&quot;).Float();
+            if (!Empty(&quot;Количество гибов&quot;)) RuleFor(&quot;Количество гибов&quot;).Float();
+            if (!Empty(&quot;Общая длина&quot;)) RuleFor(&quot;Общая длина&quot;).Float();
+            if (!Empty(&quot;Общая ширина&quot;)) RuleFor(&quot;Общая ширина&quot;).Float();
+            if (!Empty(&quot;Длина реза&quot;)) RuleFor(&quot;Длина реза&quot;).Float();
+
+            if (_modelState.HasErrors())
+            {
+                var message = BuildMessage(nomenclature, _modelState, codeAttributeName);
+                throw new NomenclatureIsInvalidException(message);
+            }
+        }
+
+        private bool Empty(string attributeName)
+        {
+            return string.IsNullOrWhiteSpace(_modelState.Model.GetValueOrDefault(attributeName));
+        }
+
+        private ValidatingProperty&lt;Nomenclature&gt; RuleFor(string name)
+        {
+            return new ValidatingProperty&lt;Nomenclature&gt;(name, _modelState.Model.GetValueOrDefault(name), _modelState);
+        }
+
+        private static string BuildMessage(Nomenclature nomenclature, ModelState&lt;Nomenclature&gt; modelState, string codeAttributeName)
+        {
+            var builder = new StringBuilder();
+
+            var nomenclatureDefinition = CommonSettingsController.Settings.NomenclatureDefinition;
+
+            var code = nomenclature.GetValueOrDefault(codeAttributeName);
+            builder.AppendLine($&quot;Номенклатура с артикулом &#39;{code}&#39; (идентификатор &#39;{nomenclature.Id}&#39;) не удовлетворяет требованиям проверки.&quot;);
+
+            foreach (var propertyState in modelState.GetPropertyStates())
+            {
+                builder.AppendLine($&quot;Атрибут &#39;{propertyState.PropertyName}&#39;:&quot;);
+
+                builder.Append(string.Join(Environment.NewLine, propertyState.GetErrors()));
+
+                builder.AppendLine();
+            }
+
+            return builder.ToString();
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[20,9,20,10,1],[21,13,21,70,1],[22,13,22,57,1],[23,13,23,48,1],[24,13,24,53,1],[25,13,34,16,1],[36,13,36,52,1],[37,17,40,20,1],[41,13,47,16,1],[48,13,48,47,1],[49,13,49,36,1],[49,37,49,66,1],[50,13,50,33,1],[50,34,50,59,1],[51,13,51,47,1],[51,48,51,87,1],[52,13,52,44,1],[52,45,52,81,1],[53,13,53,39,1],[53,40,53,71,1],[54,13,54,40,1],[54,41,54,73,0],[55,13,55,38,1],[55,39,55,69,1],[57,13,57,41,1],[58,13,58,14,1],[59,17,59,90,1],[60,17,60,67,1],[62,9,62,10,1],[65,9,65,10,1],[66,13,66,98,1],[67,9,67,10,1],[70,9,70,10,1],[71,13,71,119,1],[72,9,72,10,1],[75,9,75,10,1],[76,13,76,47,1],[78,13,78,99,1],[80,13,80,74,1],[81,13,81,145,1],[83,13,83,20,1],[83,22,83,39,1],[83,40,83,42,1],[83,43,83,73,1],[84,13,84,14,1],[85,17,85,80,1],[87,17,87,93,1],[89,17,89,38,1],[90,13,90,14,1],[92,13,92,39,1],[93,9,93,10,1]]);
+    </script>
+  </body>
+</html>

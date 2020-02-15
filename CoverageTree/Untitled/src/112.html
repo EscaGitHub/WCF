@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\LayoutDocumentTabItem.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using Xceed.Wpf.AvalonDock.Layout;
+using System.Diagnostics;
+using System.Windows.Media;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public class LayoutDocumentTabItem : Control
+    {
+        static LayoutDocumentTabItem()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(LayoutDocumentTabItem), new FrameworkPropertyMetadata(typeof(LayoutDocumentTabItem)));
+        }
+
+        public LayoutDocumentTabItem()
+        {
+        }
+
+        #region Model
+
+        /// &lt;summary&gt;
+        /// Model Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty ModelProperty =
+            DependencyProperty.Register(&quot;Model&quot;, typeof(LayoutContent), typeof(LayoutDocumentTabItem),
+                new FrameworkPropertyMetadata((LayoutContent)null,
+                    new PropertyChangedCallback(OnModelChanged)));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the Model property.  This dependency property 
+        /// indicates the layout content model attached to the tab item.
+        /// &lt;/summary&gt;
+        public LayoutContent Model
+        {
+            get { return (LayoutContent)GetValue(ModelProperty); }
+            set { SetValue(ModelProperty, value); }
+        }
+
+        /// &lt;summary&gt;
+        /// Handles changes to the Model property.
+        /// &lt;/summary&gt;
+        private static void OnModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((LayoutDocumentTabItem)d).OnModelChanged(e);
+        }
+
+
+        /// &lt;summary&gt;
+        /// Provides derived classes an opportunity to handle changes to the Model property.
+        /// &lt;/summary&gt;
+        protected virtual void OnModelChanged(DependencyPropertyChangedEventArgs e)
+        {
+            if (Model != null)
+                SetLayoutItem(Model.Root.Manager.GetLayoutItemFromModel(Model));
+            else
+                SetLayoutItem(null);
+            //UpdateLogicalParent();
+        }
+
+        #endregion
+
+        #region LayoutItem
+
+        /// &lt;summary&gt;
+        /// LayoutItem Read-Only Dependency Property
+        /// &lt;/summary&gt;
+        private static readonly DependencyPropertyKey LayoutItemPropertyKey
+            = DependencyProperty.RegisterReadOnly(&quot;LayoutItem&quot;, typeof(LayoutItem), typeof(LayoutDocumentTabItem),
+                new FrameworkPropertyMetadata((LayoutItem)null));
+
+        public static readonly DependencyProperty LayoutItemProperty
+            = LayoutItemPropertyKey.DependencyProperty;
+
+        /// &lt;summary&gt;
+        /// Gets the LayoutItem property.  This dependency property 
+        /// indicates the LayoutItem attached to this tag item.
+        /// &lt;/summary&gt;
+        public LayoutItem LayoutItem
+        {
+            get { return (LayoutItem)GetValue(LayoutItemProperty); }
+        }
+
+        /// &lt;summary&gt;
+        /// Provides a secure method for setting the LayoutItem property.  
+        /// This dependency property indicates the LayoutItem attached to this tag item.
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;value&quot;&gt;The new value for the property.&lt;/param&gt;
+        protected void SetLayoutItem(LayoutItem value)
+        {
+            SetValue(LayoutItemPropertyKey, value);
+        }
+
+        #endregion
+
+        List&lt;Rect&gt; _otherTabsScreenArea = null;
+        List&lt;TabItem&gt; _otherTabs = null;
+        Rect _parentDocumentTabPanelScreenArea;
+        DocumentPaneTabPanel _parentDocumentTabPanel;
+        bool _isMouseDown = false;
+        Point _mouseDownPoint;
+
+        void UpdateDragDetails()
+        {
+            _parentDocumentTabPanel = this.FindLogicalAncestor&lt;DocumentPaneTabPanel&gt;();
+            _parentDocumentTabPanelScreenArea = _parentDocumentTabPanel.GetScreenArea();
+            _otherTabs = _parentDocumentTabPanel.Children.Cast&lt;TabItem&gt;().Where(ch =&gt;
+                ch.Visibility != System.Windows.Visibility.Collapsed).ToList();
+            Rect currentTabScreenArea = this.FindLogicalAncestor&lt;TabItem&gt;().GetScreenArea();
+            _otherTabsScreenArea = _otherTabs.Select(ti =&gt; 
+                {
+                    var screenArea = ti.GetScreenArea();
+                    return new Rect(screenArea.Left, screenArea.Top, currentTabScreenArea.Width, screenArea.Height);
+                }).ToList();
+        }
+
+        protected override void OnMouseLeftButtonDown(System.Windows.Input.MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+
+            Model.IsActive = true;
+
+            if (e.ClickCount == 1)
+            {
+                _mouseDownPoint = e.GetPosition(this);
+                _isMouseDown = true;
+            }
+        }
+
+        protected override void OnMouseMove(System.Windows.Input.MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+
+            if (_isMouseDown)
+            {
+                Point ptMouseMove = e.GetPosition(this);
+
+                if (Math.Abs(ptMouseMove.X - _mouseDownPoint.X) &gt; SystemParameters.MinimumHorizontalDragDistance ||
+                    Math.Abs(ptMouseMove.Y - _mouseDownPoint.Y) &gt; SystemParameters.MinimumVerticalDragDistance)
+                {
+                    UpdateDragDetails();
+                    CaptureMouse();
+                    _isMouseDown = false;
+                }
+            }
+
+            if (IsMouseCaptured)
+            {
+                var mousePosInScreenCoord = this.PointToScreenDPI(e.GetPosition(this));
+                if (!_parentDocumentTabPanelScreenArea.Contains(mousePosInScreenCoord))
+                {
+                    ReleaseMouseCapture();
+                    var manager = Model.Root.Manager;
+                    manager.StartDraggingFloatingWindowForContent(Model);
+                }
+                else
+                {
+                    int indexOfTabItemWithMouseOver = _otherTabsScreenArea.FindIndex(r =&gt; r.Contains(mousePosInScreenCoord));
+                    if (indexOfTabItemWithMouseOver &gt;= 0)
+                    {
+                        var targetModel = _otherTabs[indexOfTabItemWithMouseOver].Content as LayoutContent;
+                        var container = Model.Parent as ILayoutContainer;
+                        var containerPane = Model.Parent as ILayoutPane;
+                        var childrenList = container.Children.ToList();
+                        containerPane.MoveChild(childrenList.IndexOf(Model), childrenList.IndexOf(targetModel));
+                        Model.IsActive = true;
+                        _parentDocumentTabPanel.UpdateLayout();
+                        UpdateDragDetails();
+                    }
+                }
+            }
+
+        }
+
+        protected override void OnMouseLeftButtonUp(System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (IsMouseCaptured)
+                ReleaseMouseCapture();
+            _isMouseDown = false;
+
+            base.OnMouseLeftButtonUp(e);
+        }
+
+        protected override void OnMouseLeave(System.Windows.Input.MouseEventArgs e)
+        {
+            base.OnMouseLeave(e);
+            _isMouseDown = false;
+        }
+
+        protected override void OnMouseEnter(MouseEventArgs e)
+        {
+            base.OnMouseEnter(e);
+            _isMouseDown = false;
+        }
+
+        protected override void OnMouseDown(MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Middle)
+            {
+                if (LayoutItem.CloseCommand.CanExecute(null))
+                    LayoutItem.CloseCommand.Execute(null);
+            }
+
+            base.OnMouseDown(e);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[33,9,33,10,0],[34,13,34,147,0],[35,9,35,10,0],[37,9,37,39,0],[38,9,38,10,0],[39,9,39,10,0],[46,9,49,67,0],[57,17,57,18,0],[57,19,57,65,0],[57,66,57,67,0],[58,17,58,18,0],[58,19,58,50,0],[58,51,58,52,0],[65,9,65,10,0],[66,13,66,58,0],[67,9,67,10,0],[74,9,74,10,0],[75,13,75,31,0],[76,17,76,81,0],[78,17,78,37,0],[80,9,80,10,0],[89,9,91,66,0],[93,9,94,56,0],[102,17,102,18,0],[102,19,102,67,0],[102,68,102,69,0],[111,9,111,10,0],[112,13,112,52,0],[113,9,113,10,0],[117,9,117,48,0],[118,9,118,41,0],[121,9,121,35,0],[125,9,125,10,0],[126,13,126,88,0],[127,13,127,89,0],[128,13,129,17,0],[129,17,129,69,0],[129,69,129,80,0],[128,13,129,80,0],[130,13,130,93,0],[131,13,132,17,0],[132,17,132,18,0],[132,18,133,21,0],[133,21,133,57,0],[133,57,134,21,0],[134,21,134,117,0],[134,117,135,17,0],[135,17,135,18,0],[135,18,135,29,0],[131,13,135,29,0],[136,9,136,10,0],[139,9,139,10,0],[140,13,140,43,0],[142,13,142,35,0],[144,13,144,35,0],[145,13,145,14,0],[146,17,146,55,0],[147,17,147,37,0],[148,13,148,14,0],[149,9,149,10,0],[152,9,152,10,0],[153,13,153,33,0],[155,13,155,30,0],[156,13,156,14,0],[157,17,157,57,0],[159,17,160,112,0],[161,17,161,18,0],[162,21,162,41,0],[163,21,163,36,0],[164,21,164,42,0],[165,17,165,18,0],[166,13,166,14,0],[168,13,168,33,0],[169,13,169,14,0],[170,17,170,88,0],[171,17,171,88,0],[172,17,172,18,0],[173,21,173,43,0],[174,21,174,54,0],[175,21,175,74,0],[176,17,176,18,0],[178,17,178,18,0],[179,21,179,91,0],[179,91,179,124,0],[179,124,179,126,0],[179,21,179,126,0],[180,21,180,58,0],[181,21,181,22,0],[182,25,182,108,0],[183,25,183,74,0],[184,25,184,73,0],[185,25,185,72,0],[186,25,186,113,0],[187,25,187,47,0],[188,25,188,64,0],[189,25,189,45,0],[190,21,190,22,0],[191,17,191,18,0],[192,13,192,14,0],[194,9,194,10,0],[197,9,197,10,0],[198,13,198,33,0],[199,17,199,39,0],[200,13,200,34,0],[202,13,202,41,0],[203,9,203,10,0],[206,9,206,10,0],[207,13,207,34,0],[208,13,208,34,0],[209,9,209,10,0],[212,9,212,10,0],[213,13,213,34,0],[214,13,214,34,0],[215,9,215,10,0],[218,9,218,10,0],[219,13,219,55,0],[220,13,220,14,0],[221,17,221,62,0],[222,21,222,59,0],[223,13,223,14,0],[225,13,225,33,0],[226,9,226,10,0]]);
+    </script>
+  </body>
+</html>

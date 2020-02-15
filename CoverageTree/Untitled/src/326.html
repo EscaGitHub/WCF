@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\WebApi\StructureApiCaller.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
+using NLog;
+using RestSharp;
+using RestSharp.Serialization.Json;
+using Swr.Configurator.Common.Data.Api;
+using Swr.Configurator.Common.Logic;
+using Swr.Configurator.Logic;
+using Swr.Configurator.Logic.Elastic;
+using Swr.Configurator.Settings;
+
+namespace Swr.Configurator.WebApi
+{
+    static class StructureApiCaller
+    {
+        internal static List&lt;SpecificationComponentApi&gt; Get(Guid componentId)
+        {
+            ElasticLogController.Log(LogTypeEnum.Info, &quot;Get structure&quot;, EventEnum.Read, null, ObjectTypeEnum.Structure);
+
+            var baseAddress = WebApiPaths.GetBaseAddress();
+			var client = new RestClient(baseAddress);
+
+			var request = new RestRequest(WebApiPaths.GetStructure, Method.GET, DataFormat.Json);
+
+			request.AddParameter(&quot;componentId&quot;, componentId.ToString());
+			request.AddAuth(IdentityClient.Instance);
+			var response = client.Execute(request);
+
+			if (response.ResponseStatus == ResponseStatus.Completed)
+			{
+				var code = response.StatusCode;
+
+				if (code == HttpStatusCode.OK)
+				{
+					var a = new JsonDeserializer();
+
+					var result = a.Deserialize&lt;List&lt;SpecificationComponentApi&gt;&gt;(response);
+					return result;
+				}
+
+				if (code == HttpStatusCode.NotFound)
+				{
+					return new List&lt;SpecificationComponentApi&gt;();
+				}
+
+				if (code == HttpStatusCode.BadRequest)
+				{
+					throw new InvalidOperationException(response.Content);
+				}
+
+                if (code == HttpStatusCode.InternalServerError)
+                {
+                    throw new InvalidOperationException(&quot;Внутренняя ошибка сервера при выполнении запроса. Обратитесь к администратору&quot;);
+                }
+            }
+			else
+			{
+				throw new IOException(&quot;Ошибка соединения с сервисом&quot;);
+			}
+
+			return new List&lt;SpecificationComponentApi&gt;();
+		}
+
+        internal static bool ComponentHasChildren(Guid componentId)
+        {
+            var baseAddress = WebApiPaths.GetBaseAddress();
+            var client = new RestClient(baseAddress);
+
+            var request = new RestRequest(WebApiPaths.ComponentHasChildren, Method.GET, DataFormat.Json);
+
+            request.AddParameter(&quot;componentId&quot;, componentId.ToString());
+            request.AddAuth(IdentityClient.Instance);
+            var response = client.Execute(request);
+
+            if (response.ResponseStatus == ResponseStatus.Completed)
+            {
+                var code = response.StatusCode;
+
+                if (code == HttpStatusCode.OK)
+                {
+                    var a = new JsonDeserializer();
+
+                    var result = a.Deserialize&lt;bool&gt;(response);
+                    return result;
+                }
+
+                if (code == HttpStatusCode.NotFound)
+                {
+                    return false;
+                }
+
+                if (code == HttpStatusCode.BadRequest)
+                {
+                    throw new InvalidOperationException(response.Content);
+                }
+
+                if (code == HttpStatusCode.InternalServerError)
+                {
+                    throw new InvalidOperationException(&quot;Внутренняя ошибка сервера при выполнении запроса. Обратитесь к администратору&quot;);
+                }
+            }
+            else
+            {
+                throw new IOException(&quot;Ошибка соединения с сервисом&quot;);
+            }
+
+            return false;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[22,9,22,10,0],[23,13,23,121,0],[25,13,25,60,0],[26,4,26,45,0],[28,4,28,89,0],[30,4,30,64,0],[31,4,31,45,0],[32,4,32,43,0],[34,4,34,60,0],[35,4,35,5,0],[36,5,36,36,0],[38,5,38,35,0],[39,5,39,6,0],[40,6,40,37,0],[42,6,42,76,0],[43,6,43,20,0],[46,5,46,41,0],[47,5,47,6,0],[48,6,48,51,0],[51,5,51,43,0],[52,5,52,6,0],[53,6,53,60,0],[56,17,56,64,0],[57,17,57,18,0],[58,21,58,138,0],[60,13,60,14,0],[62,4,62,5,0],[63,5,63,59,0],[66,4,66,49,0],[67,3,67,4,0],[70,9,70,10,0],[71,13,71,60,0],[72,13,72,54,0],[74,13,74,106,0],[76,13,76,73,0],[77,13,77,54,0],[78,13,78,52,0],[80,13,80,69,0],[81,13,81,14,0],[82,17,82,48,0],[84,17,84,47,0],[85,17,85,18,0],[86,21,86,52,0],[88,21,88,64,0],[89,21,89,35,0],[92,17,92,53,0],[93,17,93,18,0],[94,21,94,34,0],[97,17,97,55,0],[98,17,98,18,0],[99,21,99,75,0],[102,17,102,64,0],[103,17,103,18,0],[104,21,104,138,0],[106,13,106,14,0],[108,13,108,14,0],[109,17,109,71,0],[112,13,112,26,0],[113,9,113,10,0]]);
+    </script>
+  </body>
+</html>

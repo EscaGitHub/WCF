@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\DbFillTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text;
+using Swr.Configurator.Common.Data;
+using SWR.ConfiguratorApi.Data;
+using SWR.ConfiguratorApi.Data.Db;
+using SWR.ConfiguratorApi.Logic;
+using Xunit;
+using Xunit.Abstractions;
+using Attribute = SWR.ConfiguratorApi.Data.Db.Attribute;
+
+namespace Swr.Configurator.Test
+{
+    public class DbFillTest
+    {
+        public void DefaultDbLoad()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                dbController.ClearSpecifications();
+                dbController.ClearComponents();
+
+                dbController.ClearComponentTypeAttributes();
+                dbController.ClearSpecificationTypeAttributes();
+
+                dbController.ClearTypeRelations();
+
+                dbController.ClearComponentTypes();
+                dbController.ClearSpecificationTypes();
+
+                dbController.ClearAttributes();
+                dbController.ClearAttributeTypes();
+                dbController.ClearRelationTypes();
+
+                dbController.SaveClose();
+            }
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                // ComponentObject
+                var componentType = new ComponentType { Id = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;), Name = &quot;Деталь&quot; };
+                componentType.NameTemplate = &quot;%Обозначение% - %Наименование%&quot;;
+                componentType.Icon =
+                    &quot;iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAOdSURBVEhLvZZPiNx0FMe/2gz+BmYhgRlIYIc26BSiXWsqU5gpRZgi2F1E7CLCznFsD64nEQ+yFcFtD0V7aDv10sWDrJele6g0C12agiszh4WNIGyUghG2MDkU8kMH5nfIwZeZZDvZP6NbsR8IL5P3+70v7/3eSwb/N8/F9h+ZP6+rkPByL4SRleDSo825bzx/4N2fkQKNs7JBpsZy7ByQVYwJXTOO6TL3A95y3I54HHgihEVr7IUffK+/aQf7Cty6qFfaPwet2ukTqJ2tQB3XYg8ghADnATzXw8a6K+w1jy3/xPeMNVKAgrSqEwogyWB5SkbKQnR7QChoBYcsMygFhvkrLTSX/D1jPR/bXWQzoACAaQL6OAfrtrHxwIZa5NBJyyyrMCZkqCoDY/GmPUgJ3LqoyouXdXP2XXm25fQWNCXa2YNMSeilHrL0Ux+noPnRQYdJCVgPRLMTqNbke5M3GuenjH78/0hKgGUwYxShVis6NI3qg2x8RST2YKQEtLyAccRDa+l7bDoOHSodKJVoQGIHUCPB9wUch86HZdF4W525fbOixu5tDsW2T/UV6Yt33mIkFFK3dJEnOzYWeejEEcL9LYPiiwW47mM8+qML/idDLlfEq8dL1BTZqXv33ZOTbxTG3p/SH1o/kjqxS6B2ikF6ASgUMhQ8jD0DAe/3DDo0u2P5oyiWDOqmo9AOayhoBZSOFyXzdUPnPKytbzzUnF+7d6Kdu9u0H3O47k/ujWOMMhNUEkYtrPRtAk01+JYHLSeih/rg6Q4BETLfWhNU3+G6P7nXiwLmaxz8UQutVZvOoEOCHM6aQxPtgEkctTfTx5ASqJVxbsPF8u17iUg6gwiqBswSDVuemmGlDWvJpqw7OFGW+4PXTyqpLJESmP6Mty99y6dpij+au8p9GjZaPJxNbKm7NC2A+RKVJN+jqZYh52L3DnafAVH/nDerJqu314W9eIdebEES/ODsKRBBInalzOq8i0sLSwLeVuzYLltSutHsKxBx5oLvf3Kdz6kqzlirwlleCSD+irJJrjScOt9e86Ny9WcgYqRAwgdfctucYPVND83FFYFOJ3YM4VN0a8WFvepZ1bL2dfz4338yI+7fVJnzi2gEXcxXy5CNIwoFViGPK1j4zhWazJp6iX01/aGz/Sk9kEDC3WuqYbfFHJMwg5CB01ukVlEa0x+77XjJNk8lEHH3ms68rd4svfSYVlSW65+60R+BZw3wN++8VuASm7BCAAAAAElFTkSuQmCC&quot;;
+                var componentType1 = new ComponentType { Id = Guid.Parse(&quot;39164A5B-1C4E-4B9D-9CDE-94C5DEE8502A&quot;), Name = &quot;Сборочная единица&quot; };
+                componentType1.NameTemplate = &quot;%Обозначение% - %Наименование%&quot;;
+                componentType1.Icon =
+                    &quot;iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAPZSURBVEhLtZVNaBtHGIZftxsYUQd2QYbd4rZeiElXONAVTUACHSwTSpRTVEqhOvoQiNNT3UOKeqsTCC6FxqKHRpcU1dBi+WAsKIENtCC1BKSATSa0KWuI6S5FRHMQaAoqdGa1siVHcmhLHhh9q5nZ9/uZn8WLZiK0x5K9ZBFrxrChIO43iapOcsoVlRa+KNNwyljGOrh9M0HcJ8iiy9P0MYulUwndmDEMooB4vsco9T362HUzl9JFT7ErK1eu8vDVIcY6WLtmJRq7rWrmQhJ2woI5bUBkEMAYB/U5qlSHQ33QvRbzGCsaUbVizhgPnRvLfm/mcQ4+tRKcedXkGQ2trg5NN+F2DbiMiP9aYLWoCX3GQEQh8PY90B3K6o9oVbxeZluFotR5Sf6MgpwAVBWwbSB+ygfhNax9T7F2l8OFhXgqg0QiDtMwQDQNqm6go0AlCsmI1z/oqRzJoHTTMuuUm0I6SxS+GJ9tkcy8HImI1kH6yxhiiY9QbTRkJ6wzVmAZa8FzXdhn40iKiPLXP3dEBgtyLKxqD+en1oY1Z1qWZRIjGgHf2w5HDtHFWmRFtFK0er8G1haO55PIXrh4oEZ6JmCoRJ0ubGPKIOa0SFkT9Qkil03StwIhpEY1iEhgzZpI2HGI3RUI98QPN9SQA2OSI5NicHfrcO46oigd0SubpG+fpS8nbfA8UJcji8xFBC7SKY7kHBNbM+z+H4zYRSLSrhB/TWQktv6/xfO8wWIOO+Bd0YIc++UYXoNYlIA+qAcLDDF3EPeJh+q9bbDdEqxuPewFXg5twKyhvM87ZOp1PQIS6EpHUkkcCvFszwLt5g7o7z529tqYmIig1Wqi+bSJv//4Ee9MP8LlBQ7nB+ru/MruSIUhB5ffi1bv1/mU+ye3ZP1PviK9SHHJCZxUOM690Ub8VQ9TEz4qv3hgTz1cPP0bls7/hXOnO5hUuihv7x84GHlVrH6oLtV3ef7d86qeTomtF6Qjsxm0st6Az3Qk5sXZHCB3peZ8u+UGB23EIgPLt1ghdorkKve4U/yOC6H+mvSR/4/2DdA9HBvpQJL/mjnpeZJz97FS+IajEdz8/ej77fmMdSDJfeL7hU2WF6d0obTJG6UyB2v1o382A9bmKG+54nYFC7uOd9BnZZ05SZvkag9QKK6L29QNBwbwxfehdIdiY5NW7Le01bB7/PdgFBvXdSLWZZEQfJY8C9V+k4DJy3cygtL6Q84ZL9hva6tXb7jP/+Acx+1ruuX8zPNGVNz78mPjcxqfI4vLt/xaOOWA/+RAsvaxSRjrLIkbGBpBefkrf0ThXjjAP7mHgIwMpgGhAAAAAElFTkSuQmCC&quot;;
+                dbController.AddComponentTypes(new List&lt;ComponentType&gt; {componentType, componentType1});
+
+
+                // SpecificationObject:
+
+                var specificationType = new SpecificationType
+                    {ID = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;), Name = &quot;Конструкторская спецификация&quot;};
+                dbController.AddSpecificationTypes(new List&lt;SpecificationType&gt;{specificationType});
+
+                //  Attributes:
+                var guidCard = Guid.Parse(&quot;683E9C79-3F90-45CD-AA9B-6D1AF6A9889E&quot;);
+                var attributeType = new AttributeType {ID = guidCard, Name = &quot;Card&quot;};
+                dbController.AddAttributeType(attributeType);
+
+                var guidLink = Guid.Parse(&quot;F9D26676-49DF-4661-8B3C-CE65BF9C09CD&quot;);
+                var attributeTypeLink = new AttributeType { ID = guidLink, Name = &quot;Link&quot; };
+                dbController.AddAttributeType(attributeTypeLink);
+
+                var cardAttributeNames = new List&lt;string&gt; { &quot;Наименование&quot;, &quot;Обозначение&quot;, &quot;Примечание&quot;, &quot;Поле1&quot;, &quot;Поле2&quot;, &quot;Поле3&quot;, &quot;Поле4&quot;, &quot;Поле5&quot;, &quot;Поле6&quot;, &quot;Поле7&quot;};
+                var cardAttributes = new List&lt;Attribute&gt;();
+
+                foreach (var attributeName in cardAttributeNames)
+                {
+                    var cardAttribute = new Attribute {ID = Guid.NewGuid(), AttrTypeId = guidCard, Name = attributeName};
+                    cardAttributes.Add(cardAttribute);
+                    dbController.AddAttribute(cardAttribute);
+                }
+
+                var linkAttributeNames = new List&lt;string&gt; {&quot;Раздел спецификации&quot;, &quot;Количество&quot;, &quot;Единица измерения количества&quot;, &quot;Позиция&quot;};
+                var linkAttributes = new List&lt;Attribute&gt;();
+
+                foreach (var linkAttributeName in linkAttributeNames)
+                {
+                    var linkAttribute = new Attribute
+                    {
+                        ID = Guid.NewGuid(),
+                        AttrTypeId = guidLink,
+                        Name = linkAttributeName
+                    };
+                    linkAttributes.Add(linkAttribute);
+                    dbController.AddAttribute(linkAttribute);
+                }
+
+                //атрибуты типа Деталь
+                var componentTypeAttributes = new List&lt;ComponentTypeAttribute&gt;();
+                var componentTypeAttribute1 = new ComponentTypeAttribute
+                {
+                    Id = Guid.Parse(&quot;0F255A2C-6B7D-4466-A7E9-9B3EBEA41002&quot;),
+                    ComponentTypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;),
+                    AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Наименование&quot;).ID
+                };
+                componentTypeAttributes.Add(componentTypeAttribute1);
+
+                var componentTypeAttribute2 = new ComponentTypeAttribute();
+                componentTypeAttribute2.Id = Guid.Parse(&quot;22F7AAFB-AF68-4D07-AEF6-787549E7FCDA&quot;);
+                componentTypeAttribute2.ComponentTypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                componentTypeAttribute2.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Обозначение&quot;).ID;
+                componentTypeAttributes.Add(componentTypeAttribute2);
+
+                var componentTypeAttribute3 = new ComponentTypeAttribute();
+                componentTypeAttribute3.Id = Guid.Parse(&quot;ADC6B211-4CD7-4128-B8C7-92B6846E8F6D&quot;);
+                componentTypeAttribute3.ComponentTypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                componentTypeAttribute3.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Примечание&quot;).ID;
+                componentTypeAttributes.Add(componentTypeAttribute3);
+
+                var componentTypeAttribute4 = new ComponentTypeAttribute();
+                componentTypeAttribute4.Id = Guid.Parse(&quot;13DCD639-228A-4C45-BE9E-E3D416DCDCC1&quot;);
+                componentTypeAttribute4.ComponentTypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                componentTypeAttribute4.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Поле1&quot;).ID;
+                componentTypeAttributes.Add(componentTypeAttribute4);
+
+                var componentTypeAttribute5 = new ComponentTypeAttribute();
+                componentTypeAttribute5.Id = Guid.Parse(&quot;2B978309-D69C-4F83-B030-1BF7FFD2D856&quot;);
+                componentTypeAttribute5.ComponentTypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                componentTypeAttribute5.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Поле2&quot;).ID;
+                componentTypeAttributes.Add(componentTypeAttribute5);
+
+                var componentTypeAttribute6 = new ComponentTypeAttribute();
+                componentTypeAttribute6.Id = Guid.Parse(&quot;B3677033-AB1E-40C7-BAAD-91EDD90FB60D&quot;);
+                componentTypeAttribute6.ComponentTypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                componentTypeAttribute6.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Поле3&quot;).ID;
+                componentTypeAttributes.Add(componentTypeAttribute6);
+
+                var componentTypeAttribute7 = new ComponentTypeAttribute();
+                componentTypeAttribute7.Id = Guid.Parse(&quot;36652085-E46C-45BB-A374-CF88D5380734&quot;);
+                componentTypeAttribute7.ComponentTypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                componentTypeAttribute7.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Поле4&quot;).ID;
+                componentTypeAttributes.Add(componentTypeAttribute7);
+
+                var componentTypeAttribute8 = new ComponentTypeAttribute();
+                componentTypeAttribute8.Id = Guid.Parse(&quot;0FD2BB21-F7EC-44EE-B118-A5F7F14E5747&quot;);
+                componentTypeAttribute8.ComponentTypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                componentTypeAttribute8.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Поле5&quot;).ID;
+                componentTypeAttributes.Add(componentTypeAttribute8);
+
+                var componentTypeAttribute9 = new ComponentTypeAttribute();
+                componentTypeAttribute9.Id = Guid.Parse(&quot;3D9F6BBB-CA57-40D6-84F3-1458C0657348&quot;);
+                componentTypeAttribute9.ComponentTypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                componentTypeAttribute9.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Поле6&quot;).ID;
+                componentTypeAttributes.Add(componentTypeAttribute9);
+
+                var componentTypeAttribute10 = new ComponentTypeAttribute();
+                componentTypeAttribute10.Id = Guid.Parse(&quot;373B151C-FDA4-43A6-81C8-1F821B528AE0&quot;);
+                componentTypeAttribute10.ComponentTypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);
+                componentTypeAttribute10.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Поле7&quot;).ID;
+                componentTypeAttributes.Add(componentTypeAttribute10);
+                dbController.AddComponentTypeAttributes(componentTypeAttributes);
+
+
+                //заполняем атрибуты для типа компонента Сборочная единица
+                componentTypeAttributes = new List&lt;ComponentTypeAttribute&gt;();
+                componentTypeAttribute1 = new ComponentTypeAttribute
+                {
+                    Id = Guid.Parse(&quot;6E290E72-86B5-4726-A92E-16196F390502&quot;),
+                    ComponentTypeId = Guid.Parse(&quot;39164A5B-1C4E-4B9D-9CDE-94C5DEE8502A&quot;),
+                    AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Наименование&quot;).ID
+                };
+                componentTypeAttributes.Add(componentTypeAttribute1);
+
+                componentTypeAttribute2 = new ComponentTypeAttribute();
+                componentTypeAttribute2.Id = Guid.Parse(&quot;ED6557DB-A60F-4F04-880A-2EB6248FBEE7&quot;);
+                componentTypeAttribute2.ComponentTypeId = Guid.Parse(&quot;39164A5B-1C4E-4B9D-9CDE-94C5DEE8502A&quot;);
+                componentTypeAttribute2.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Обозначение&quot;).ID;
+                componentTypeAttributes.Add(componentTypeAttribute2);
+                dbController.AddComponentTypeAttributes(componentTypeAttributes);
+
+
+                //атрибуты для спецификации &quot;Конструкторская документация&quot;
+                var specificationTypeAttributes = new List&lt;SpecificationTypeAttribute&gt;();
+
+                var specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;B4BBB607-BFAA-4D69-A314-B67E0AF28BFA&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Наименование&quot;).ID;
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;652BFE09-ED9F-4D77-AD67-BB0E15E4CC35&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Обозначение&quot;).ID;
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;D3CF4646-ED3F-487D-A0CC-1BE7522EA098&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = cardAttributes.Find(t =&gt; t.Name == &quot;Примечание&quot;).ID;
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;B3DFAB4A-06A3-42BA-A3E6-723BF5F4DDF1&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = linkAttributes.Find(t =&gt; t.Name == &quot;Раздел спецификации&quot;).ID;
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;9FEE73C3-D0DE-416C-B876-605EC543A92A&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = linkAttributes.Find(t =&gt; t.Name == &quot;Количество&quot;).ID;
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;FA192BAE-9C02-4C99-85CE-06D643A18FA7&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = linkAttributes.Find(t =&gt; t.Name == &quot;Единица измерения количества&quot;).ID;
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;410D5F81-48CF-4935-8FEA-FDBB9F94A902&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = linkAttributes.Find(t =&gt; t.Name == &quot;Позиция&quot;).ID;
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+
+                dbController.AddSpecificationTypeAttributes(specificationTypeAttributes);
+
+
+                //заполняем типы связей 
+                var relationType = new RelationType();
+                relationType.Id = Guid.Parse(&quot;A670463C-89DB-4FE1-9885-163B4E3E647D&quot;);
+                relationType.Name = &quot;BOM&quot;;
+                dbController.AddRelationType(relationType);
+
+                relationType = new RelationType();
+                relationType.Id = Guid.Parse(&quot;FA61D5A7-873B-4BC8-B5EC-E5C566A4D914&quot;);
+                relationType.Name = &quot;Specification&quot;;
+                dbController.AddRelationType(relationType);
+
+                relationType = new RelationType();
+                relationType.Id = Guid.Parse(&quot;2DB75DB2-7124-4EDB-B65D-8B4B0B6B5B44&quot;);
+                relationType.Name = &quot;AllowSpecification&quot;;
+                dbController.AddRelationType(relationType);
+
+                relationType = new RelationType();
+                relationType.Id = Guid.Parse(&quot;CFECE3FC-B00B-42D7-A52D-DFF6864B60EF&quot;);
+                relationType.Name = &quot;IncludeComponentType&quot;;
+                dbController.AddRelationType(relationType);
+
+                //добавляем связи между типами компонентов и типами спецификаций
+                var typeRelations = new List&lt;TypeRelation&gt;();
+                var typeRelation = new TypeRelation();
+                typeRelation.Id = Guid.NewGuid();
+                typeRelation.ComponentTypeId = componentType1.Id;
+                typeRelation.SpecificationTypeId = specificationType.ID;
+                typeRelation.RelationTypeId = Guid.Parse(&quot;2DB75DB2-7124-4EDB-B65D-8B4B0B6B5B44&quot;);
+                typeRelations.Add(typeRelation);
+
+                var typeRelation1 = new TypeRelation();
+                typeRelation1.Id = Guid.NewGuid();
+                typeRelation1.SpecificationTypeId = specificationType.ID;
+                typeRelation1.ComponentTypeId = componentType.Id;
+                typeRelation1.RelationTypeId = Guid.Parse(&quot;CFECE3FC-B00B-42D7-A52D-DFF6864B60EF&quot;);
+                typeRelations.Add(typeRelation1);
+
+                var typeRelation2 = new TypeRelation();
+                typeRelation2.Id = Guid.NewGuid();
+                typeRelation2.SpecificationTypeId = specificationType.ID;
+                typeRelation2.ComponentTypeId = componentType1.Id;
+                typeRelation2.RelationTypeId = Guid.Parse(&quot;CFECE3FC-B00B-42D7-A52D-DFF6864B60EF&quot;);
+                typeRelations.Add(typeRelation2);
+
+                dbController.AddTypeRelations(typeRelations);
+
+                dbController.SaveClose();
+            }
+        }
+
+        private readonly ITestOutputHelper _output;
+
+
+        public DbFillTest(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
+        private void SetTestSettingsConnection()
+        {
+            var settings = new DBSettings { DatabaseName = &quot;swr_configurator&quot;, Host = &quot;192.168.0.236&quot;, UserName = &quot;postgres&quot;, Password = &quot;newtime&quot;, Port = 5432 };
+             
+            DbSettingsSingleton.Instance.SetValues(settings);
+        }
+        
+        public void FillRelationType()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                var relationType = new RelationType();
+                relationType.Id = Guid.Parse(&quot;A670463C-89DB-4FE1-9885-163B4E3E647D&quot;);
+                relationType.Name = &quot;BOM&quot;;
+                dbController.AddRelationType(relationType);
+
+                relationType = new RelationType();
+                relationType.Id = Guid.Parse(&quot;FA61D5A7-873B-4BC8-B5EC-E5C566A4D914&quot;);
+                relationType.Name = &quot;Specification&quot;;
+                dbController.AddRelationType(relationType);
+
+                dbController.SaveClose();
+            }
+        }
+
+
+        public void FillSpecificationTypeAttributes()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                var specificationTypeAttributes = new List&lt;SpecificationTypeAttribute&gt;();
+
+                var specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;B4BBB607-BFAA-4D69-A314-B67E0AF28BFA&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = Guid.Parse(&quot;22a59f19-049a-486d-b1a0-c5c7d8e9bf6c&quot;);
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;E163E509-6405-4F79-A1D5-F90C0DC88B73&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = Guid.Parse(&quot;9d7afcf6-faf1-49fd-a8c5-f164572259af&quot;);
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;2B3522AC-BC78-4C8C-848E-E5A7434226A9&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = Guid.Parse(&quot;15d9bacb-589f-4e2e-855e-fdead1559edb&quot;);
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;A5A98C3E-74B3-4356-98B9-59E738C8C9C3&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = Guid.Parse(&quot;67964134-b1b3-47fc-851b-8f0773b0bacb&quot;);
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;229B212F-88F8-4B68-85BE-2D9429829888&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = Guid.Parse(&quot;29bf3fe0-22f4-4e05-8f84-8d2c252035c6&quot;);
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;1A89D60D-B02E-4607-A857-EE86FB92E2FB&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = Guid.Parse(&quot;b10763eb-36d0-423f-b4bd-87353e6dcd7a&quot;);
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;90DC6E33-D386-4FE3-BF59-021D26CB522D&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = Guid.Parse(&quot;9e4bc5ec-987b-4a5b-b932-8fbe19dddaac&quot;);
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;147B6442-F338-4F5F-A21D-23BFEC56F591&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = Guid.Parse(&quot;d4b61cb5-2c07-4a41-b7ce-17351f499ea4&quot;);
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;756CA393-FF76-4419-9EB9-2FEBB0F56E42&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = Guid.Parse(&quot;54b50cfc-9ddd-496a-804a-46048e07d0c4&quot;);
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                specificationTypeAttribute = new SpecificationTypeAttribute();
+                specificationTypeAttribute.Id = Guid.Parse(&quot;292AA826-E07D-4A5B-8DCB-CA553AB8FD2F&quot;);
+                specificationTypeAttribute.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                specificationTypeAttribute.AttributeId = Guid.Parse(&quot;979327a8-665e-4b99-89d9-413a233dc891&quot;);
+                specificationTypeAttributes.Add(specificationTypeAttribute);
+
+                dbController.AddSpecificationTypeAttributes(specificationTypeAttributes);
+
+                dbController.SaveClose();
+            }
+        }
+
+ 
+        public void FillTypeRelations()
+        {
+            SetTestSettingsConnection();
+
+            using (var dbController = new DbController())
+            {
+                dbController.Connect();
+
+                var relationType = new RelationType();
+                relationType.Id = Guid.Parse(&quot;2DB75DB2-7124-4EDB-B65D-8B4B0B6B5B44&quot;);
+                relationType.Name = &quot;AllowSpecification&quot;;
+                dbController.AddRelationType(relationType);
+
+                relationType = new RelationType();
+                relationType.Id = Guid.Parse(&quot;CFECE3FC-B00B-42D7-A52D-DFF6864B60EF&quot;);
+                relationType.Name = &quot;IncludeComponentType&quot;;
+                dbController.AddRelationType(relationType);
+
+                //добавляем связи между типами компонентов и типами спецификаций
+                var typeRelations = new List&lt;TypeRelation&gt;();
+                var typeRelation = new TypeRelation();
+                typeRelation.Id = Guid.NewGuid();
+                typeRelation.ComponentTypeId = Guid.Parse(&quot;39164A5B-1C4E-4B9D-9CDE-94C5DEE8502A&quot;);
+                typeRelation.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);
+                typeRelation.RelationTypeId = Guid.Parse(&quot;2DB75DB2-7124-4EDB-B65D-8B4B0B6B5B44&quot;);
+                typeRelations.Add(typeRelation);
+
+                var typeRelation1 = new TypeRelation();
+                typeRelation1.Id = Guid.NewGuid();
+                typeRelation1.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);//.ID;
+                typeRelation1.ComponentTypeId = Guid.Parse(&quot;7E071F58-7A80-4CC3-8D9A-8482E4A1C63E&quot;);//componentType.Id;
+                typeRelation1.RelationTypeId = Guid.Parse(&quot;CFECE3FC-B00B-42D7-A52D-DFF6864B60EF&quot;);
+                typeRelations.Add(typeRelation1);
+
+                var typeRelation2 = new TypeRelation();
+                typeRelation2.Id = Guid.NewGuid();
+                typeRelation2.SpecificationTypeId = Guid.Parse(&quot;F6C5B906-231C-4E9C-A0DA-DE5406FFE6B1&quot;);//specificationType.ID;
+                typeRelation2.ComponentTypeId = Guid.Parse(&quot;39164A5B-1C4E-4B9D-9CDE-94C5DEE8502A&quot;);
+                typeRelation2.RelationTypeId = Guid.Parse(&quot;CFECE3FC-B00B-42D7-A52D-DFF6864B60EF&quot;);
+                typeRelations.Add(typeRelation2);
+
+                dbController.AddTypeRelations(typeRelations);
+
+                dbController.SaveClose();
+            }
+            
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[18,9,18,10,0],[19,13,19,41,0],[21,20,21,57,0],[22,13,22,14,0],[23,17,23,40,0],[25,17,25,52,0],[26,17,26,48,0],[28,17,28,61,0],[29,17,29,65,0],[31,17,31,51,0],[33,17,33,52,0],[34,17,34,56,0],[36,17,36,48,0],[37,17,37,52,0],[38,17,38,51,0],[40,17,40,42,0],[41,13,41,14,0],[43,20,43,57,0],[44,13,44,14,0],[45,17,45,40,0],[48,17,48,132,0],[49,17,49,79,0],[50,17,51,1400,0],[52,17,52,144,0],[53,17,53,80,0],[54,17,55,1480,0],[56,17,56,105,0],[61,17,62,118,0],[63,17,63,100,0],[66,17,66,83,0],[67,17,67,86,0],[68,17,68,62,0],[70,17,70,83,0],[71,17,71,92,0],[72,17,72,66,0],[74,17,74,169,0],[75,17,75,60,0],[77,17,77,24,0],[77,26,77,43,0],[77,44,77,46,0],[77,47,77,65,0],[78,17,78,18,0],[79,21,79,122,0],[80,21,80,55,0],[81,21,81,62,0],[82,17,82,18,0],[84,17,84,140,0],[85,17,85,60,0],[87,17,87,24,0],[87,26,87,47,0],[87,48,87,50,0],[87,51,87,69,0],[88,17,88,18,0],[89,21,94,23,0],[95,21,95,55,0],[96,21,96,62,0],[97,17,97,18,0],[100,17,100,82,0],[101,17,105,60,0],[105,60,105,84,0],[105,84,106,19,0],[101,17,106,19,0],[107,17,107,70,0],[109,17,109,76,0],[110,17,110,97,0],[111,17,111,110,0],[112,17,112,80,0],[112,80,112,103,0],[112,103,112,108,0],[112,17,112,108,0],[113,17,113,70,0],[115,17,115,76,0],[116,17,116,97,0],[117,17,117,110,0],[118,17,118,80,0],[118,80,118,102,0],[118,102,118,107,0],[118,17,118,107,0],[119,17,119,70,0],[121,17,121,76,0],[122,17,122,97,0],[123,17,123,110,0],[124,17,124,80,0],[124,80,124,97,0],[124,97,124,102,0],[124,17,124,102,0],[125,17,125,70,0],[127,17,127,76,0],[128,17,128,97,0],[129,17,129,110,0],[130,17,130,80,0],[130,80,130,97,0],[130,97,130,102,0],[130,17,130,102,0],[131,17,131,70,0],[133,17,133,76,0],[134,17,134,97,0],[135,17,135,110,0],[136,17,136,80,0],[136,80,136,97,0],[136,97,136,102,0],[136,17,136,102,0],[137,17,137,70,0],[139,17,139,76,0],[140,17,140,97,0],[141,17,141,110,0],[142,17,142,80,0],[142,80,142,97,0],[142,97,142,102,0],[142,17,142,102,0],[143,17,143,70,0],[145,17,145,76,0],[146,17,146,97,0],[147,17,147,110,0],[148,17,148,80,0],[148,80,148,97,0],[148,97,148,102,0],[148,17,148,102,0],[149,17,149,70,0],[151,17,151,76,0],[152,17,152,97,0],[153,17,153,110,0],[154,17,154,80,0],[154,80,154,97,0],[154,97,154,102,0],[154,17,154,102,0],[155,17,155,70,0],[157,17,157,77,0],[158,17,158,98,0],[159,17,159,111,0],[160,17,160,81,0],[160,81,160,98,0],[160,98,160,103,0],[160,17,160,103,0],[161,17,161,71,0],[162,17,162,82,0],[166,17,166,78,0],[167,17,171,60,0],[171,60,171,84,0],[171,84,172,19,0],[167,17,172,19,0],[173,17,173,70,0],[175,17,175,72,0],[176,17,176,97,0],[177,17,177,110,0],[178,17,178,80,0],[178,80,178,103,0],[178,103,178,108,0],[178,17,178,108,0],[179,17,179,70,0],[180,17,180,82,0],[184,17,184,90,0],[186,17,186,83,0],[187,17,187,100,0],[188,17,188,117,0],[189,17,189,83,0],[189,83,189,107,0],[189,107,189,112,0],[189,17,189,112,0],[190,17,190,77,0],[192,17,192,79,0],[193,17,193,100,0],[194,17,194,117,0],[195,17,195,83,0],[195,83,195,106,0],[195,106,195,111,0],[195,17,195,111,0],[196,17,196,77,0],[198,17,198,79,0],[199,17,199,100,0],[200,17,200,117,0],[201,17,201,83,0],[201,83,201,105,0],[201,105,201,110,0],[201,17,201,110,0],[202,17,202,77,0],[205,17,205,79,0],[206,17,206,100,0],[207,17,207,117,0],[208,17,208,83,0],[208,83,208,114,0],[208,114,208,119,0],[208,17,208,119,0],[209,17,209,77,0],[212,17,212,79,0],[213,17,213,100,0],[214,17,214,117,0],[215,17,215,83,0],[215,83,215,105,0],[215,105,215,110,0],[215,17,215,110,0],[216,17,216,77,0],[218,17,218,79,0],[219,17,219,100,0],[220,17,220,117,0],[221,17,221,83,0],[221,83,221,123,0],[221,123,221,128,0],[221,17,221,128,0],[222,17,222,77,0],[224,17,224,79,0],[225,17,225,100,0],[226,17,226,117,0],[227,17,227,83,0],[227,83,227,102,0],[227,102,227,107,0],[227,17,227,107,0],[228,17,228,77,0],[231,17,231,90,0],[235,17,235,55,0],[236,17,236,86,0],[237,17,237,43,0],[238,17,238,60,0],[240,17,240,51,0],[241,17,241,86,0],[242,17,242,53,0],[243,17,243,60,0],[245,17,245,51,0],[246,17,246,86,0],[247,17,247,58,0],[248,17,248,60,0],[250,17,250,51,0],[251,17,251,86,0],[252,17,252,60,0],[253,17,253,60,0],[256,17,256,62,0],[257,17,257,55,0],[258,17,258,50,0],[259,17,259,66,0],[260,17,260,73,0],[261,17,261,98,0],[262,17,262,49,0],[264,17,264,56,0],[265,17,265,51,0],[266,17,266,74,0],[267,17,267,66,0],[268,17,268,99,0],[269,17,269,50,0],[271,17,271,56,0],[272,17,272,51,0],[273,17,273,74,0],[274,17,274,67,0],[275,17,275,99,0],[276,17,276,50,0],[278,17,278,62,0],[280,17,280,42,0],[281,13,281,14,0],[282,9,282,10,0],[287,9,287,52,0],[288,9,288,10,0],[289,13,289,30,0],[290,9,290,10,0],[293,9,293,10,0],[294,13,294,163,0],[296,13,296,62,0],[297,9,297,10,0],[300,9,300,10,0],[301,13,301,41,0],[303,20,303,57,0],[304,13,304,14,0],[305,17,305,40,0],[307,17,307,55,0],[308,17,308,86,0],[309,17,309,43,0],[310,17,310,60,0],[312,17,312,51,0],[313,17,313,86,0],[314,17,314,53,0],[315,17,315,60,0],[317,17,317,42,0],[318,13,318,14,0],[319,9,319,10,0],[323,9,323,10,0],[324,13,324,41,0],[326,20,326,57,0],[327,13,327,14,0],[328,17,328,40,0],[330,17,330,90,0],[332,17,332,83,0],[333,17,333,100,0],[334,17,334,117,0],[335,17,335,109,0],[336,17,336,77,0],[338,17,338,79,0],[339,17,339,100,0],[340,17,340,117,0],[341,17,341,109,0],[342,17,342,77,0],[344,17,344,79,0],[345,17,345,100,0],[346,17,346,117,0],[347,17,347,109,0],[348,17,348,77,0],[350,17,350,79,0],[351,17,351,100,0],[352,17,352,117,0],[353,17,353,109,0],[354,17,354,77,0],[356,17,356,79,0],[357,17,357,100,0],[358,17,358,117,0],[359,17,359,109,0],[360,17,360,77,0],[362,17,362,79,0],[363,17,363,100,0],[364,17,364,117,0],[365,17,365,109,0],[366,17,366,77,0],[368,17,368,79,0],[369,17,369,100,0],[370,17,370,117,0],[371,17,371,109,0],[372,17,372,77,0],[374,17,374,79,0],[375,17,375,100,0],[376,17,376,117,0],[377,17,377,109,0],[378,17,378,77,0],[380,17,380,79,0],[381,17,381,100,0],[382,17,382,117,0],[383,17,383,109,0],[384,17,384,77,0],[386,17,386,79,0],[387,17,387,100,0],[388,17,388,117,0],[389,17,389,109,0],[390,17,390,77,0],[392,17,392,90,0],[394,17,394,42,0],[395,13,395,14,0],[396,9,396,10,0],[400,9,400,10,0],[401,13,401,41,0],[403,20,403,57,0],[404,13,404,14,0],[405,17,405,40,0],[407,17,407,55,0],[408,17,408,86,0],[409,17,409,58,0],[410,17,410,60,0],[412,17,412,51,0],[413,17,413,86,0],[414,17,414,60,0],[415,17,415,60,0],[418,17,418,62,0],[419,17,419,55,0],[420,17,420,50,0],[421,17,421,99,0],[422,17,422,103,0],[423,17,423,98,0],[424,17,424,49,0],[426,17,426,56,0],[427,17,427,51,0],[428,17,428,104,0],[429,17,429,100,0],[430,17,430,99,0],[431,17,431,50,0],[433,17,433,56,0],[434,17,434,51,0],[435,17,435,104,0],[436,17,436,100,0],[437,17,437,99,0],[438,17,438,50,0],[440,17,440,62,0],[442,17,442,42,0],[443,13,443,14,0],[445,9,445,10,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Controls\MultiSelectTreeListViewControls\VirtualToggleButton.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Windows;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+
+namespace Swr.Configurator.View.Controls.MultiSelectTreeListViewControls
+{
+	public static class VirtualToggleButton
+	{
+		#region attached properties
+
+		#region IsChecked
+
+		/// &lt;summary&gt;
+		/// IsChecked Attached Dependency Property
+		/// &lt;/summary&gt;
+		public static readonly DependencyProperty IsCheckedProperty =
+			DependencyProperty.RegisterAttached(&quot;IsChecked&quot;, typeof(bool?), typeof(VirtualToggleButton),
+				new FrameworkPropertyMetadata((bool?) false,
+					FrameworkPropertyMetadataOptions.BindsTwoWayByDefault | FrameworkPropertyMetadataOptions.Journal,
+					OnIsCheckedChanged));
+
+		/// &lt;summary&gt;
+		/// Gets the IsChecked property.  This dependency property 
+		/// indicates whether the toggle button is checked.
+		/// &lt;/summary&gt;
+		public static bool? GetIsChecked(DependencyObject d)
+		{
+			return (bool?) d.GetValue(IsCheckedProperty);
+		}
+
+		/// &lt;summary&gt;
+		/// Sets the IsChecked property.  This dependency property 
+		/// indicates whether the toggle button is checked.
+		/// &lt;/summary&gt;
+		public static void SetIsChecked(DependencyObject d, bool? value)
+		{
+			d.SetValue(IsCheckedProperty, value);
+		}
+
+		/// &lt;summary&gt;
+		/// Handles changes to the IsChecked property.
+		/// &lt;/summary&gt;
+		private static void OnIsCheckedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+		{
+			if (d is UIElement pseudobutton)
+			{
+				var newValue = (bool?) e.NewValue;
+				if (newValue == true)
+				{
+					RaiseCheckedEvent(pseudobutton);
+				}
+				else if (newValue == false)
+				{
+					RaiseUncheckedEvent(pseudobutton);
+				}
+				else
+				{
+					RaiseIndeterminateEvent(pseudobutton);
+				}
+			}
+		}
+
+		#endregion
+
+		#region IsThreeState
+
+		/// &lt;summary&gt;
+		/// IsThreeState Attached Dependency Property
+		/// &lt;/summary&gt;
+		public static readonly DependencyProperty IsThreeStateProperty =
+			DependencyProperty.RegisterAttached(&quot;IsThreeState&quot;, typeof(bool), typeof(VirtualToggleButton),
+				new FrameworkPropertyMetadata(false));
+
+		/// &lt;summary&gt;
+		/// Gets the IsThreeState property.  This dependency property 
+		/// indicates whether the control supports two or three states.  
+		/// IsChecked can be set to null as a third state when IsThreeState is true.
+		/// &lt;/summary&gt;
+		public static bool GetIsThreeState(DependencyObject d)
+		{
+			return (bool) d.GetValue(IsThreeStateProperty);
+		}
+
+		/// &lt;summary&gt;
+		/// Sets the IsThreeState property.  This dependency property 
+		/// indicates whether the control supports two or three states. 
+		/// IsChecked can be set to null as a third state when IsThreeState is true.
+		/// &lt;/summary&gt;
+		public static void SetIsThreeState(DependencyObject d, bool value)
+		{
+			d.SetValue(IsThreeStateProperty, value);
+		}
+
+		#endregion
+
+		#region IsVirtualToggleButton
+
+		/// &lt;summary&gt;
+		/// IsVirtualToggleButton Attached Dependency Property
+		/// &lt;/summary&gt;
+		public static readonly DependencyProperty IsVirtualToggleButtonProperty =
+			DependencyProperty.RegisterAttached(&quot;IsVirtualToggleButton&quot;, typeof(bool), typeof(VirtualToggleButton),
+				new FrameworkPropertyMetadata(false,
+					OnIsVirtualToggleButtonChanged));
+
+		/// &lt;summary&gt;
+		/// Gets the IsVirtualToggleButton property.  This dependency property 
+		/// indicates whether the object to which the property is attached is treated as a VirtualToggleButton.  
+		/// If true, the object will respond to keyboard and mouse input the same way a ToggleButton would.
+		/// &lt;/summary&gt;
+		public static bool GetIsVirtualToggleButton(DependencyObject d)
+		{
+			return (bool) d.GetValue(IsVirtualToggleButtonProperty);
+		}
+
+		/// &lt;summary&gt;
+		/// Sets the IsVirtualToggleButton property.  This dependency property 
+		/// indicates whether the object to which the property is attached is treated as a VirtualToggleButton.  
+		/// If true, the object will respond to keyboard and mouse input the same way a ToggleButton would.
+		/// &lt;/summary&gt;
+		public static void SetIsVirtualToggleButton(DependencyObject d, bool value)
+		{
+			d.SetValue(IsVirtualToggleButtonProperty, value);
+		}
+
+		/// &lt;summary&gt;
+		/// Handles changes to the IsVirtualToggleButton property.
+		/// &lt;/summary&gt;
+		private static void OnIsVirtualToggleButtonChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+		{
+			if (d is IInputElement element)
+			{
+				if ((bool) e.NewValue)
+				{
+					element.MouseLeftButtonDown += OnMouseLeftButtonDown;
+					element.KeyDown += OnKeyDown;
+				}
+				else
+				{
+					element.MouseLeftButtonDown -= OnMouseLeftButtonDown;
+					element.KeyDown -= OnKeyDown;
+				}
+			}
+		}
+
+		#endregion
+
+		#endregion
+
+		#region routed events
+
+		#region Checked
+
+		/// &lt;summary&gt;
+		/// A static helper method to raise the Checked event on a target element.
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;target&quot;&gt;UIElement or ContentElement on which to raise the event&lt;/param&gt;
+		internal static RoutedEventArgs RaiseCheckedEvent(UIElement target)
+		{
+			if (target == null) return null;
+
+			RoutedEventArgs args = new RoutedEventArgs();
+			args.RoutedEvent = ToggleButton.CheckedEvent;
+			RaiseEvent(target, args);
+			return args;
+		}
+
+		#endregion
+
+		#region Unchecked
+
+		/// &lt;summary&gt;
+		/// A static helper method to raise the Unchecked event on a target element.
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;target&quot;&gt;UIElement or ContentElement on which to raise the event&lt;/param&gt;
+		internal static RoutedEventArgs RaiseUncheckedEvent(UIElement target)
+		{
+			if (target == null) return null;
+
+			RoutedEventArgs args = new RoutedEventArgs();
+			args.RoutedEvent = ToggleButton.UncheckedEvent;
+			RaiseEvent(target, args);
+			return args;
+		}
+
+		#endregion
+
+		#region Indeterminate
+
+		/// &lt;summary&gt;
+		/// A static helper method to raise the Indeterminate event on a target element.
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;target&quot;&gt;UIElement or ContentElement on which to raise the event&lt;/param&gt;
+		internal static RoutedEventArgs RaiseIndeterminateEvent(UIElement target)
+		{
+			if (target == null) return null;
+
+			RoutedEventArgs args = new RoutedEventArgs();
+			args.RoutedEvent = ToggleButton.IndeterminateEvent;
+			RaiseEvent(target, args);
+			return args;
+		}
+
+		#endregion
+
+		#endregion
+
+		#region private methods
+
+		private static void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+		{
+			e.Handled = true;
+			UpdateIsChecked(sender as DependencyObject);
+		}
+
+		private static void OnKeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.OriginalSource == sender)
+			{
+				if (e.Key == Key.Space)
+				{
+					// ignore alt+space which invokes the system menu
+					if ((Keyboard.Modifiers &amp; ModifierKeys.Alt) == ModifierKeys.Alt) return;
+
+					UpdateIsChecked(sender as DependencyObject);
+					e.Handled = true;
+
+				}
+				else if (e.Key == Key.Enter &amp;&amp; (bool) (sender as DependencyObject).GetValue(KeyboardNavigation.AcceptsReturnProperty))
+				{
+					UpdateIsChecked(sender as DependencyObject);
+					e.Handled = true;
+				}
+			}
+		}
+
+		private static void UpdateIsChecked(DependencyObject d)
+		{
+			var isChecked = GetIsChecked(d);
+			if (isChecked == true)
+			{
+				SetIsChecked(d, GetIsThreeState(d) ? null : (bool?) false);
+			}
+			else
+			{
+				SetIsChecked(d, isChecked.HasValue);
+			}
+		}
+
+		private static void RaiseEvent(DependencyObject target, RoutedEventArgs args)
+		{
+			switch (target)
+			{
+				case UIElement e:
+				{
+					e.RaiseEvent(args);
+					break;
+				}
+
+				case ContentElement e:
+				{
+					e.RaiseEvent(args);
+					break;
+				}
+			}
+		}
+
+		#endregion
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[16,3,20,27,0],[27,3,27,4,0],[28,4,28,49,0],[29,3,29,4,0],[36,3,36,4,0],[37,4,37,41,0],[38,3,38,4,0],[44,3,44,4,0],[45,4,45,36,0],[46,4,46,5,0],[47,5,47,39,0],[48,5,48,26,0],[49,5,49,6,0],[50,6,50,38,0],[51,5,51,6,0],[52,10,52,32,0],[53,5,53,6,0],[54,6,54,40,0],[55,5,55,6,0],[57,5,57,6,0],[58,6,58,44,0],[59,5,59,6,0],[60,4,60,5,0],[61,3,61,4,0],[70,3,72,43,0],[80,3,80,4,0],[81,4,81,51,0],[82,3,82,4,0],[90,3,90,4,0],[91,4,91,44,0],[92,3,92,4,0],[101,3,104,39,0],[112,3,112,4,0],[113,4,113,60,0],[114,3,114,4,0],[122,3,122,4,0],[123,4,123,53,0],[124,3,124,4,0],[130,3,130,4,0],[131,4,131,35,0],[132,4,132,5,0],[133,5,133,27,0],[134,5,134,6,0],[135,6,135,59,0],[136,6,136,35,0],[137,5,137,6,0],[139,5,139,6,0],[140,6,140,59,0],[141,6,141,35,0],[142,5,142,6,0],[143,4,143,5,0],[144,3,144,4,0],[159,3,159,4,0],[160,4,160,23,0],[160,24,160,36,0],[162,4,162,49,0],[163,4,163,49,0],[164,4,164,29,0],[165,4,165,16,0],[166,3,166,4,0],[177,3,177,4,0],[178,4,178,23,0],[178,24,178,36,0],[180,4,180,49,0],[181,4,181,51,0],[182,4,182,29,0],[183,4,183,16,0],[184,3,184,4,0],[195,3,195,4,0],[196,4,196,23,0],[196,24,196,36,0],[198,4,198,49,0],[199,4,199,55,0],[200,4,200,29,0],[201,4,201,16,0],[202,3,202,4,0],[211,3,211,4,0],[212,4,212,21,0],[213,4,213,48,0],[214,3,214,4,0],[217,3,217,4,0],[218,4,218,35,0],[219,4,219,5,0],[220,5,220,28,0],[221,5,221,6,0],[223,6,223,70,0],[223,71,223,78,0],[225,6,225,50,0],[226,6,226,23,0],[228,5,228,6,0],[229,10,229,123,0],[230,5,230,6,0],[231,6,231,50,0],[232,6,232,23,0],[233,5,233,6,0],[234,4,234,5,0],[235,3,235,4,0],[238,3,238,4,0],[239,4,239,36,0],[240,4,240,26,0],[241,4,241,5,0],[242,5,242,64,0],[243,4,243,5,0],[245,4,245,5,0],[246,5,246,41,0],[247,4,247,5,0],[248,3,248,4,0],[251,3,251,4,0],[252,4,252,19,0],[255,5,255,6,0],[256,6,256,25,0],[257,6,257,12,0],[261,5,261,6,0],[262,6,262,25,0],[263,6,263,12,0],[266,3,266,4,0]]);
+    </script>
+  </body>
+</html>

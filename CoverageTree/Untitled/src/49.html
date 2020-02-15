@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-ConfiguratorAPI\Data\Db\RelationAttribute.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.ComponentModel.DataAnnotations;
+
+namespace SWR.ConfiguratorApi.Data.Db
+{
+	public class RelationAttribute
+	{
+	    public RelationAttribute()
+	    {
+	        Id = Guid.NewGuid();
+	    }
+
+		public Guid Id { get; set; }
+		public Guid SpecificationTypeAttrId { get; set; }
+		public Guid RelationId { get; set; }
+
+		[MaxLength(255)]
+		public String Value { get; set; }
+
+	    public String Name { get; set; }
+
+        public bool IsAdded { get; set; }
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[8,6,8,32,1],[9,6,9,7,1],[10,10,10,30,1],[11,6,11,7,1],[13,20,13,24,1],[13,25,13,29,1],[14,41,14,45,1],[14,46,14,50,1],[15,28,15,32,1],[15,33,15,37,1],[18,25,18,29,1],[18,30,18,34,1],[20,27,20,31,1],[20,32,20,36,1],[22,31,22,35,1],[22,36,22,40,0]]);
+    </script>
+  </body>
+</html>

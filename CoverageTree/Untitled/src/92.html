@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\AnchorablePaneTitle.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Controls;
+using System.Windows;
+using System.Windows.Input;
+using Xceed.Wpf.AvalonDock.Layout;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+
+    public class AnchorablePaneTitle : Control
+    {
+        static AnchorablePaneTitle()
+        {
+            IsHitTestVisibleProperty.OverrideMetadata(typeof(AnchorablePaneTitle), new FrameworkPropertyMetadata(true));
+            FocusableProperty.OverrideMetadata(typeof(AnchorablePaneTitle), new FrameworkPropertyMetadata(false));
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(AnchorablePaneTitle), new FrameworkPropertyMetadata(typeof(AnchorablePaneTitle)));
+        }
+
+
+        public AnchorablePaneTitle()
+        { 
+
+        }
+
+        #region Model
+
+        /// &lt;summary&gt;
+        /// Model Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty ModelProperty =
+            DependencyProperty.Register(&quot;Model&quot;, typeof(LayoutAnchorable), typeof(AnchorablePaneTitle),
+                new FrameworkPropertyMetadata((LayoutAnchorable)null, new PropertyChangedCallback(_OnModelChanged)));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the Model property.  This dependency property 
+        /// indicates model attached to this view.
+        /// &lt;/summary&gt;
+        public LayoutAnchorable Model
+        {
+            get { return (LayoutAnchorable)GetValue(ModelProperty); }
+            set { SetValue(ModelProperty, value); }
+        }
+
+        static void _OnModelChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e)
+        {
+            ((AnchorablePaneTitle)sender).OnModelChanged(e);
+        }
+
+        /// &lt;summary&gt;
+        /// Provides derived classes an opportunity to handle changes to the Model property.
+        /// &lt;/summary&gt;
+        protected virtual void OnModelChanged(DependencyPropertyChangedEventArgs e)
+        {
+            if (Model != null)
+                SetLayoutItem(Model.Root.Manager.GetLayoutItemFromModel(Model));
+            else
+                SetLayoutItem(null);
+        }
+
+        #endregion
+
+
+        #region LayoutItem
+
+        /// &lt;summary&gt;
+        /// LayoutItem Read-Only Dependency Property
+        /// &lt;/summary&gt;
+        private static readonly DependencyPropertyKey LayoutItemPropertyKey
+            = DependencyProperty.RegisterReadOnly(&quot;LayoutItem&quot;, typeof(LayoutItem), typeof(AnchorablePaneTitle),
+                new FrameworkPropertyMetadata((LayoutItem)null));
+
+        public static readonly DependencyProperty LayoutItemProperty
+            = LayoutItemPropertyKey.DependencyProperty;
+
+        /// &lt;summary&gt;
+        /// Gets the LayoutItem property.  This dependency property 
+        /// indicates the LayoutItem attached to this tag item.
+        /// &lt;/summary&gt;
+        public LayoutItem LayoutItem
+        {
+            get { return (LayoutItem)GetValue(LayoutItemProperty); }
+        }
+
+        /// &lt;summary&gt;
+        /// Provides a secure method for setting the LayoutItem property.  
+        /// This dependency property indicates the LayoutItem attached to this tag item.
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;value&quot;&gt;The new value for the property.&lt;/param&gt;
+        protected void SetLayoutItem(LayoutItem value)
+        {
+            SetValue(LayoutItemPropertyKey, value);
+        }
+
+        #endregion
+
+
+        private void OnHide()
+        {
+            Model.Hide();
+        }
+
+        private void OnToggleAutoHide()
+        {
+            Model.ToggleAutoHide();
+        }
+
+        protected override void OnMouseMove(System.Windows.Input.MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed)
+            {
+                _isMouseDown = false;
+            }
+
+            base.OnMouseMove(e);
+        }
+
+        protected override void OnMouseLeave(System.Windows.Input.MouseEventArgs e)
+        {
+            base.OnMouseLeave(e);
+
+            if (_isMouseDown &amp;&amp; e.LeftButton == MouseButtonState.Pressed)
+            {
+                var pane = this.FindVisualAncestor&lt;LayoutAnchorablePaneControl&gt;();
+                if (pane != null)
+                {
+                    var paneModel = pane.Model as LayoutAnchorablePane;
+                    var manager = paneModel.Root.Manager;
+
+                    manager.StartDraggingFloatingWindowForPane(paneModel);
+                }
+            }
+
+            _isMouseDown = false;
+        }
+
+        bool _isMouseDown = false;
+        protected override void OnMouseLeftButtonDown(System.Windows.Input.MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+
+            if (!e.Handled)
+            {
+                bool attachFloatingWindow = false;
+                var parentFloatingWindow = Model.FindParent&lt;LayoutAnchorableFloatingWindow&gt;();
+                if (parentFloatingWindow != null)
+                {
+                    attachFloatingWindow = parentFloatingWindow.Descendents().OfType&lt;LayoutAnchorablePane&gt;().Count() == 1;
+                }
+
+                if (attachFloatingWindow)
+                {
+                    //the pane is hosted inside a floating window that contains only an anchorable pane so drag the floating window itself
+                    var floatingWndControl = Model.Root.Manager.FloatingWindows.Single(fwc =&gt; fwc.Model == parentFloatingWindow);
+                    floatingWndControl.AttachDrag(false);
+                }
+                else
+                    _isMouseDown = true;//normal drag
+            }
+        }
+
+        protected override void OnMouseLeftButtonUp(System.Windows.Input.MouseButtonEventArgs e)
+        {
+            _isMouseDown = false;
+            base.OnMouseLeftButtonUp(e);
+
+            if (Model != null)
+                Model.IsActive = true;//FocusElementManager.SetFocusOnLastElement(Model);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[32,9,32,10,0],[33,13,33,121,0],[34,13,34,115,0],[35,13,35,143,0],[36,9,36,10,0],[39,9,39,37,0],[40,9,40,10,0],[42,9,42,10,0],[49,9,51,118,0],[59,17,59,18,0],[59,19,59,68,0],[59,69,59,70,0],[60,17,60,18,0],[60,19,60,50,0],[60,51,60,52,0],[64,9,64,10,0],[65,13,65,61,0],[66,9,66,10,0],[72,9,72,10,0],[73,13,73,31,0],[74,17,74,81,0],[76,17,76,37,0],[77,9,77,10,0],[87,9,89,66,0],[91,9,92,56,0],[100,17,100,18,0],[100,19,100,67,0],[100,68,100,69,0],[109,9,109,10,0],[110,13,110,52,0],[111,9,111,10,0],[117,9,117,10,0],[118,13,118,26,0],[119,9,119,10,0],[122,9,122,10,0],[123,13,123,36,0],[124,9,124,10,0],[127,9,127,10,0],[128,13,128,58,0],[129,13,129,14,0],[130,17,130,38,0],[131,13,131,14,0],[133,13,133,33,0],[134,9,134,10,0],[137,9,137,10,0],[138,13,138,34,0],[140,13,140,74,0],[141,13,141,14,0],[142,17,142,83,0],[143,17,143,34,0],[144,17,144,18,0],[145,21,145,72,0],[146,21,146,58,0],[148,21,148,75,0],[149,17,149,18,0],[150,13,150,14,0],[152,13,152,34,0],[153,9,153,10,0],[155,9,155,35,0],[157,9,157,10,0],[158,13,158,43,0],[160,13,160,28,0],[161,13,161,14,0],[162,17,162,51,0],[163,17,163,95,0],[164,17,164,50,0],[165,17,165,18,0],[166,21,166,123,0],[167,17,167,18,0],[169,17,169,42,0],[170,17,170,18,0],[172,21,172,95,0],[172,95,172,128,0],[172,128,172,130,0],[172,21,172,130,0],[173,21,173,58,0],[174,17,174,18,0],[176,21,176,41,0],[177,13,177,14,0],[178,9,178,10,0],[181,9,181,10,0],[182,13,182,34,0],[183,13,183,41,0],[185,13,185,31,0],[186,17,186,39,0],[187,9,187,10,0]]);
+    </script>
+  </body>
+</html>

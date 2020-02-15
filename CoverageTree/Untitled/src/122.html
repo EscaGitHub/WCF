@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\WeakDictionary.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    class WeakDictionary&lt;K,V&gt; where K : class
+    {
+        public WeakDictionary()
+        {}
+
+        List&lt;WeakReference&gt; _keys = new List&lt;WeakReference&gt;();
+        List&lt;V&gt; _values = new List&lt;V&gt;();
+
+        public V this[K key]
+        {
+            get
+            {
+                V valueToReturn;
+                if (!GetValue(key, out valueToReturn))
+                    throw new ArgumentException();
+                return valueToReturn;
+            }
+            set
+            {
+                SetValue(key, value);
+            }
+        }
+
+        public bool ContainsKey(K key)
+        {
+            CollectGarbage();
+            return -1 != _keys.FindIndex(k =&gt; k.GetValueOrDefault&lt;K&gt;() == key);
+        }
+
+        public void SetValue(K key, V value)
+        {
+            CollectGarbage();
+            int vIndex = _keys.FindIndex(k =&gt; k.GetValueOrDefault&lt;K&gt;() == key);
+            if (vIndex &gt; -1)
+                _values[vIndex] = value;
+            else
+            {
+                _values.Add(value);
+                _keys.Add(new WeakReference(key));
+            }            
+        }
+
+        public bool GetValue(K key, out V value)
+        {
+            CollectGarbage();
+            int vIndex = _keys.FindIndex(k =&gt; k.GetValueOrDefault&lt;K&gt;() == key);
+            value = default(V);
+            if (vIndex == -1)
+                return false;
+            value = _values[vIndex];
+            return true;
+        }
+
+
+        void CollectGarbage()
+        { 
+            int vIndex = 0; 
+
+            do
+            { 
+                vIndex = _keys.FindIndex(vIndex, k =&gt; !k.IsAlive);
+                if (vIndex &gt;= 0)
+                {
+                    _keys.RemoveAt(vIndex);
+                    _values.RemoveAt(vIndex);
+                }
+            }
+            while (vIndex &gt;= 0);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[26,9,26,32,0],[27,9,27,10,0],[27,10,27,11,0],[29,9,29,63,0],[30,9,30,41,0],[35,13,35,14,0],[37,17,37,55,0],[38,21,38,51,0],[39,17,39,38,0],[40,13,40,14,0],[42,13,42,14,0],[43,17,43,38,0],[44,13,44,14,0],[48,9,48,10,0],[49,13,49,30,0],[50,13,50,47,0],[50,47,50,78,0],[50,78,50,80,0],[50,13,50,80,0],[51,9,51,10,0],[54,9,54,10,0],[55,13,55,30,0],[56,13,56,47,0],[56,47,56,78,0],[56,78,56,80,0],[56,13,56,80,0],[57,13,57,29,0],[58,17,58,41,0],[60,13,60,14,0],[61,17,61,36,0],[62,17,62,51,0],[63,13,63,14,0],[64,9,64,10,0],[67,9,67,10,0],[68,13,68,30,0],[69,13,69,47,0],[69,47,69,78,0],[69,78,69,80,0],[69,13,69,80,0],[70,13,70,32,0],[71,13,71,30,0],[72,17,72,30,0],[73,13,73,37,0],[74,13,74,25,0],[75,9,75,10,0],[79,9,79,10,0],[80,13,80,28,0],[83,13,83,14,0],[84,17,84,55,0],[84,55,84,65,0],[84,65,84,67,0],[84,17,84,67,0],[85,17,85,33,0],[86,17,86,18,0],[87,21,87,44,0],[88,21,88,46,0],[89,17,89,18,0],[90,13,90,14,0],[91,13,91,33,0],[92,9,92,10,0]]);
+    </script>
+  </body>
+</html>

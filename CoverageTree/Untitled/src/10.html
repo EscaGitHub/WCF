@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-ConfiguratorAPI\Logic\StructureDbController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
+using Dapper;
+using SWR.ConfiguratorApi.Data.Db;
+using Attribute = SWR.ConfiguratorApi.Data.Db.Attribute;
+
+namespace SWR.ConfiguratorApi.Logic
+{
+    public static class StructureDbController
+    {
+//        private const string GetStructureQuery =
+//            @&quot;select comp.*, compattr.*, attr.*, specificationtype.*, comprel.id NOTNULL as id from (select relation.specificationid as id from relation join relationtype on relation.relationtypeid = relationtype.id where relationtype.name = &#39;Specification&#39; and componentid = @ComponentId) as spec 
+//			join specification on spec.id = specification.id 
+//			join specificationtype on specification.specificationtypeid = specificationtype.id
+//			join relation as rel on spec.id = rel.specificationid join relationtype as reltype on rel.relationtypeid = reltype.id 
+//			join component as comp on rel.componentid = comp.id
+//			join componentattribute as compattr on comp.id = compattr.componentid
+//			join componenttypeattribute as comptypeattr on compattr.componenttypeattributeid = comptypeattr.id
+//			join attribute as attr on comptypeattr.attributeid = attr.id
+//			left join (select rel1.id as id, rel1.componentid from relation as rel1  left join relationtype as reltype1 on rel1.relationtypeid = reltype1.id 
+//					   			 where reltype1.name = &#39;Specification&#39;) as comprel on comp.id = comprel.componentid
+//where reltype.name = &#39;BOM&#39;&quot;;
+
+        private const string GetStructureQuery =
+            @&quot;select rel.*, comp.*, compattr.*, attr.*, specificationtype.*, relattr.*, attr1.*, comprel.id NOTNULL as id from (select relation.specificationid as id from relation join relationtype on relation.relationtypeid = relationtype.id where relationtype.name = &#39;Specification&#39; and componentid = @ComponentId) as spec 
+			join specification on spec.id = specification.id 
+			join specificationtype on specification.specificationtypeid = specificationtype.id
+			join relation as rel on spec.id = rel.specificationid join relationtype as reltype on rel.relationtypeid = reltype.id 
+			join component as comp on rel.componentid = comp.id
+			join componentattribute as compattr on comp.id = compattr.componentid
+			join componenttypeattribute as comptypeattr on compattr.componenttypeattributeid = comptypeattr.id
+			join attribute as attr on comptypeattr.attributeid = attr.id
+			left join relationattribute as relattr on rel.id = relattr.relationid
+			left join specificationtypeattribute as spectypeattr on relattr.specificationtypeattrid = spectypeattr.id
+			left join attribute as attr1 on spectypeattr.attributeid = attr1.id
+			left join (select rel1.id as id, rel1.componentid from relation as rel1  left join relationtype as reltype1 on rel1.relationtypeid = reltype1.id 
+					   			 where reltype1.name = &#39;Specification&#39;) as comprel on comp.id = comprel.componentid
+where reltype.name = &#39;BOM&#39;&quot;;
+
+        public static List&lt;Tuple&lt;Relation, string, bool&gt;&gt; GetChildren(IDbConnection connection, IDbTransaction tr, Guid componentId)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+
+            var componentDictionary = new Dictionary&lt;Guid, Tuple&lt;Relation, string, bool&gt;&gt;();
+
+            var types = new[]
+            {
+                typeof(Relation), typeof(Component), typeof(ComponentAttribute), typeof(Attribute), typeof(SpecificationType),
+                typeof(RelationAttribute), typeof(Attribute), typeof(bool)
+            };
+
+            connection.Query&lt;/*Relation, Component, ComponentAttribute, Attribute,  SpecificationType, RelationAttribute,  bool, */Guid&gt;(GetStructureQuery, types,
+                objects =&gt;
+                {
+                    var relation = (Relation)objects[0];
+                    var component = (Component) objects[1];
+                    var componentAttribute = (ComponentAttribute) objects[2];
+                    var attribute = (Attribute) objects[3];
+                    var specificationType = (SpecificationType) objects[4];
+                    var relationAttribute = (RelationAttribute) objects[5];
+                    var attribute1 = (Attribute) objects[6];
+                    var hasChildren = (bool) objects[7];
+
+                    if (componentDictionary.ContainsKey(component.Id))
+                    {
+                        if (attribute != null)
+                        {
+                            componentAttribute.Name = attribute.Name;
+                            componentDictionary[component.Id].Item1.Component.ComponentAttributes.Add(componentAttribute);
+                        }
+
+                        if (attribute1 != null)
+                        {
+                            relationAttribute.Name = attribute1.Name;
+                            if (!relation.RelationAttributes.Any(t =&gt; t.Name == attribute1.Name))
+                            {
+                                relation.RelationAttributes.Add(relationAttribute);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (attribute != null)
+                        {
+                            componentAttribute.Name = attribute.Name;
+                            component.ComponentAttributes.Add(componentAttribute);
+
+                        }
+
+                        relation.Component = component;
+
+                        if (attribute1 != null)
+                        {
+                            relationAttribute.Name = attribute1.Name;
+                            if (!relation.RelationAttributes.Any(t =&gt; t.Name == attribute1.Name))
+                            {
+                                relation.RelationAttributes.Add(relationAttribute);
+                            }
+                        }
+                        componentDictionary.Add(component.Id, new Tuple&lt;Relation, string, bool&gt;(relation, specificationType.Name, hasChildren));
+                    }
+
+                    //componentAttribute.Name = attribute.Name;
+                    //component1.ComponentAttributes.Add(componentAttribute);
+                    return relation.Id;
+                }, new {ComponentId = componentId}, tr, commandType: CommandType.Text, splitOn: &quot;Id&quot;);
+
+            var result = componentDictionary.Select(t =&gt; t.Value).ToList();
+
+            return result;
+        }
+
+        public static bool HasChildren(IDbConnection connection, IDbTransaction tr, Guid componentId)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+
+            var query =
+                &quot;select count(*) from (select relation.specificationid as id from relation join relationtype on relation.relationtypeid = relationtype.id where relationtype.name = &#39;Specification&#39; and componentid = @ComponentId) as spec &quot; +
+                &quot;join specification on spec.id = specification.id &quot; +
+                &quot;join relation as rel on spec.id = rel.specificationid join relationtype as reltype on rel.relationtypeid = reltype.id &quot; +
+                &quot;where reltype.name = &#39;BOM&#39;&quot;;
+
+
+            var childCount = connection.Query&lt;int&gt;(query, new { ComponentId = componentId }, commandType: CommandType.Text).FirstOrDefault();
+            return childCount &gt; 0;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[44,9,44,10,1],[45,13,45,36,1],[45,37,45,89,0],[47,13,47,93,1],[49,13,53,15,1],[55,13,57,17,1],[57,17,57,18,1],[57,18,58,21,1],[58,21,58,57,1],[58,57,59,21,1],[59,21,59,60,1],[59,60,60,21,1],[60,21,60,78,1],[60,78,61,21,1],[61,21,61,60,1],[61,60,62,21,1],[62,21,62,76,1],[62,76,63,21,1],[63,21,63,76,1],[63,76,64,21,1],[64,21,64,61,1],[64,61,65,21,1],[65,21,65,57,1],[65,57,67,21,1],[67,21,67,71,1],[67,71,68,21,1],[68,21,68,22,1],[68,22,69,25,1],[69,25,69,47,1],[69,47,70,25,1],[70,25,70,26,1],[70,26,71,29,1],[71,29,71,70,1],[71,70,72,29,1],[72,29,72,123,1],[72,123,73,25,1],[73,25,73,26,1],[73,26,75,25,1],[75,25,75,48,1],[75,48,76,25,1],[76,25,76,26,1],[76,26,77,29,1],[77,29,77,70,1],[77,70,78,29,1],[78,29,78,71,1],[78,71,78,96,0],[78,96,78,98,1],[78,29,78,98,1],[78,98,79,29,1],[79,29,79,30,1],[79,30,80,33,1],[80,33,80,84,1],[80,84,81,29,1],[81,29,81,30,1],[81,30,82,25,1],[82,25,82,26,1],[82,26,83,21,1],[83,21,83,22,1],[83,22,85,21,1],[85,21,85,22,1],[85,22,86,25,1],[86,25,86,47,1],[86,47,87,25,1],[87,25,87,26,1],[87,26,88,29,1],[88,29,88,70,1],[88,70,89,29,1],[89,29,89,83,1],[89,83,91,25,1],[91,25,91,26,1],[91,26,93,25,1],[93,25,93,56,1],[93,56,95,25,1],[95,25,95,48,1],[95,48,96,25,1],[96,25,96,26,1],[96,26,97,29,1],[97,29,97,70,1],[97,70,98,29,1],[98,29,98,71,1],[98,71,98,96,0],[98,96,98,98,1],[98,29,98,98,1],[98,98,99,29,1],[99,29,99,30,1],[99,30,100,33,1],[100,33,100,84,1],[100,84,101,29,1],[101,29,101,30,1],[101,30,102,25,1],[102,25,102,26,1],[102,26,103,25,1],[103,25,103,145,1],[103,145,104,21,1],[104,21,104,22,1],[104,22,108,21,1],[108,21,108,40,1],[108,40,109,17,1],[109,17,109,18,1],[109,18,109,103,1],[55,13,109,103,1],[111,13,111,58,1],[111,58,111,65,1],[111,65,111,76,1],[111,13,111,76,1],[113,13,113,27,1],[114,9,114,10,1],[117,9,117,10,0],[118,13,118,36,0],[118,37,118,89,0],[120,13,124,46,0],[127,13,127,142,0],[128,13,128,35,0],[129,9,129,10,0]]);
+    </script>
+  </body>
+</html>

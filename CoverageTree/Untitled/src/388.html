@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test\HttpContextMock.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Http;
+
+namespace Swr.Configurator.Test
+{
+    public static class HttpContextMock
+    {
+        public static DefaultHttpContext Get()
+        {
+            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.Name, &quot;UserForTests&quot;),
+                new Claim(&quot;username&quot;, &quot;UserForTests&quot;),
+
+            }, &quot;mock&quot;));
+
+            var defContext = new DefaultHttpContext { User = user };
+            defContext.Connection.RemoteIpAddress = IPAddress.Parse(&quot;127.0.0.1&quot;);
+
+            defContext.Request.Host = new HostString(&quot;localhost&quot;);
+            defContext.Request.PathBase = PathString.Empty;
+            defContext.Request.Path = PathString.Empty;
+            defContext.Request.QueryString = QueryString.Empty;
+
+            return defContext;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[13,9,13,10,1],[14,13,19,25,1],[21,13,21,69,1],[22,13,22,82,1],[24,13,24,67,1],[25,13,25,60,1],[26,13,26,56,1],[27,13,27,64,1],[29,13,29,31,1],[30,9,30,10,1]]);
+    </script>
+  </body>
+</html>

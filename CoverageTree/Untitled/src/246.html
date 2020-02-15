@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Controls\CheckControl.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Windows;
+using System.Windows.Controls;
+
+namespace Swr.Configurator.View.Controls
+{
+	public class CheckControl : ContentControl
+	{
+		public static readonly DependencyProperty HeaderProperty =
+			DependencyProperty.Register(&quot;Header&quot;, typeof (string), typeof (CheckControl), new PropertyMetadata(default(string)));
+
+		public string Header
+		{
+			get { return (string) GetValue(HeaderProperty); }
+			set { SetValue(HeaderProperty, value); }
+		}
+
+		public static readonly DependencyProperty IsCheckedProperty =
+			DependencyProperty.Register(&quot;IsChecked&quot;, typeof(bool), typeof(CheckControl), new PropertyMetadata(default(bool)));
+
+		public bool IsChecked
+		{
+			get { return (bool)GetValue(IsCheckedProperty); }
+			set { SetValue(IsCheckedProperty, value); }
+		}
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[8,3,9,121,0],[13,8,13,9,0],[13,10,13,51,0],[13,52,13,53,0],[14,8,14,9,0],[14,10,14,42,0],[14,43,14,44,0],[17,3,18,118,0],[22,8,22,9,0],[22,10,22,51,0],[22,52,22,53,0],[23,8,23,9,0],[23,10,23,45,0],[23,46,23,47,0]]);
+    </script>
+  </body>
+</html>

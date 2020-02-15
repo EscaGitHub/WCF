@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Settings\ViewModels\ComponentTypesVM.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Windows.Input;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.WebApi;
+using SwrUI;
+using SwrUILogic;
+using SwrUILogic.Data;
+
+namespace Swr.Configurator.View.Settings.ViewModels
+{
+	public class ComponentTypesVM : SettingsViewModelBase
+	{
+		private readonly List&lt;ComponentTypeObject&gt; _settings;
+        private readonly ItemObservableCollection&lt;AttributeVm&gt; _commonAttributes;
+
+        public ComponentTypesVM(List&lt;ComponentTypeObject&gt; settings, SettingsWindowViewModel windowViewModel, ItemObservableCollection&lt;AttributeVm&gt; commonAttributes)
+			: base(windowViewModel)
+		{
+            _settings = settings ?? throw new ArgumentNullException(&quot;settings&quot;);
+
+            _commonAttributes = commonAttributes;
+
+            ComponentTypes = new ItemObservableCollection&lt;ComponentTypeVM&gt;();
+
+			foreach (var type in _settings)
+			{
+				var typeVm = new ComponentTypeVM(type, windowViewModel, commonAttributes);
+
+                ComponentTypes.Add(typeVm);
+
+                //DefaultType = typeVm;
+			}
+
+			ComponentTypes.CollectionChanged += ComponentTypesCollectionChanged;
+			ComponentTypes.ItemPropertyChanged += ComponentTypesOnItemPropertyChanged;
+		}
+
+        public void LoadSpecificationTypes()
+        {
+            foreach (var componentTypeVm in ComponentTypes)
+            {
+                componentTypeVm.LoadSpecificationTypes();
+            }
+        }
+
+        private void ComponentTypesOnItemPropertyChanged(object sender, PropertyChangedEventArgs propertyChangedEventArgs)
+		{
+			UpdateValidation();
+		}
+
+		void ComponentTypesCollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+		{
+			UpdateValidation();
+		}
+
+		private ComponentTypeVM _selectedComponentType;
+
+		public ComponentTypeVM SelectedComponentType
+		{
+			get { return _selectedComponentType; }
+			set
+			{
+				_selectedComponentType = value;
+				OnPropertyChanged(&quot;SelectedComponentType&quot;);
+			}
+		}
+
+		public ItemObservableCollection&lt;ComponentTypeVM&gt; ComponentTypes { get; private set; }
+
+		private ComponentTypeVM _defaultType;
+
+		//public ComponentTypeVM DefaultType
+		//{
+		//	get { return _defaultType; }
+		//	set
+		//	{
+		//		_defaultType = value;
+		//		OnPropertyChanged(&quot;DefaultType&quot;);
+		//	}
+		//}
+
+		private ICommand _addComponentTypeCommand;
+
+		public ICommand AddComponentTypeCommand
+		{
+			get { return _addComponentTypeCommand ?? (_addComponentTypeCommand = new RelayCommand(AddComponentType, CanAddComponentType)); }
+		}
+
+		private bool CanAddComponentType(object parameter)
+		{
+			return true;
+		}
+
+		private void AddComponentType(object parameter)
+		{
+            var typeVM = new ComponentTypeVM(new ComponentTypeObject(), WindowViewModel, _commonAttributes);
+            typeVM.LoadSpecificationTypes();
+
+            ComponentTypes.Add(typeVM);
+
+            //if (ComponentTypes.Count == 1)
+            //{
+            //    DefaultType = typeVM;
+            //}
+
+            SelectedComponentType = typeVM;
+        }
+
+		private ICommand _removeComponentTypeCommand;
+        
+
+        public ICommand RemoveComponentTypeCommand
+		{
+			get { return _removeComponentTypeCommand ?? (_removeComponentTypeCommand = new RelayCommand(RemoveComponentType, CanRemoveComponentType)); }
+		}
+
+		private bool CanRemoveComponentType(object parameter)
+		{
+			return SelectedComponentType != null;
+		}
+
+		private void RemoveComponentType(object parameter)
+		{
+			var componentType = parameter as ComponentTypeVM;
+			if (componentType == null)
+				return;
+
+			if (SwrMessageBox.Show(String.Format(&quot;������� ��� ���������� &#39;{0}&#39;?&quot;, componentType.Name), ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.YesNo) != SwrDialogResult.Yes)
+				return;
+
+            var allowDelete = true;
+            if (componentType.Settings.ID != Guid.Empty)
+            {
+                //TODO: �������� �������� ����������� �������� ����� API
+                allowDelete = SettingsApiCaller.AllowDeleteType(componentType.Settings.ID, &quot;Component&quot;);
+            }
+
+            if (allowDelete)
+            {
+                if (ComponentTypes.Contains(componentType))
+                {
+                    var index = ComponentTypes.IndexOf(componentType);
+
+                    ComponentTypes.Remove(componentType);
+
+                    SelectedComponentType = index == 0 ? ComponentTypes.FirstOrDefault() : ComponentTypes[index - 1];
+                }
+            }
+            else
+            {
+                SwrMessageBox.Show(String.Format(&quot;���������� ������� ��� ���������� &#39;{0}&#39;. ���������� ���������� ������� ����.&quot;, componentType.Name),
+                    ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK);
+            }
+            
+		}
+
+		public override void SaveToSource()
+		{
+			_settings.Clear();
+
+			foreach (var vm in ComponentTypes)
+			{
+				vm.SaveToSource();
+				_settings.Add(vm.Settings);
+			}
+
+			//_settings.DefaultType = DefaultType.Settings.Id;
+		}
+
+		#region IDataErrorInfo Implementation
+
+		protected override void CalculateErrors(string propertyName)
+		{
+			//if (String.IsNullOrWhiteSpace(propertyName) || propertyName == &quot;DefaultType&quot;)
+			//{
+			//	const string name = &quot;DefaultType&quot;;
+			//	DeleteErrorsForProperty(this, name);
+
+			//	if (DefaultType == null)
+			//	{
+			//		AddError(this, name, &quot;�� ������ ��� ���������� �� ���������&quot;);
+			//	}
+			//	else if (!ComponentTypes.Contains(DefaultType))
+			//	{
+			//		AddError(this, name, &quot;��� ���������� �� ��������� ����������� � ������ ���� �����&quot;);
+			//	}
+			//}
+
+			if (String.IsNullOrWhiteSpace(propertyName) || propertyName == &quot;ComponentTypes&quot;)
+			{
+				const string name = &quot;ComponentTypes&quot;;
+				DeleteErrorsForProperty(this, name);
+
+				if (!ComponentTypes.Any())
+				{
+					AddError(this, name, &quot;���������� ������� ���� �� ���� ��� ����������&quot;);
+				}
+				else
+				{
+					if (ComponentTypes.HasItemsErrors)
+					{
+						AddError(this, name, (&quot;������ � ���������� ����� �����������&quot;));
+					}
+				}
+			}
+		}
+
+		#endregion
+
+		#region Overrides of ErrorCollector
+
+		public override void UpdateValidation()
+		{
+			foreach (var typeVM in ComponentTypes)
+			{
+				typeVM.UpdateValidation();
+			}
+
+			base.UpdateValidation();
+		}
+
+		#endregion
+
+      
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[20,6,20,27,0],[21,3,21,4,0],[22,13,22,81,0],[24,13,24,50,0],[26,13,26,78,0],[28,4,28,11,0],[28,13,28,21,0],[28,22,28,24,0],[28,25,28,34,0],[29,4,29,5,0],[30,5,30,79,0],[32,17,32,44,0],[35,4,35,5,0],[37,4,37,72,0],[38,4,38,78,0],[39,3,39,4,0],[42,9,42,10,0],[43,13,43,20,0],[43,22,43,41,0],[43,42,43,44,0],[43,45,43,59,0],[44,13,44,14,0],[45,17,45,58,0],[46,13,46,14,0],[47,9,47,10,0],[50,3,50,4,0],[51,4,51,23,0],[52,3,52,4,0],[55,3,55,4,0],[56,4,56,23,0],[57,3,57,4,0],[63,8,63,9,0],[63,10,63,40,0],[63,41,63,42,0],[65,4,65,5,0],[66,5,66,36,0],[67,5,67,48,0],[68,4,68,5,0],[71,69,71,73,0],[71,74,71,86,0],[89,8,89,9,0],[89,10,89,130,0],[89,131,89,132,0],[93,3,93,4,0],[94,4,94,16,0],[95,3,95,4,0],[98,3,98,4,0],[99,13,99,109,0],[100,13,100,45,0],[102,13,102,40,0],[109,13,109,44,0],[110,9,110,10,0],[117,8,117,9,0],[117,10,117,142,0],[117,143,117,144,0],[121,3,121,4,0],[122,4,122,41,0],[123,3,123,4,0],[126,3,126,4,0],[127,4,127,53,0],[128,4,128,30,0],[129,5,129,12,0],[131,4,131,192,0],[132,5,132,12,0],[134,13,134,36,0],[135,13,135,57,0],[136,13,136,14,0],[138,17,138,105,0],[139,13,139,14,0],[141,13,141,29,0],[142,13,142,14,0],[143,17,143,60,0],[144,17,144,18,0],[145,21,145,71,0],[147,21,147,58,0],[149,21,149,118,0],[150,17,150,18,0],[151,13,151,14,0],[153,13,153,14,0],[154,17,155,92,0],[156,13,156,14,0],[158,3,158,4,0],[161,3,161,4,0],[162,4,162,22,0],[164,4,164,11,0],[164,13,164,19,0],[164,20,164,22,0],[164,23,164,37,0],[165,4,165,5,0],[166,5,166,23,0],[167,5,167,32,0],[168,4,168,5,0],[171,3,171,4,0],[176,3,176,4,0],[192,4,192,84,0],[193,4,193,5,0],[195,5,195,41,0],[197,5,197,31,0],[198,5,198,6,0],[199,6,199,77,0],[200,5,200,6,0],[202,5,202,6,0],[203,6,203,40,0],[204,6,204,7,0],[205,7,205,71,0],[206,6,206,7,0],[207,5,207,6,0],[208,4,208,5,0],[209,3,209,4,0],[216,3,216,4,0],[217,4,217,11,0],[217,13,217,23,0],[217,24,217,26,0],[217,27,217,41,0],[218,4,218,5,0],[219,5,219,31,0],[220,4,220,5,0],[222,4,222,28,0],[223,3,223,4,0]]);
+    </script>
+  </body>
+</html>

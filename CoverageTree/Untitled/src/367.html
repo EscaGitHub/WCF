@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\Swr.Configurator.Test.Net\LoginWindowTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Reflection;
+using System.Windows;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace Swr.Configurator.Test.Net
+{
+    [TestClass]
+    public class LoginWindowTest
+    {
+        [Ignore]
+        public void ShowTest()
+        {
+            //set initial ResourceAssembly so we can load the App
+            Application.ResourceAssembly = Assembly.GetAssembly(typeof(Configurator.App));
+
+            //load app
+            var app = (Configurator.App)Application.LoadComponent(new Uri(&quot;App.xaml&quot;, UriKind.Relative));
+
+            //load window and assign to app
+            var mainWindow = (Window)Application.LoadComponent(new Uri(&quot;View/Controls/LoginWindow.xaml&quot;, UriKind.Relative));
+            app.MainWindow = mainWindow;
+
+            mainWindow.ShowDialog();
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[13,9,13,10,0],[15,13,15,91,0],[18,13,18,106,0],[21,13,21,125,0],[22,13,22,41,0],[24,13,24,37,0],[25,9,25,10,0]]);
+    </script>
+  </body>
+</html>

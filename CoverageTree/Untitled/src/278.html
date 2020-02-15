@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\Commands\AddChildProductCommand.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using Swr.Configurator.Data.ProductModel;
+
+namespace Swr.Configurator.Logic.Commands
+{
+    internal class AddChildProductCommand : ICommand
+    {
+        //private readonly ProductCache _cache;
+        //private readonly MeasureUnitsSettings _copyMeasureUnitsSettings;
+        private readonly bool _enableMultipleReferences;
+        private readonly IProduct _childProduct;
+        private readonly Dictionary&lt;string, string&gt; _referenceProperties;
+        private readonly IProduct _rootProduct;
+
+        public AddChildProductCommand(IProduct rootProduct, IProduct childProduct, Dictionary&lt;string, string&gt; referenceProperties/*,
+            ProductCache cache, MeasureUnitsSettings copyMeasureUnitsSettings, bool enableMultipleReferences*/)
+        {
+            if (rootProduct == null) throw new ArgumentNullException(&quot;rootProduct&quot;);
+            if (childProduct == null) throw new ArgumentNullException(&quot;childProduct&quot;);
+
+            //if (cache == null) throw new ArgumentNullException(&quot;cache&quot;);
+            //if (copyMeasureUnitsSettings == null) throw new ArgumentNullException(&quot;copyMeasureUnitsSettings&quot;);
+
+            _rootProduct = rootProduct;
+            _childProduct = childProduct;
+            _referenceProperties = referenceProperties;
+            //_cache = cache;
+            //_copyMeasureUnitsSettings = copyMeasureUnitsSettings;
+            //_enableMultipleReferences = enableMultipleReferences;
+        }
+
+        public bool Execute()
+        {
+            //if (!_enableMultipleReferences)
+            //{
+            //    if (_rootProduct.References.Any(r =&gt; r.Child.Identifier == _childProduct.Identifier &amp;&amp; !r.IsDeleted))
+            //    {
+            //        throw new InvalidOperationException(string.Format(&quot;Изделие уже содержит компонент &#39;{0}&#39;&quot;, _childProduct.DisplayName));
+            //    }
+            //}
+
+            var reference = _rootProduct.AddReference(_childProduct, _referenceProperties);
+
+            reference.CreateByUser = true;
+
+            //if (_cache.GetProductByIdentifier(_childProduct.Identifier) == null)
+            //    _cache.Add(_childProduct);
+
+            //if (_copyMeasureUnitsSettings.IsEnabled)
+            //{
+            //    var productProperty = _childProduct.GetProperty(_copyMeasureUnitsSettings.CardVariable);
+            //    if (productProperty != null)
+            //    {
+            //        reference.SetProperty(_copyMeasureUnitsSettings.LinkVariable, productProperty.Value);
+            //    }
+            //}
+
+            return true;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[20,9,21,112,0],[22,9,22,10,0],[23,13,23,37,0],[23,38,23,85,0],[24,13,24,38,0],[24,39,24,87,0],[29,13,29,40,0],[30,13,30,42,0],[31,13,31,56,0],[35,9,35,10,0],[38,9,38,10,0],[47,13,47,92,0],[49,13,49,43,0],[63,13,63,25,0],[64,9,64,10,0]]);
+    </script>
+  </body>
+</html>

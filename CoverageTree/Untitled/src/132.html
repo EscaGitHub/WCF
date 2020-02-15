@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Layout\LayoutPanel.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Markup;
+using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Controls;
+
+namespace Xceed.Wpf.AvalonDock.Layout
+{
+    [ContentProperty(&quot;Children&quot;)]
+    [Serializable]
+    public class LayoutPanel : LayoutPositionableGroup&lt;ILayoutPanelElement&gt;, ILayoutPanelElement, ILayoutOrientableGroup
+    {
+        public LayoutPanel()
+        {
+
+        }
+
+        public LayoutPanel(ILayoutPanelElement firstChild)
+        {
+            Children.Add(firstChild);
+        }
+
+
+        #region Orientation
+
+        private Orientation _orientation;
+        public Orientation Orientation
+        {
+            get { return _orientation; }
+            set
+            {
+                if (_orientation != value)
+                {
+                    RaisePropertyChanging(&quot;Orientation&quot;);
+                    _orientation = value;
+                    RaisePropertyChanged(&quot;Orientation&quot;);
+                }
+            }
+        }
+
+        #endregion
+
+
+        protected override bool GetVisibility()
+        {
+            return Children.Any(c =&gt; c.IsVisible);
+        }
+
+        public override void WriteXml(System.Xml.XmlWriter writer)
+        {
+            writer.WriteAttributeString(&quot;Orientation&quot;, Orientation.ToString());
+            base.WriteXml(writer);
+        }
+
+        public override void ReadXml(System.Xml.XmlReader reader)
+        {
+            if (reader.MoveToAttribute(&quot;Orientation&quot;))
+                Orientation = (Orientation)Enum.Parse(typeof(Orientation), reader.Value, true);
+            base.ReadXml(reader);
+        }
+
+#if TRACE
+        public override void ConsoleDump(int tab)
+        {
+          System.Diagnostics.Trace.Write( new string( &#39; &#39;, tab * 4 ) );
+          System.Diagnostics.Trace.WriteLine( string.Format( &quot;Panel({0})&quot;, Orientation ) );
+
+          foreach (LayoutElement child in Children)
+              child.ConsoleDump(tab + 1);
+        }
+#endif
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[32,9,32,29,0],[33,9,33,10,0],[35,9,35,10,0],[37,9,37,59,0],[38,9,38,10,0],[39,13,39,38,0],[40,9,40,10,0],[48,17,48,18,0],[48,19,48,39,0],[48,40,48,41,0],[50,13,50,14,0],[51,17,51,43,0],[52,17,52,18,0],[53,21,53,58,0],[54,21,54,42,0],[55,21,55,57,0],[56,17,56,18,0],[57,13,57,14,0],[64,9,64,10,0],[65,13,65,38,0],[65,38,65,49,0],[65,49,65,51,0],[65,13,65,51,0],[66,9,66,10,0],[69,9,69,10,0],[70,13,70,80,0],[71,13,71,35,0],[72,9,72,10,0],[75,9,75,10,0],[76,13,76,55,0],[77,17,77,96,0],[78,13,78,34,0],[79,9,79,10,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\WebApi\ComponentApiCaller.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using RestSharp;
+using RestSharp.Serialization.Json;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Common.Data.Api;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.View;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using Swr.Configurator.Common.Logic;
+using Swr.Configurator.Logic;
+using Swr.Configurator.Logic.Elastic;
+using Swr.Configurator.Settings;
+using DataFormat = RestSharp.DataFormat;
+
+namespace Swr.Configurator.WebApi
+{
+	internal static class ComponentApiCaller
+	{
+		internal static void Create(IProduct product)
+		{
+            ElasticLogController.Log(LogTypeEnum.Info, &quot;Create component&quot;, EventEnum.Create, null, ObjectTypeEnum.Component);
+
+            var address = WebApiPaths.GetBaseAddress();
+			var client = new RestClient(address);
+
+			var componentIn = new ComponentApiNew { TypeName = product.Type.Name };
+			foreach (var productProperty in product.Properties)
+			{
+				componentIn.Attributes.Add(new AttributeApi { Name = productProperty.Variable, Value = productProperty.Value });
+			}
+			var request = new RestRequest(WebApiPaths.CreateComponent, Method.POST, DataFormat.Json);
+			request.AddJsonBody(new[] { componentIn });
+			var token = IdentityClient.Instance;
+			request.AddAuth(token);
+			var response = client.Execute(request);
+
+			if (response.ResponseStatus == ResponseStatus.Completed)
+			{
+				var code = (int)response.StatusCode;
+
+                if (code == (int)HttpStatusCode.InternalServerError)
+                {
+                    throw new InvalidOperationException(&quot;Внутренняя ошибка сервера при выполнении запроса. Обратитесь к администратору&quot;);
+                }
+
+                if (code &gt; 199 &amp;&amp; code &lt; 300)
+				{
+					var deserializer = new JsonDeserializer();
+					var outComponents = deserializer.Deserialize&lt;List&lt;ComponentApiExist&gt;&gt;(response);
+					if (outComponents == null || outComponents.Count != 1)
+						throw new ApplicationException(&quot;Сервер не вернул тело метода&quot;);
+
+					AllProductsLinkContainer.Instance.UpdateKeyAfterCreate(product.ObjectIdentificator, outComponents[0].Id);
+					product.DbIdentificator = outComponents[0].Id;
+				}
+				else
+					throw new InvalidOperationException(response.Content);
+			}
+			else
+			{
+				throw new IOException(&quot;Ошибка соединения с сервисом&quot;);
+			}
+		}
+
+		internal static SearchResult Search(SearchParams searchParams)
+		{
+            ElasticLogController.Log(LogTypeEnum.Info, &quot;Search components&quot;, EventEnum.Search, null, ObjectTypeEnum.Component);
+
+            var adress = WebApiPaths.GetBaseAddress();
+			var client = new RestClient(adress);
+			var request = new RestRequest(WebApiPaths.SearchComponents, Method.POST, DataFormat.Json);
+			request.AddJsonBody(searchParams);
+			request.AddAuth(IdentityClient.Instance);
+			var response = client.Execute(request);
+
+			if (response.ResponseStatus == ResponseStatus.Completed)
+			{
+				var code = response.StatusCode;
+
+				if (code == HttpStatusCode.OK)
+				{
+					var a = new JsonDeserializer();
+
+                    var result = a.Deserialize&lt;SearchResult&gt;(response);//a.Deserialize&lt;List&lt;ComponentApiExist&gt;&gt;(response);
+
+					return result;
+				}
+
+				if (code == HttpStatusCode.NotFound)
+				{
+					return new SearchResult();
+				}
+
+				if (code == HttpStatusCode.BadRequest)
+				{
+					throw new InvalidOperationException(response.Content);
+				}
+
+                if (code == HttpStatusCode.InternalServerError)
+                {
+                    throw new InvalidOperationException(&quot;Внутренняя ошибка сервера при выполнении запроса. Обратитесь к администратору&quot;);
+                }
+			}
+			else
+			{
+				throw new IOException(&quot;Ошибка соединения с сервисом&quot;);
+			}
+
+			return new SearchResult();
+		}
+
+		internal static void Update(IProduct componentObject)
+		{
+            ElasticLogController.Log(LogTypeEnum.Info, &quot;Update component&quot;, EventEnum.Update, null, ObjectTypeEnum.Component);
+
+            var adress = WebApiPaths.GetBaseAddress();
+			var client = new RestClient(adress);
+
+			var updatedComponent = new ComponentApiExist();
+			updatedComponent.Id = componentObject.DbIdentificator;
+			updatedComponent.TypeName = componentObject.Type.Name;
+			var updatedProperties = componentObject.Properties.Where(t =&gt; t.IsChanged).ToList();
+			if (updatedProperties.Count != 0)
+			{
+				foreach (var updatedProperty in updatedProperties)
+				{
+					updatedComponent.Attributes.Add(new AttributeApi { Name = updatedProperty.Variable, Value = updatedProperty.Value });
+				}
+			}
+
+			var request = new RestRequest(WebApiPaths.UpdateComponent, Method.POST, DataFormat.Json);
+			request.AddJsonBody(new[] { updatedComponent });
+			request.AddAuth(IdentityClient.Instance);
+			var response = client.Execute(request);
+
+			if (response.ResponseStatus == ResponseStatus.Completed)
+			{
+				var code = (int)response.StatusCode;
+
+                if (code == (int)HttpStatusCode.InternalServerError)
+                {
+                    throw new InvalidOperationException(&quot;Внутренняя ошибка сервера при выполнении запроса. Обратитесь к администратору&quot;);
+                }
+
+                if (code &gt; 199 &amp;&amp; code &lt; 300) return;
+				else
+					throw new InvalidOperationException(response.Content);
+			}
+			else
+			{
+				throw new IOException(&quot;Ошибка соединения с сервисом&quot;);
+			}
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[23,3,23,4,0],[24,13,24,126,0],[26,13,26,56,0],[27,4,27,41,0],[29,4,29,75,0],[30,4,30,11,0],[30,13,30,32,0],[30,33,30,35,0],[30,36,30,54,0],[31,4,31,5,0],[32,5,32,117,0],[33,4,33,5,0],[34,4,34,93,0],[35,4,35,47,0],[36,4,36,40,0],[37,4,37,27,0],[38,4,38,43,0],[40,4,40,60,0],[41,4,41,5,0],[42,5,42,41,0],[44,17,44,69,0],[45,17,45,18,0],[46,21,46,138,0],[49,17,49,46,0],[50,5,50,6,0],[51,6,51,48,0],[52,6,52,86,0],[53,6,53,60,0],[54,7,54,70,0],[56,6,56,111,0],[57,6,57,52,0],[58,5,58,6,0],[60,6,60,60,0],[61,4,61,5,0],[63,4,63,5,0],[64,5,64,59,0],[66,3,66,4,0],[69,3,69,4,0],[70,13,70,127,0],[72,13,72,55,0],[73,4,73,40,0],[74,4,74,94,0],[75,4,75,38,0],[76,4,76,45,0],[77,4,77,43,0],[79,4,79,60,0],[80,4,80,5,0],[81,5,81,36,0],[83,5,83,35,0],[84,5,84,6,0],[85,6,85,37,0],[87,21,87,72,0],[89,6,89,20,0],[92,5,92,41,0],[93,5,93,6,0],[94,6,94,32,0],[97,5,97,43,0],[98,5,98,6,0],[99,6,99,60,0],[102,17,102,64,0],[103,17,103,18,0],[104,21,104,138,0],[106,4,106,5,0],[108,4,108,5,0],[109,5,109,59,0],[112,4,112,30,0],[113,3,113,4,0],[116,3,116,4,0],[117,13,117,126,0],[119,13,119,55,0],[120,4,120,40,0],[122,4,122,51,0],[123,4,123,58,0],[124,4,124,58,0],[125,4,125,66,0],[125,66,125,77,0],[125,77,125,88,0],[125,4,125,88,0],[126,4,126,37,0],[127,4,127,5,0],[128,5,128,12,0],[128,14,128,33,0],[128,34,128,36,0],[128,37,128,54,0],[129,5,129,6,0],[130,6,130,123,0],[131,5,131,6,0],[132,4,132,5,0],[134,4,134,93,0],[135,4,135,52,0],[136,4,136,45,0],[137,4,137,43,0],[139,4,139,60,0],[140,4,140,5,0],[141,5,141,41,0],[143,17,143,69,0],[144,17,144,18,0],[145,21,145,138,0],[148,17,148,46,0],[148,47,148,54,0],[150,6,150,60,0],[153,4,153,5,0],[154,5,154,59,0],[156,3,156,4,0]]);
+    </script>
+  </body>
+</html>

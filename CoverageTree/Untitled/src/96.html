@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\DropTarget.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Media;
+using Xceed.Wpf.AvalonDock.Layout;
+using System.Windows.Threading;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    internal abstract class DropTarget&lt;T&gt; : DropTargetBase, IDropTarget where T : FrameworkElement
+    {
+        protected DropTarget(T targetElement, Rect detectionRect, DropTargetType type)
+        {
+            _targetElement = targetElement;
+            _detectionRect = new Rect[] { detectionRect };
+            _type = type;
+        }
+
+        protected DropTarget(T targetElement, IEnumerable&lt;Rect&gt; detectionRects, DropTargetType type)
+        {
+            _targetElement = targetElement;
+            _detectionRect = detectionRects.ToArray();
+            _type = type;
+        }
+
+        Rect[] _detectionRect;
+
+        public Rect[] DetectionRects
+        {
+            get { return _detectionRect; }
+        }
+
+
+        T _targetElement;
+        public T TargetElement
+        {
+            get { return _targetElement; }
+        }
+
+        DropTargetType _type;
+
+        public DropTargetType Type
+        {
+            get { return _type; }
+        }
+
+        protected virtual void Drop(LayoutAnchorableFloatingWindow floatingWindow)
+        { }
+
+        protected virtual void Drop(LayoutDocumentFloatingWindow floatingWindow)
+        { }
+
+
+        public void Drop(LayoutFloatingWindow floatingWindow)
+        {
+            var root = floatingWindow.Root;
+            var currentActiveContent = floatingWindow.Root.ActiveContent;
+            var fwAsAnchorable = floatingWindow as LayoutAnchorableFloatingWindow;
+
+            if (fwAsAnchorable != null)
+            {
+                this.Drop(fwAsAnchorable);
+            }
+            else
+            {
+                var fwAsDocument = floatingWindow as LayoutDocumentFloatingWindow;
+                this.Drop(fwAsDocument);
+            }
+
+            Dispatcher.BeginInvoke(new Action(() =&gt;
+                {
+                    currentActiveContent.IsSelected = false;
+                    currentActiveContent.IsActive = false;
+                    currentActiveContent.IsActive = true;
+                }), DispatcherPriority.Background);
+        }
+
+        public virtual bool HitTest(Point dragPoint)
+        {
+            return _detectionRect.Any(dr =&gt; dr.Contains(dragPoint));
+        }
+
+        public abstract Geometry GetPreviewPath(OverlayWindow overlayWindow, LayoutFloatingWindow floatingWindow);
+
+
+
+        public void DragEnter()
+        {
+            SetIsDraggingOver(TargetElement, true);
+        }
+
+        public void DragLeave()
+        {
+            SetIsDraggingOver(TargetElement, false);
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[30,9,30,87,0],[31,9,31,10,0],[32,13,32,44,0],[33,13,33,59,0],[34,13,34,26,0],[35,9,35,10,0],[37,9,37,101,0],[38,9,38,10,0],[39,13,39,44,0],[40,13,40,55,0],[41,13,41,26,0],[42,9,42,10,0],[48,17,48,18,0],[48,19,48,41,0],[48,42,48,43,0],[55,17,55,18,0],[55,19,55,41,0],[55,42,55,43,0],[62,17,62,18,0],[62,19,62,32,0],[62,33,62,34,0],[66,9,66,10,0],[66,11,66,12,0],[69,9,69,10,0],[69,11,69,12,0],[73,9,73,10,0],[74,13,74,44,0],[75,13,75,74,0],[76,13,76,83,0],[78,13,78,40,0],[79,13,79,14,0],[80,17,80,43,0],[81,13,81,14,0],[83,13,83,14,0],[84,17,84,83,0],[85,17,85,41,0],[86,13,86,14,0],[88,13,89,17,0],[89,17,89,18,0],[89,18,90,21,0],[90,21,90,61,0],[90,61,91,21,0],[91,21,91,59,0],[91,59,92,21,0],[92,21,92,58,0],[92,58,93,17,0],[93,17,93,18,0],[93,18,93,52,0],[88,13,93,52,0],[94,9,94,10,0],[97,9,97,10,0],[98,13,98,45,0],[98,45,98,67,0],[98,67,98,69,0],[98,13,98,69,0],[99,9,99,10,0],[106,9,106,10,0],[107,13,107,52,0],[108,9,108,10,0],[111,9,111,10,0],[112,13,112,53,0],[113,9,113,10,0]]);
+    </script>
+  </body>
+</html>

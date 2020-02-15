@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Logic\PropertyValueListRecordConverter.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Data;
+using Swr.Configurator.Common.Settings.Lists;
+
+namespace Swr.Configurator.View.Logic
+{
+    public class PropertyValueListRecordConverter : IValueConverter
+    {
+        public ListSettings Settings { get; set; }
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value == null ? null : value.ToString();
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var record = value as ListRecordContent;
+
+            if (record == null)
+                return value;
+
+            return record.Value;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,40,14,44,0],[14,45,14,49,0],[17,9,17,10,0],[18,13,18,60,0],[19,9,19,10,0],[22,9,22,10,0],[23,13,23,53,0],[25,13,25,32,0],[26,17,26,30,0],[28,13,28,33,0],[29,9,29,10,0]]);
+    </script>
+  </body>
+</html>

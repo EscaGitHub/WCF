@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Data\SpecificationModel\PropertyContainer.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using Swr.Configurator.Data.EventArgs;
+
+namespace Swr.Configurator.Data.SpecificationModel
+{
+	/// &lt;summary&gt;
+	/// ��������� �������
+	/// &lt;/summary&gt;
+	public class PropertyContainer : Common.Data.IChangable
+	{
+		public PropertyContainer()
+		{
+			_properties = new List&lt;IProperty&gt;();
+		}
+
+		private readonly List&lt;IProperty&gt; _properties;
+
+		/// &lt;summary&gt;
+		/// ������ �������
+		/// &lt;/summary&gt;
+		public ReadOnlyCollection&lt;IProperty&gt; Properties
+		{
+			get { return _properties.AsReadOnly(); }
+		}
+
+		/// &lt;summary&gt;
+		/// ��������� ����� �������� � ���������. ���� �������� ��� ���������� � ���������, �� �������� ����� ��������
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;variable&quot;&gt;����������&lt;/param&gt;
+		/// &lt;param name=&quot;value&quot;&gt;��������&lt;/param&gt;
+		public IProperty SetProperty(string variable, string value)
+		{
+			var existProperty = GetProperty(variable);
+			if (existProperty == null)
+			{
+				var property = new Property(variable, value);
+				property.SuspendChanged = SuspendChanged;
+
+				_properties.Add(property);
+
+				property.PropertyChanged += PropertyPropertyChanged;
+				OnPropertyChanged(property.Variable, null, value);
+
+				return property;
+			}
+
+			if (existProperty.Value != value)
+			{
+				string oldValue = existProperty.Value;
+
+				existProperty.Value = value;
+
+				OnPropertyChanged(existProperty.Variable, oldValue, value);
+			}
+
+			return existProperty;
+		}
+
+		/// &lt;summary&gt;
+		/// ������� ��������, � �������� ���������� ����� ��, ��� � � &lt;paramref name=&quot;property&quot;/&gt;
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;property&quot;&gt;�������� � ����������&lt;/param&gt;
+		public void RemoveProperty(IProperty property)
+		{
+			if (property == null) throw new ArgumentNullException(&quot;property&quot;);
+
+			RemoveProperty(property.Variable);
+		}
+
+		/// &lt;summary&gt;
+		/// ������� �������� � ��������� ����������
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;variable&quot;&gt;����������&lt;/param&gt;
+		public void RemoveProperty(string variable)
+		{
+			var existProperty = GetProperty(variable);
+			if (existProperty == null)
+				return;
+
+			existProperty.PropertyChanged -= PropertyPropertyChanged;
+
+			_properties.Remove(existProperty);
+
+			OnPropertyChanged(existProperty.Variable, existProperty.Value, null);
+		}
+
+		/// &lt;summary&gt;
+		/// ��������� �������� �� ����������
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;variable&quot;&gt;����������&lt;/param&gt;
+		/// &lt;returns&gt;�������� ��� null&lt;/returns&gt;
+		public IProperty GetProperty(string variable)
+		{
+			return Properties.FirstOrDefault(p =&gt; p.Variable.Equals(variable, StringComparison.OrdinalIgnoreCase));
+		}
+
+		/// &lt;summary&gt;
+		/// ��������� �������� �������� �� ����������. �� ���������� null
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;variable&quot;&gt;����������&lt;/param&gt;
+		/// &lt;returns&gt;������� �������� ��� ������ ������&lt;/returns&gt;
+		public string GetSafePropertyValue(string variable)
+		{
+			var property = GetProperty(variable);
+			if (property == null)
+			{
+				return string.Empty;
+			}
+			else
+			{
+				return property.Value ?? string.Empty;
+			}
+		}
+
+		/// &lt;summary&gt;
+		/// ������� ��� �������� � ��������� ������� �� ����
+		/// &lt;/summary&gt;
+		public void ClearProperties()
+		{
+			var properties = _properties.ToArray();
+
+			foreach (var property in _properties)
+			{
+				property.PropertyChanged -= PropertyPropertyChanged;
+			}
+
+			_properties.Clear();
+
+			foreach (var property in properties)
+			{
+				OnPropertyChanged(property.Variable, property.Value, null);
+			}
+		}
+
+		/// &lt;summary&gt;
+		/// ���������� ��������
+		/// &lt;/summary&gt;
+		public event EventHandler&lt;PropertyChangedEventArgs&gt; PropertyChanged;
+
+		private void OnPropertyChanged(string variable, string oldValue, string newValue)
+		{
+			if (newValue != oldValue)
+			{
+				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(variable, oldValue, newValue));
+			}
+		}
+
+		private void PropertyPropertyChanged(object sender, PropertyChangedEventArgs e)
+		{
+			OnPropertyChanged(e.Variable, e.OldValue, e.NewValue);
+		}
+
+		#region Implementation of IChangable
+
+		/// &lt;summary&gt;
+		/// ������� ����������� ������� ��� ��� �������
+		/// &lt;/summary&gt;
+		public bool IsChanged { get; set; }
+
+		private bool _suspendChanged;
+
+		/// &lt;summary&gt;
+		/// ������������ ��������� ����� &lt;see cref=&quot;Common.Data.IChangable.IsChanged&quot;/&gt;
+		/// &lt;/summary&gt;
+		public bool SuspendChanged
+		{
+			get { return _suspendChanged; }
+			set
+			{
+				_suspendChanged = value;
+
+				foreach (var property in Properties)
+				{
+					property.SuspendChanged = value;
+				}
+			}
+		}
+
+		/// &lt;summary&gt;
+		/// ������ ������� ����������
+		/// &lt;/summary&gt;
+		public event EventHandler Changed;
+
+		#endregion
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,3,14,29,1],[15,3,15,4,1],[16,4,16,40,1],[17,3,17,4,1],[26,8,26,9,1],[26,10,26,42,1],[26,43,26,44,1],[35,3,35,4,1],[36,4,36,46,1],[37,4,37,30,1],[38,4,38,5,1],[39,5,39,50,1],[40,5,40,46,1],[42,5,42,31,1],[44,5,44,57,1],[45,5,45,55,1],[47,5,47,21,1],[50,4,50,37,0],[51,4,51,5,0],[52,5,52,43,0],[54,5,54,33,0],[56,5,56,64,0],[57,4,57,5,0],[59,4,59,25,0],[60,3,60,4,1],[67,3,67,4,0],[68,4,68,25,0],[68,26,68,70,0],[70,4,70,38,0],[71,3,71,4,0],[78,3,78,4,0],[79,4,79,46,0],[80,4,80,30,0],[81,5,81,12,0],[83,4,83,61,0],[85,4,85,38,0],[87,4,87,73,0],[88,3,88,4,0],[96,3,96,4,1],[97,4,97,42,1],[97,42,97,105,1],[97,105,97,107,1],[97,4,97,107,1],[98,3,98,4,1],[106,3,106,4,0],[107,4,107,41,0],[108,4,108,25,0],[109,4,109,5,0],[110,5,110,25,0],[113,4,113,5,0],[114,5,114,43,0],[116,3,116,4,0],[122,3,122,4,0],[123,4,123,43,0],[125,4,125,11,0],[125,13,125,25,0],[125,26,125,28,0],[125,29,125,40,0],[126,4,126,5,0],[127,5,127,57,0],[128,4,128,5,0],[130,4,130,24,0],[132,4,132,11,0],[132,13,132,25,0],[132,26,132,28,0],[132,29,132,39,0],[133,4,133,5,0],[134,5,134,64,0],[135,4,135,5,0],[136,3,136,4,0],[144,3,144,4,1],[145,4,145,29,1],[146,4,146,5,1],[147,5,147,95,1],[148,4,148,5,1],[149,3,149,4,1],[152,3,152,4,0],[153,4,153,58,0],[154,3,154,4,0],[161,27,161,31,0],[161,32,161,36,0],[170,8,170,9,1],[170,10,170,33,1],[170,34,170,35,1],[172,4,172,5,1],[173,5,173,29,1],[175,5,175,12,1],[175,14,175,26,0],[175,27,175,29,1],[175,30,175,40,1],[176,5,176,6,0],[177,6,177,38,0],[178,5,178,6,0],[179,4,179,5,1]]);
+    </script>
+  </body>
+</html>

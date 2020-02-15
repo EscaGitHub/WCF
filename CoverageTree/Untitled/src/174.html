@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Data\SearchParams.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Collections.Generic;
+using System.ComponentModel;
+
+namespace Swr.Configurator.Common.Data
+{
+    public class SearchParams
+    {
+        public SearchParams()
+        {
+            SearchAttributes = new List&lt;SearchParam&gt;();
+        }
+
+        /// &lt;summary&gt;
+        /// Максимальное количество элементов в результате
+        /// &lt;/summary&gt;
+        public int Count { get; set; }
+
+        /// &lt;summary&gt;
+        /// Номер страницы поиска
+        /// &lt;/summary&gt;
+        public int PageNumber { get; set; }
+
+        [CannotBeEmpty(ErrorMessage = &quot;Filed &#39;SearchAttributes&#39; is required.&quot;)]
+        public List&lt;SearchParam&gt; SearchAttributes { get; set; }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[8,9,8,30,1],[9,9,9,10,1],[10,13,10,56,1],[11,9,11,10,1],[16,28,16,32,1],[16,33,16,37,1],[21,33,21,37,1],[21,38,21,42,0],[24,53,24,57,1],[24,58,24,62,1]]);
+    </script>
+  </body>
+</html>

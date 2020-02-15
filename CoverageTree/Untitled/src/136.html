@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\Domain\Services\Nomenclatures\NomenclatureChain.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Okei;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Exceptions;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models;
+using Swr.Capital1C.Service.Domain.Services.Nomenclatures.Models.In;
+using Swr.Capital1C.Service.Infrastructure;
+using Swr.Capital1C.Service.Infrastructure.Nomenclatures;
+using Swr.Capital1C.Service.Logger;
+using Swr.Capital1C.Service.Repositories;
+using Swr.Capital1C.Service.Settings.Model;
+using Swr.Infrastructure.Mailing;
+
+namespace Swr.Capital1C.Service.Domain.Services.Nomenclatures
+{
+    public class NomenclatureChain
+    {
+        public List&lt;string&gt; Errors =&gt; _errors;
+
+        public NomenclatureChain()
+        {
+            _errors = new List&lt;string&gt;();
+        }
+
+        private readonly NLog.Logger _logger = LogHelper.Instance.GetLogger(&quot;Цепочка получения номенклатуры&quot;);
+        private readonly List&lt;string&gt; _errors;
+
+        public ITEM[] Get(ICommonSettings commonSettings)
+        {
+            _errors.Clear();
+
+            _logger.Info(&quot;Загрузка изменившихся номенклатур со статусом переменной...&quot;);
+
+            var repository = new ChangedDocumentsRepository(commonSettings);
+            var changedDocuments = repository.GetDocuments(CatalogTypeEnum.Nomenclature);
+
+            _logger.Info(&quot;Фильтрация измененных номенклатур...&quot;);
+
+            changedDocuments = ChangedDocumentsFiltering.Filter(changedDocuments);
+
+            _logger.Info(&quot;Получение тел номенклатур из сервиса...&quot;);
+
+            var nomenclatures = GetNomenclatures(changedDocuments, commonSettings.NomenclatureCatalogServiceConnection).Result;
+
+            _logger.Info(&quot;Проверка загруженных данных...&quot;);
+
+            nomenclatures = ValidateNomenclatures(nomenclatures, commonSettings.NomenclatureDefinition.GetAttributeNameByMessageAttribute(&quot;ID&quot;));
+
+            _logger.Info(&quot;Преобразование в сообщение ответ...&quot;);
+
+            var okeiService = new OkeiService(commonSettings.OkeiServiceConnection);
+
+            var itemsFactory = new ItemsFactory(commonSettings, new CachedOkeiService(okeiService));
+            var items = itemsFactory.Create(ref nomenclatures);
+
+            if (itemsFactory.Errors.Count &gt; 0) 
+                _errors.Add(string.Join(&quot;\n&quot;, itemsFactory.Errors));
+
+            _logger.Info(&quot;Сохранение номенклатуры в переданные...&quot;);
+
+            SaveExportedStatus(nomenclatures, commonSettings);
+
+            return items;
+        }
+
+        private List&lt;Nomenclature&gt; ValidateNomenclatures(List&lt;Nomenclature&gt; nomenclatures, string codeAttributeName)
+        {
+            var result = new List&lt;Nomenclature&gt;();
+
+            var nomenclatureValidation = new NomenclatureValidation();
+
+            try
+            {
+                _logger.Debug($&quot;Номенклатур до проверки полей атрибутов &#39;{nomenclatures.Count}&#39;&quot;);
+
+                foreach (var nomenclature in nomenclatures)
+                {
+                    try
+                    {
+                        nomenclatureValidation.Run(nomenclature, codeAttributeName);
+
+                        result.Add(nomenclature);
+                    }
+                    catch (NomenclatureIsInvalidException e)
+                    {
+                        _errors.Add(e.Message);
+                        _logger.Warn(e.Message);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, $&quot;Ошибка при проверке номенклатур&quot;);
+                throw;
+            }
+
+            _logger.Debug($&quot;Номенклатур после проверки полей атрибутов &#39;{result.Count}&#39;&quot;);
+
+            return result;
+        }
+
+        private void SaveExportedStatus(List&lt;Nomenclature&gt; nomenclatures, ICommonSettings settings)
+        {
+            var connectionString = settings.ExportedDocumentsStatusDbConnection.ConnectionString();
+            var idVariableName = settings.NomenclatureDefinition.GetAttributeNameByMessageAttribute(&quot;ID&quot;);
+
+            IExportedItemRepository repository = new ExportedItemRepository(connectionString);
+
+            try
+            {
+                const int documentTypeId = (int) CatalogTypeEnum.Nomenclature;
+
+                foreach (var nomenclature in nomenclatures)
+                {
+                    var article = nomenclature.GetValueOrDefault(idVariableName);
+
+                    try
+                    {
+                        var latestExported = repository.GetByIdAndTypeAsync(article, documentTypeId).Result;
+
+                        if (latestExported != null &amp;&amp; nomenclature.ModifiedDate &lt; latestExported.ModifiedDate)
+                            throw new NomenclatureIsOutdatedException();
+
+                        if (latestExported == null)
+                        {
+                            var task = repository.AddAsync(new ExportedItem(article, nomenclature.ModifiedDate, documentTypeId));
+
+                            task.Wait();
+                        }
+                        else
+                        {
+                            latestExported.ModifiedDate = nomenclature.ModifiedDate;
+
+                            repository.UpdateAsync(latestExported);
+                        }
+                    }
+                    catch (NomenclatureIsOutdatedException e)
+                    {
+                        var message = $&quot;Ранее была передана новая версия номенклатуры с кодом &#39;{article}&#39; (идентификатор &#39;{nomenclature.Id}&#39;).&quot;;
+                        _errors.Add(message);
+                        _logger.Error(e, message);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, &quot;Ошибка при сохранении номенклатур в переданные&quot;);
+                throw;
+            }
+        }
+
+        private async Task&lt;List&lt;Nomenclature&gt;&gt; GetNomenclatures(IEnumerable&lt;ChangedDocument&gt; changedDocuments, CatalogServiceConnection settings)
+        {
+            var result = new List&lt;Nomenclature&gt;();
+
+            using (var service = new NomenclatureCatalogService(settings))
+            {
+                foreach (var changedDocument in changedDocuments)
+                {
+                    var id = changedDocument.GetUniqueId();
+
+                    try
+                    {
+                        _logger.Info($&quot;Запрос данных номенклатуры по идентификатору &#39;{id}&#39;...&quot;);
+
+                        var nomenclature = await service.GetNomenclatureAsync(id);
+
+                        if (nomenclature != null) result.Add(nomenclature);
+                        else
+                        {
+                            throw new NomenclatureNotFoundException();
+                        }
+
+                        _logger.Info($&quot;Запрос данных номенклатуры по идентификатору &#39;{id}&#39; выполнен.&quot;);
+                    }
+                    catch (NomenclatureNotFoundException e)
+                    {
+                        var message = $&quot;Номенклатура с идентификатором &#39;{id}&#39; не найдена.&quot;;
+                        _errors.Add(message);
+                        _logger.Warn(e, message);
+                    }
+                    catch (NomenclatureIsInvalidException e)
+                    {
+                        var message = $&quot;Номенклатура с идентификатором &#39;{id}&#39; не корректна. Номенклатура не будет передана.&quot;;
+                        _errors.Add(message + Environment.NewLine + e.Message);
+                        _logger.Warn(e, message);
+                    }
+                    catch (NomenclatureIsNotSatisfyDefinitionException e)
+                    {
+                        var message = $&quot;Номенклатура с идентификатором &#39;{id}&#39; не удовлетворяет определению. Номенклатура не будет передана.&quot;;
+                        _errors.Add(message);
+                        _logger.Warn(e, message);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.Error(e, $&quot;Ошибка при получении тела номенклатуры с артикулом &#39;{changedDocument.Article}&#39; и идентификатором &#39;{id}&#39;&quot;);
+                        throw;
+                    }
+                }
+            }
+
+            _logger.Debug($&quot;Получено тел номенклатур из сервиса &#39;{result.Count}&#39;&quot;);
+
+            return result;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[21,39,21,46,1],[23,9,23,35,1],[24,9,24,10,1],[25,13,25,42,1],[26,9,26,10,1],[28,9,28,111,1],[32,9,32,10,1],[33,13,33,29,1],[35,13,35,89,1],[37,13,37,77,1],[38,13,38,90,1],[40,13,40,66,1],[42,13,42,83,1],[44,13,44,69,1],[46,13,46,128,1],[48,13,48,60,1],[50,13,50,146,1],[52,13,52,65,1],[54,13,54,85,1],[56,13,56,101,1],[57,13,57,64,1],[59,13,59,47,1],[60,17,60,69,0],[62,13,62,69,1],[64,13,64,63,1],[66,13,66,26,1],[67,9,67,10,1],[70,9,70,10,1],[71,13,71,51,1],[73,13,73,71,1],[76,13,76,14,1],[77,17,77,99,1],[79,17,79,24,1],[79,26,79,42,1],[79,43,79,45,1],[79,46,79,59,1],[80,17,80,18,1],[82,21,82,22,1],[83,25,83,85,1],[85,25,85,50,1],[86,21,86,22,1],[87,21,87,61,0],[88,21,88,22,0],[89,25,89,48,0],[90,25,90,49,0],[91,21,91,22,0],[92,17,92,18,1],[93,13,93,14,1],[94,13,94,32,0],[95,13,95,14,0],[96,17,96,70,0],[97,17,97,23,0],[100,13,100,91,1],[102,13,102,27,1],[103,9,103,10,1],[106,9,106,10,1],[107,13,107,100,1],[108,13,108,107,1],[110,13,110,95,1],[113,13,113,14,1],[116,17,116,24,1],[116,26,116,42,1],[116,43,116,45,1],[116,46,116,59,1],[117,17,117,18,1],[118,21,118,82,1],[121,21,121,22,1],[122,25,122,109,1],[124,25,124,111,1],[125,29,125,73,0],[127,25,127,52,1],[128,25,128,26,0],[129,29,129,130,0],[131,29,131,41,0],[132,25,132,26,0],[134,25,134,26,1],[135,29,135,85,1],[137,29,137,68,1],[138,25,138,26,1],[139,21,139,22,1],[140,21,140,62,0],[141,21,141,22,0],[142,25,142,145,0],[143,25,143,46,0],[144,25,144,51,0],[145,21,145,22,0],[146,17,146,18,1],[147,13,147,14,1],[148,13,148,32,0],[149,13,149,14,0],[150,17,150,84,0],[151,17,151,23,0],[153,9,153,10,1],[156,9,156,10,1],[157,13,157,51,1],[159,20,159,74,1],[160,13,160,14,1],[161,17,161,24,1],[161,26,161,45,1],[161,46,161,48,1],[161,49,161,65,1],[162,17,162,18,1],[163,21,163,60,1],[166,21,166,22,1],[167,25,167,97,1],[169,25,169,83,1],[171,25,171,50,1],[171,51,171,76,1],[173,25,173,26,0],[174,29,174,71,0],[177,25,177,104,1],[178,21,178,22,1],[179,21,179,60,0],[180,21,180,22,0],[181,25,181,92,0],[182,25,182,46,0],[183,25,183,50,0],[184,21,184,22,0],[185,21,185,61,0],[186,21,186,22,0],[187,25,187,126,0],[188,25,188,80,0],[189,25,189,50,0],[190,21,190,22,0],[191,21,191,74,0],[192,21,192,22,0],[193,25,193,142,0],[194,25,194,46,0],[195,25,195,50,0],[196,21,196,22,0],[197,21,197,40,0],[198,21,198,22,0],[199,25,199,150,0],[200,25,200,31,0],[202,17,202,18,1],[203,13,203,14,1],[205,13,205,84,1],[207,13,207,27,1],[208,9,208,10,1]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Layout\LayoutAnchorableFloatingWindow.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Markup;
+using System.Diagnostics;
+using System.Xml.Serialization;
+
+namespace Xceed.Wpf.AvalonDock.Layout
+{
+    [Serializable]
+    [ContentProperty(&quot;RootPanel&quot;)]
+    public class LayoutAnchorableFloatingWindow : LayoutFloatingWindow, ILayoutElementWithVisibility
+    {
+        public LayoutAnchorableFloatingWindow()
+        { 
+
+        }
+
+        #region RootPanel
+
+        private LayoutAnchorablePaneGroup _rootPanel = null;
+        public LayoutAnchorablePaneGroup RootPanel
+        {
+            get { return _rootPanel; }
+            set
+            {
+                if (_rootPanel != value)
+                {
+                    RaisePropertyChanging(&quot;RootPanel&quot;);
+
+                    if (_rootPanel != null)
+                        _rootPanel.ChildrenTreeChanged -= new EventHandler&lt;ChildrenTreeChangedEventArgs&gt;(_rootPanel_ChildrenTreeChanged);
+
+                    _rootPanel = value;
+                    if (_rootPanel != null)
+                        _rootPanel.Parent = this;
+
+                    if (_rootPanel != null)
+                        _rootPanel.ChildrenTreeChanged += new EventHandler&lt;ChildrenTreeChangedEventArgs&gt;(_rootPanel_ChildrenTreeChanged);
+
+                    RaisePropertyChanged(&quot;RootPanel&quot;);
+                    RaisePropertyChanged(&quot;IsSinglePane&quot;);
+                    RaisePropertyChanged(&quot;SinglePane&quot;);
+                    RaisePropertyChanged(&quot;Children&quot;);
+                    RaisePropertyChanged(&quot;ChildrenCount&quot;);
+                    ((ILayoutElementWithVisibility)this).ComputeVisibility();
+                }
+            }
+        }
+
+        void _rootPanel_ChildrenTreeChanged(object sender, ChildrenTreeChangedEventArgs e)
+        {
+            RaisePropertyChanged(&quot;IsSinglePane&quot;);
+            RaisePropertyChanged(&quot;SinglePane&quot;);
+
+        }
+
+        public bool IsSinglePane
+        {
+            get
+            {
+                return RootPanel != null &amp;&amp; RootPanel.Descendents().OfType&lt;ILayoutAnchorablePane&gt;().Where(p =&gt; p.IsVisible).Count() == 1;
+            }
+        }
+
+        public ILayoutAnchorablePane SinglePane
+        {
+            get
+            {
+                if (!IsSinglePane)
+                    return null;
+
+                var singlePane = RootPanel.Descendents().OfType&lt;LayoutAnchorablePane&gt;().Single(p =&gt; p.IsVisible);
+                singlePane.UpdateIsDirectlyHostedInFloatingWindow();
+                return singlePane;
+            }
+        }
+
+        #endregion
+
+        public override IEnumerable&lt;ILayoutElement&gt; Children
+        {
+            get 
+            {
+                if (ChildrenCount == 1)    
+                    yield return RootPanel;
+
+                yield break;
+            }
+        }
+
+        public override void RemoveChild(ILayoutElement element)
+        {
+            Debug.Assert(element == RootPanel &amp;&amp; element != null);
+            RootPanel = null;
+        }
+
+        public override void ReplaceChild(ILayoutElement oldElement, ILayoutElement newElement)
+        {
+            Debug.Assert(oldElement == RootPanel &amp;&amp; oldElement != null);
+            RootPanel = newElement as LayoutAnchorablePaneGroup;
+        }
+
+        public override int ChildrenCount
+        {
+            get 
+            {
+                if (RootPanel == null)
+                    return 0;
+                return 1; 
+            }
+        }
+
+        #region IsVisible
+        [NonSerialized]
+        private bool _isVisible = true;
+
+        [XmlIgnore]
+        public bool IsVisible
+        {
+            get { return _isVisible; }
+            private set
+            {
+                if (_isVisible != value)
+                {
+                    RaisePropertyChanging(&quot;IsVisible&quot;);
+                    _isVisible = value;
+                    RaisePropertyChanged(&quot;IsVisible&quot;);
+                    if (IsVisibleChanged != null)
+                        IsVisibleChanged(this, EventArgs.Empty);
+                }
+            }
+        }
+
+        public event EventHandler IsVisibleChanged;
+
+        #endregion
+
+
+        void ILayoutElementWithVisibility.ComputeVisibility()
+        {
+            if (RootPanel != null)
+                IsVisible = RootPanel.IsVisible;
+            else
+                IsVisible = false;
+
+        }
+
+        public override bool IsValid
+        {
+            get { return RootPanel != null; }
+        }
+
+#if TRACE
+        public override void ConsoleDump(int tab)
+        {
+          System.Diagnostics.Trace.Write( new string( &#39; &#39;, tab * 4 ) );
+          System.Diagnostics.Trace.WriteLine( &quot;FloatingAnchorableWindow()&quot; );
+
+          RootPanel.ConsoleDump(tab + 1);
+        }
+#endif        
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[31,9,31,48,0],[32,9,32,10,0],[34,9,34,10,0],[38,9,38,61,0],[41,17,41,18,0],[41,19,41,37,0],[41,38,41,39,0],[43,13,43,14,0],[44,17,44,41,0],[45,17,45,18,0],[46,21,46,56,0],[48,21,48,44,0],[49,25,49,138,0],[51,21,51,40,0],[52,21,52,44,0],[53,25,53,50,0],[55,21,55,44,0],[56,25,56,138,0],[58,21,58,55,0],[59,21,59,58,0],[60,21,60,56,0],[61,21,61,54,0],[62,21,62,59,0],[63,21,63,78,0],[64,17,64,18,0],[65,13,65,14,0],[69,9,69,10,0],[70,13,70,50,0],[71,13,71,48,0],[73,9,73,10,0],[78,13,78,14,0],[79,17,79,112,0],[79,112,79,123,0],[79,123,79,138,0],[79,17,79,138,0],[80,13,80,14,0],[86,13,86,14,0],[87,17,87,35,0],[88,21,88,33,0],[90,17,90,101,0],[90,101,90,112,0],[90,112,90,114,0],[90,17,90,114,0],[91,17,91,69,0],[92,17,92,35,0],[93,13,93,14,0],[101,13,101,14,0],[102,17,102,40,0],[103,21,103,44,0],[105,17,105,29,0],[110,9,110,10,0],[111,13,111,67,0],[112,13,112,30,0],[113,9,113,10,0],[116,9,116,10,0],[117,13,117,73,0],[118,13,118,65,0],[119,9,119,10,0],[124,13,124,14,0],[125,17,125,39,0],[126,21,126,30,0],[127,17,127,26,0],[128,13,128,14,0],[133,9,133,40,0],[138,17,138,18,0],[138,19,138,37,0],[138,38,138,39,0],[140,13,140,14,0],[141,17,141,41,0],[142,17,142,18,0],[143,21,143,56,0],[144,21,144,40,0],[145,21,145,55,0],[146,21,146,50,0],[147,25,147,65,0],[148,17,148,18,0],[149,13,149,14,0],[158,9,158,10,0],[159,13,159,35,0],[160,17,160,49,0],[162,17,162,35,0],[164,9,164,10,0],[168,17,168,18,0],[168,19,168,44,0],[168,45,168,46,0]]);
+    </script>
+  </body>
+</html>

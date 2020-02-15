@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\LayoutAnchorableControl.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using Xceed.Wpf.AvalonDock.Layout;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    public class LayoutAnchorableControl : Control
+    {
+        static LayoutAnchorableControl()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof(LayoutAnchorableControl), new FrameworkPropertyMetadata(typeof(LayoutAnchorableControl)));
+            FocusableProperty.OverrideMetadata(typeof(LayoutAnchorableControl), new FrameworkPropertyMetadata(false));
+        }
+
+        public LayoutAnchorableControl()
+        {
+            //SetBinding(FlowDirectionProperty, new Binding(&quot;Model.Root.Manager.FlowDirection&quot;) { Source = this });
+        }
+
+
+        #region Model
+
+        /// &lt;summary&gt;
+        /// Model Dependency Property
+        /// &lt;/summary&gt;
+        public static readonly DependencyProperty ModelProperty =
+            DependencyProperty.Register(&quot;Model&quot;, typeof(LayoutAnchorable), typeof(LayoutAnchorableControl),
+                new FrameworkPropertyMetadata((LayoutAnchorable)null,
+                    new PropertyChangedCallback(OnModelChanged)));
+
+        /// &lt;summary&gt;
+        /// Gets or sets the Model property.  This dependency property 
+        /// indicates the model attached to this view.
+        /// &lt;/summary&gt;
+        public LayoutAnchorable Model
+        {
+            get { return (LayoutAnchorable)GetValue(ModelProperty); }
+            set { SetValue(ModelProperty, value); }
+        }
+
+        /// &lt;summary&gt;
+        /// Handles changes to the Model property.
+        /// &lt;/summary&gt;
+        private static void OnModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((LayoutAnchorableControl)d).OnModelChanged(e);
+        }
+
+        /// &lt;summary&gt;
+        /// Provides derived classes an opportunity to handle changes to the Model property.
+        /// &lt;/summary&gt;
+        protected virtual void OnModelChanged(DependencyPropertyChangedEventArgs e)
+        {
+            if (Model != null)
+                SetLayoutItem(Model.Root.Manager.GetLayoutItemFromModel(Model));
+            else
+                SetLayoutItem(null);
+        }
+
+        #endregion
+
+        #region LayoutItem
+
+        /// &lt;summary&gt;
+        /// LayoutItem Read-Only Dependency Property
+        /// &lt;/summary&gt;
+        private static readonly DependencyPropertyKey LayoutItemPropertyKey
+            = DependencyProperty.RegisterReadOnly(&quot;LayoutItem&quot;, typeof(LayoutItem), typeof(LayoutAnchorableControl),
+                new FrameworkPropertyMetadata((LayoutItem)null));
+
+        public static readonly DependencyProperty LayoutItemProperty
+            = LayoutItemPropertyKey.DependencyProperty;
+
+        /// &lt;summary&gt;
+        /// Gets the LayoutItem property.  This dependency property 
+        /// indicates the LayoutItem attached to this tag item.
+        /// &lt;/summary&gt;
+        public LayoutItem LayoutItem
+        {
+            get { return (LayoutItem)GetValue(LayoutItemProperty); }
+        }
+
+        /// &lt;summary&gt;
+        /// Provides a secure method for setting the LayoutItem property.  
+        /// This dependency property indicates the LayoutItem attached to this tag item.
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;value&quot;&gt;The new value for the property.&lt;/param&gt;
+        protected void SetLayoutItem(LayoutItem value)
+        {
+            SetValue(LayoutItemPropertyKey, value);
+        }
+
+        #endregion
+
+
+        protected override void OnGotKeyboardFocus(System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            if (Model != null)
+                Model.IsActive = true;
+
+            base.OnGotKeyboardFocus(e);
+        }
+
+
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[37,9,37,10,0],[38,13,38,151,0],[39,13,39,119,0],[40,9,40,10,0],[42,9,42,41,0],[43,9,43,10,0],[45,9,45,10,0],[53,9,56,67,0],[64,17,64,18,0],[64,19,64,68,0],[64,69,64,70,0],[65,17,65,18,0],[65,19,65,50,0],[65,51,65,52,0],[72,9,72,10,0],[73,13,73,60,0],[74,9,74,10,0],[80,9,80,10,0],[81,13,81,31,0],[82,17,82,81,0],[84,17,84,37,0],[85,9,85,10,0],[94,9,96,66,0],[98,9,99,56,0],[107,17,107,18,0],[107,19,107,67,0],[107,68,107,69,0],[116,9,116,10,0],[117,13,117,52,0],[118,9,118,10,0],[124,9,124,10,0],[125,13,125,31,0],[126,17,126,39,0],[128,13,128,40,0],[129,9,129,10,0]]);
+    </script>
+  </body>
+</html>

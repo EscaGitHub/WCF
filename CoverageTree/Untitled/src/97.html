@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Controls\WindowHookHandler.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+
+namespace Xceed.Wpf.AvalonDock.Controls
+{
+    class FocusChangeEventArgs : EventArgs
+    {
+        public FocusChangeEventArgs(IntPtr gotFocusWinHandle, IntPtr lostFocusWinHandle)
+        {
+            GotFocusWinHandle = gotFocusWinHandle;
+            LostFocusWinHandle = lostFocusWinHandle;
+        }
+
+        public IntPtr GotFocusWinHandle
+        {
+            get;
+            private set;
+        }
+        public IntPtr LostFocusWinHandle
+        {
+            get;
+            private set;
+        }
+    }
+
+    class WindowHookHandler
+    {
+        public WindowHookHandler()
+        { 
+
+        }
+
+        IntPtr _windowHook;
+        Win32Helper.HookProc _hookProc;
+        public void Attach()
+        {
+            _hookProc = new Win32Helper.HookProc(this.HookProc);
+            _windowHook = Win32Helper.SetWindowsHookEx(
+                Win32Helper.HookType.WH_CBT,
+                _hookProc,
+                IntPtr.Zero,
+                (int)Win32Helper.GetCurrentThreadId());
+        }
+
+
+        public void Detach()
+        {
+            Win32Helper.UnhookWindowsHookEx(_windowHook);
+        }   
+
+        public int HookProc(int code, IntPtr wParam, IntPtr lParam)
+        {
+            if (code == Win32Helper.HCBT_SETFOCUS)
+            {
+                if (FocusChanged != null)
+                    FocusChanged(this, new FocusChangeEventArgs(wParam, lParam));
+            }
+            else if (code == Win32Helper.HCBT_ACTIVATE)
+            {
+                if (_insideActivateEvent.CanEnter)
+                {
+                    using (_insideActivateEvent.Enter())
+                    {
+                        //if (Activate != null)
+                        //    Activate(this, new WindowActivateEventArgs(wParam));
+                    }
+                }
+            }
+
+
+            return Win32Helper.CallNextHookEx(_windowHook, code, wParam, lParam);
+        }
+
+        public event EventHandler&lt;FocusChangeEventArgs&gt; FocusChanged;
+
+        //public event EventHandler&lt;WindowActivateEventArgs&gt; Activate;
+
+        ReentrantFlag _insideActivateEvent = new ReentrantFlag();
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[27,9,27,89,0],[28,9,28,10,0],[29,13,29,51,0],[30,13,30,53,0],[31,9,31,10,0],[35,13,35,17,0],[36,13,36,25,0],[40,13,40,17,0],[41,13,41,25,0],[47,9,47,35,0],[48,9,48,10,0],[50,9,50,10,0],[55,9,55,10,0],[56,13,56,65,0],[57,13,61,56,0],[62,9,62,10,0],[66,9,66,10,0],[67,13,67,58,0],[68,9,68,10,0],[71,9,71,10,0],[72,13,72,51,0],[73,13,73,14,0],[74,17,74,42,0],[75,21,75,82,0],[76,13,76,14,0],[77,18,77,56,0],[78,13,78,14,0],[79,17,79,51,0],[80,17,80,18,0],[81,21,81,57,0],[82,21,82,22,0],[85,21,85,22,0],[86,17,86,18,0],[87,13,87,14,0],[90,13,90,82,0],[91,9,91,10,0],[97,9,97,66,0]]);
+    </script>
+  </body>
+</html>

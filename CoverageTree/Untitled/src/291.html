@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\UIColumnGenerator.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
+using System.Windows.Markup;
+using System.Windows.Media;
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Common.Data.ObjectModel;
+using Swr.Configurator.Common.Settings;
+using Swr.Configurator.Common.Settings.Columns;
+using Swr.Configurator.Common.Settings.Lists;
+using Swr.Configurator.Data;
+using Swr.Configurator.Data.ProductModel;
+using Swr.Configurator.View;
+using Swr.Configurator.View.Controls;
+using Swr.Configurator.View.DataViewModels;
+using Swr.Configurator.View.Logic;
+using Swr.Configurator.View.Panels.ViewModels;
+using SWR_Tools.Data;
+using SWR_Tools.Logic;
+using SWR_Tools.Serialization;
+using SwrUI.Behaviours;
+using SwrUILogic.Data;
+using Xceed.Wpf.AvalonDock.Controls;
+
+namespace Swr.Configurator.Logic
+{
+    public static class UIColumnGenerator
+    {
+        public const string SpecificationTypeDynamicUserListGuid = &quot;5B2215D8-198F-4947-9E92-65BA69C440DF&quot;;
+
+        public static DataGridColumn GetColumn(DataGrid productsDataGrid, AttributeForTypeObject column,
+            SpecificationTabVM viewModel, ListsSettings listsSettings, IProduct parentProduct)
+        {
+            var localColumnsSettings = ConfiguratorMainWindowVM.Instance.LocalSettingsController.Settings.Columns;
+            //var canEdit = CanEdit(column, currentRole);
+
+            var canEdit = true;
+            //return GetVariableColumn(productsDataGrid, column, localColumnsSettings, listsSettings, canEdit, parentProduct);
+
+            //if (column.IsSearchColumn)
+            //    return GetSearchColumn(productsDataGrid, column, localColumnsSettings, canEdit);
+
+            switch (column.ColumnType)
+            {
+                case ColumnType.Variable:
+                    return GetVariableColumn(productsDataGrid, column, localColumnsSettings, listsSettings, canEdit,
+                        parentProduct);
+                case ColumnType.ComponentOfType:
+                    return GetComponentTypeColumn(productsDataGrid, column, viewModel, localColumnsSettings);
+
+                //    case ColumnType.Quantity:
+                //        return GetQuantityColumn(column, localColumnsSettings, viewModel, canEdit);
+
+                //    case ColumnType.FileId:
+                //        return GetReadOnlyTextColumn(column, localColumnsSettings, nameof(ProductForSpecificationTabVM.FileId));
+
+                //    case ColumnType.FileName:
+                //        return GetReadOnlyTextColumn(column, localColumnsSettings, nameof(ProductForSpecificationTabVM.FileName));
+
+                //    case ColumnType.ProductName:
+                //        return GetReadOnlyTextColumn(column, localColumnsSettings, nameof(ProductForSpecificationTabVM.Name));
+
+                //    case ColumnType.MultipleReferenceCounter:
+                //        return GetReadOnlyTextColumn(column, localColumnsSettings, nameof(ProductForSpecificationTabVM.MultipleCounter));
+
+                //    case ColumnType.TimeStamp:
+                //        return GetReadOnlyTextColumn(column, localColumnsSettings, nameof(ProductForSpecificationTabVM.TimeStamp));
+
+                //    case ColumnType.Position:
+                //        return GetPositionColumn(column, localColumnsSettings, canEdit);
+
+                //    case ColumnType.AlternatePosition:
+                //        return GetAlternatePositionColumn(productsDataGrid, column, localColumnsSettings, canEdit);
+
+                //    case ColumnType.CanEditCount:
+                //        return GetCanEditCountColumn(column, localColumnsSettings, canEdit);
+
+                //    case ColumnType.Calculated:
+                //        return GetCalculatedColumn(productsDataGrid, column, localColumnsSettings);
+
+                //    case ColumnType.SpecificationType:
+                //        return GetSpecificationTypeColumn(productsDataGrid, column, viewModel, currentRole, localColumnsSettings);
+            }
+
+            return null;
+        }
+
+        private static DataGridColumn GetVariableColumn(DataGrid productsDataGrid, AttributeForTypeObject column,
+            LocalColumnsSettings localColumnsSettings, ListsSettings listsSettings, bool canEdit,
+            IProduct parentProduct)
+        {
+            var uiColumn = new DataGridTextColumn
+            {
+                Header = column.TableAlias,//.Attribute.Name,
+                Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+                IsReadOnly = !canEdit
+            };
+
+            var binding = new Binding
+            {
+                Mode = BindingMode.TwoWay,
+                Path = new PropertyPath(string.Format(&quot;{0}[{1}].ProperyValue&quot;,
+                    column.Attribute.Type == AttributeTypeEnum.Link ? &quot;ReferenceProperties&quot; : &quot;Properties&quot;,
+                    column.Attribute.Name)),
+            };
+
+            uiColumn.Binding = binding;
+
+            SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+            return uiColumn;
+        }
+
+        private static DataGridColumn GetComponentTypeColumn(DataGrid productsDataGrid, AttributeForTypeObject column,
+            SpecificationTabVM viewModel, LocalColumnsSettings localColumnsSettings)
+        {
+            var settings = ConfiguratorMainWindowVM.Instance.SettingsController.Settings;
+
+            if (settings != null)
+            {
+                //var componentTypes = settings.ComponentTypes.Select(t =&gt; t.Name).ToList();
+                //viewModel.SpecificationTypeObject.AllowComponentTypeNames
+                var componentTypes = settings.ComponentTypes
+                    .Where(t =&gt; viewModel.SpecificationTypeObject.AllowComponentTypeNames.Contains(t.Name)).ToList().GetClone();/*settings.ComponentTypes.GetClone()*/;
+
+                var path = &quot;ComponentType.Type&quot;;
+                //var path = &quot;Reference.Child.Type.Name&quot;;
+
+                var selectedItemBinding = new Binding
+                {
+                    Mode = BindingMode.TwoWay,
+                    UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
+                    Path = new PropertyPath(path),
+                    //Converter = converter
+                };
+
+
+                var elementTemplate = new DataTemplate();
+
+                var tb = new FrameworkElementFactory(typeof(TextBlock));
+                //Reference.Child.Type.Name
+                tb.SetBinding(TextBlock.TextProperty, new Binding(&quot;ComponentType.Type.Name&quot;));
+                //tb.SetBinding(TextBlock.TextProperty, new Binding(path));
+
+                //set the visual tree of the data template
+                elementTemplate.VisualTree = tb;
+
+                var editingTemplate = new DataTemplate();
+                var cb = new FrameworkElementFactory(typeof(ComboBox));
+                //cb.SetBinding(ComboBox.TextProperty, selectedItemBinding);
+                cb.SetBinding(Selector.SelectedItemProperty, selectedItemBinding);
+                //cb.SetValue(Selector.SelectedValuePathProperty, &quot;&quot;);
+                //cb.SetBinding(Selector.SelectedValueProperty, selectedItemBinding);
+                cb.SetValue(ComboBox.IsEditableProperty, false);
+                cb.SetValue(ItemsControl.ItemsSourceProperty, componentTypes);
+                cb.SetValue(ItemsControl.DisplayMemberPathProperty, &quot;Name&quot;);
+                cb.SetValue(FrameworkElement.StyleProperty, productsDataGrid.FindResource(&quot;DataGridComboBoxStyle&quot;) as Style);
+
+                editingTemplate.VisualTree = cb;
+
+                var uiColumn = new DataGridComboBoxColumn
+                {
+                    Header = column.Attribute.Name,
+                    SelectedItemBinding = selectedItemBinding,
+                    TextBinding = new Binding(&quot;ComponentType.Type.Name&quot;),
+                    DisplayMemberPath = &quot;Name&quot;,
+                    ItemsSource = componentTypes,
+                    EditingElementStyle = productsDataGrid.FindResource(&quot;DataGridComboBoxStyle&quot;) as Style,
+                    Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+                    SortMemberPath = path,
+                    IsReadOnly = false
+                };
+
+
+                //var uiColumn = new DataGridTemplateColumn()
+                //{
+                //    Header = column.Name,
+                //    CellEditingTemplate = editingTemplate,
+                //    CellTemplate = elementTemplate,
+                //    Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+                //    SortMemberPath = path,
+                //    IsReadOnly = false
+                //};
+
+                SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+                return uiColumn;
+            }
+
+            return null;
+        }
+
+        //private static DataGridColumn GetComponentTypeColumn(DataGrid productsDataGrid, AttributeObject column,
+        //    SpecificationTabVM viewModel, LocalColumnsSettings localColumnsSettings)
+        //{
+        //    var converter = new PropertyValueListRecordConverter {Settings = list};
+        //    var path = string.Format(&quot;{0}[{1}].ProperyValue&quot;,
+        //        column.Source == VariableSource.Link ? &quot;ReferenceProperties&quot; : &quot;Properties&quot;,
+        //        column.Variable);
+
+        //    var selectedItemBinding = new Binding
+        //    {
+        //        Mode = BindingMode.TwoWay,
+        //        Path = new PropertyPath(path),
+        //        Converter = converter
+        //    };
+
+        //    var elementTemplate = new DataTemplate();
+
+        //    var tb = new FrameworkElementFactory(typeof(TextBlock));
+        //    tb.SetBinding(TextBlock.TextProperty, new Binding(path));
+
+        //    //set the visual tree of the data template
+        //    elementTemplate.VisualTree = tb;
+
+        //    var editingTemplate = new DataTemplate();
+        //    var cb = new FrameworkElementFactory(typeof(ComboBox));
+        //    cb.SetBinding(ComboBox.TextProperty, selectedItemBinding);
+        //    cb.SetValue(ComboBox.IsEditableProperty, true);
+
+        //    object source = null;
+
+        //    switch (list)
+        //    {
+        //        case UserListSettings settings:
+        //            source = settings.Records;
+        //            break;
+
+        //        case DynamicUserListSettings settings:
+        //        {
+        //            var content = GetDynamicListRecordContent(parentProduct, settings);
+        //            source = new ObservableCollection&lt;ListRecordContent&gt;(content);
+        //            break;
+        //        }
+
+        //        case PdmListSettings _:
+        //        {
+        //            var pdmList = ConfiguratorMainWindowVM.Instance.PdmVaultInfo.CardLists.SafeGetValue(list.Id);
+        //            source = pdmList.Content;
+        //            break;
+        //        }
+        //    }
+
+        //    cb.SetValue(ItemsControl.ItemsSourceProperty, source);
+        //    cb.SetValue(ItemsControl.DisplayMemberPathProperty, &quot;Value&quot;);
+        //    cb.SetValue(FrameworkElement.StyleProperty,
+        //        productsDataGrid.FindResource(&quot;DataGridComboBoxStyle&quot;) as Style);
+
+        //    editingTemplate.VisualTree = cb;
+
+        //    var uiColumn = new ListDataGridEditableComboBoxColumn
+        //    {
+        //        Header = column.Header,
+        //        CellEditingTemplate = editingTemplate,
+        //        CellTemplate = elementTemplate,
+        //        Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+        //        SortMemberPath = path,
+        //        IsReadOnly = !canEdit,
+        //        Source = source,
+        //        Settings = list
+        //    };
+
+        //    //SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+        //    return uiColumn;
+        //}
+
+        //public static DataGridColumn GetColumn(DataGrid productsDataGrid, ColumnSettings column, SpecificationTabVM viewModel, ListsSettings listsSettings, Role currentRole, IProduct parentProduct)
+        //{
+        //    var localColumnsSettings = ConfiguratorMainWindowVM.Instance.LocalSettingsController.Settings.Columns;
+        //    var canEdit = CanEdit(column, currentRole);
+
+        //    if (column.IsSearchColumn)
+        //        return GetSearchColumn(productsDataGrid, column, localColumnsSettings, canEdit);
+
+        //    switch (column.ColumnType)
+        //    {
+        //        case ColumnType.Variable:
+        //            return GetVariableColumn(productsDataGrid, column, localColumnsSettings, listsSettings, canEdit, parentProduct);
+
+        //        case ColumnType.Quantity:
+        //            return GetQuantityColumn(column, localColumnsSettings, viewModel, canEdit);
+
+        //        case ColumnType.FileId:
+        //            return GetReadOnlyTextColumn(column, localColumnsSettings, nameof(ProductForSpecificationTabVM.FileId));
+
+        //        case ColumnType.FileName:
+        //            return GetReadOnlyTextColumn(column, localColumnsSettings, nameof(ProductForSpecificationTabVM.FileName));
+
+        //        case ColumnType.ProductName:
+        //            return GetReadOnlyTextColumn(column, localColumnsSettings, nameof(ProductForSpecificationTabVM.Name));
+
+        //        case ColumnType.MultipleReferenceCounter:
+        //            return GetReadOnlyTextColumn(column, localColumnsSettings, nameof(ProductForSpecificationTabVM.MultipleCounter));
+
+        //        case ColumnType.TimeStamp:
+        //            return GetReadOnlyTextColumn(column, localColumnsSettings, nameof(ProductForSpecificationTabVM.TimeStamp));
+
+        //        case ColumnType.Position:
+        //            return GetPositionColumn(column, localColumnsSettings, canEdit);
+
+        //        case ColumnType.AlternatePosition:
+        //            return GetAlternatePositionColumn(productsDataGrid, column, localColumnsSettings, canEdit);
+
+        //        case ColumnType.CanEditCount:
+        //            return GetCanEditCountColumn(column, localColumnsSettings, canEdit);
+
+        //        case ColumnType.Calculated:
+        //            return GetCalculatedColumn(productsDataGrid, column, localColumnsSettings);
+
+        //        case ColumnType.SpecificationType:
+        //            return GetSpecificationTypeColumn(productsDataGrid, column, viewModel, currentRole, localColumnsSettings);
+        //    }
+
+        //    return null;
+        //}
+
+        //	private static bool CanEdit(ColumnSettings column, Role currentRole)
+        //	{
+        //		var role = column.Permitions.FirstOrDefault(t =&gt; t.RoleId == currentRole.Id);
+
+        //		if (role != null)
+        //		{
+        //			return role.CanEdit;
+        //		}
+
+        //		return true;
+        //	}
+
+        //	private static DataGridColumn GetCanEditCountColumn(ColumnSettings column, LocalColumnsSettings localColumnsSettings, bool canEdit)
+        //	{
+        //		var uiColumn = new DataGridCheckBoxColumn
+        //		{
+        //			Header = column.Header,
+        //			IsThreeState = false,
+        //			Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+        //			IsReadOnly = !canEdit
+        //		};
+
+        //		var binding = new Binding
+        //		{
+        //			Mode = BindingMode.TwoWay,
+        //			Path = new PropertyPath(string.Format(&quot;{0}[{1}].ProperyValue&quot;,
+        //				column.Source == VariableSource.Link ? &quot;ReferenceProperties&quot; : &quot;Properties&quot;,
+        //				column.Variable)),
+        //			Converter = new StringToBooleanConverter(),
+        //			UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+        //		};
+
+        //		uiColumn.Binding = binding;
+
+        //		SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+        //		return uiColumn;
+        //	}
+
+        //	private static DataGridColumn GetCalculatedColumn(DataGrid productsDataGrid, ColumnSettings column, LocalColumnsSettings localColumnsSettings)
+        //	{
+        //		var uiColumn = new DataGridTemplateColumn
+        //		{
+        //			Header = column.Header,
+        //			Width = new DataGridLength(0, DataGridLengthUnitType.Auto)
+        //		};
+        //		var path = string.Format(&quot;{0}[{1}].ProperyValue&quot;,
+        //			column.Source == VariableSource.Link ? &quot;ReferenceProperties&quot; : &quot;Properties&quot;,
+        //			column.Variable);
+
+        //		var binding = new Binding
+        //		{
+        //			Mode = BindingMode.TwoWay,
+        //			Path = new PropertyPath(path),
+        //		};
+
+        //		uiColumn.IsReadOnly = true;
+        //		uiColumn.SortMemberPath = path;
+
+        //		var template = $&quot;{(column.Source == VariableSource.Link ? &quot;ReferenceProperties&quot; : &quot;Properties&quot;)}[{column.Variable}]&quot;;
+
+        //		var triggerBindingPath = template + &quot;.ErrorLevel&quot;;
+
+        //		var noneErrorTrigger = new DataTrigger();
+        //		noneErrorTrigger.Binding = new Binding(triggerBindingPath);
+        //		noneErrorTrigger.Value = PropertyErrorLevel.None;
+        //		noneErrorTrigger.Setters.Add(new Setter(VectorIconUC.DataProperty, &quot;M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z&quot;, &quot;ErrorLevel&quot;));
+        //		noneErrorTrigger.Setters.Add(new Setter(VectorIconUC.IconColorProperty, new SolidColorBrush(Colors.Green), &quot;ErrorLevel&quot;));
+
+        //		var warningErrorTrigger = new DataTrigger();
+        //		warningErrorTrigger.Binding = new Binding(triggerBindingPath);
+        //		warningErrorTrigger.Value = PropertyErrorLevel.Warning;
+        //		warningErrorTrigger.Setters.Add(new Setter(VectorIconUC.DataProperty, &quot;M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z&quot;, &quot;ErrorLevel&quot;));
+        //		warningErrorTrigger.Setters.Add(new Setter(VectorIconUC.IconColorProperty, new SolidColorBrush(Colors.Gray), &quot;ErrorLevel&quot;));
+
+        //		var errorErrorTrigger = new DataTrigger();
+        //		errorErrorTrigger.Binding = new Binding(triggerBindingPath);
+        //		errorErrorTrigger.Value = PropertyErrorLevel.Error;
+        //		errorErrorTrigger.Setters.Add(new Setter(VectorIconUC.DataProperty, &quot;M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z&quot;, &quot;ErrorLevel&quot;));
+        //		errorErrorTrigger.Setters.Add(new Setter(VectorIconUC.IconColorProperty, new SolidColorBrush((Color) ColorConverter.ConvertFromString(&quot;#FFFCC04C&quot;)), &quot;ErrorLevel&quot;));
+
+        //		var ttBindingPath = template + &quot;.ErrorText&quot;;
+        //		var toolTipBinding = new Binding()
+        //		{
+        //			Path = new PropertyPath(ttBindingPath),
+        //			Mode = BindingMode.OneWay,
+        //			UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+        //		};
+
+        //		errorErrorTrigger.Setters.Add(new Setter(VectorIconUC.ToolTipProperty, toolTipBinding, &quot;ErrorLevel&quot;));
+
+        //		var icon = new FrameworkElementFactory(typeof(VectorIconUC))
+        //		{
+        //			Name = &quot;ErrorLevel&quot;
+        //		};
+        //		icon.SetValue(FrameworkElement.HeightProperty, 16.0);
+        //		icon.SetValue(FrameworkElement.WidthProperty, 16.0);
+
+        //		var tblock = new FrameworkElementFactory(typeof(TextBlock));
+        //		tblock.SetBinding(TextBlock.TextProperty, binding);
+
+        //		var stackPanel = new FrameworkElementFactory(typeof(StackPanel));
+        //		stackPanel.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
+        //		stackPanel.AppendChild(icon);
+        //		stackPanel.AppendChild(tblock);
+
+        //		var cellTemplate = new DataTemplate();
+        //		cellTemplate.VisualTree = stackPanel;
+
+        //		cellTemplate.Triggers.Add(noneErrorTrigger);
+        //		cellTemplate.Triggers.Add(warningErrorTrigger);
+        //		cellTemplate.Triggers.Add(errorErrorTrigger);
+
+        //		uiColumn.CellTemplate = cellTemplate;
+
+        //		SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+        //		return uiColumn;
+        //	}
+
+        //	private static DataGridColumn GetAlternatePositionColumn(DataGrid productsDataGrid, ColumnSettings column, LocalColumnsSettings localColumnsSettings, bool canEdit)
+        //	{
+        //		//���������� ������ � ��������� �� ������� ������� ������������.
+        //		//� ������ ������ ���� ������ ��������.
+        //		//������ �� ProductVM.
+        //		//� �������� ���������� AlternatePosition ����������� �������� ��������� � ���������� ���������� �� ���������� ProductVM.
+        //		//��� ������ DisplayMember = CommonSettings.PropertyForAlternatePositionDisplay
+        //		//������ ������ �������� ������ �� ������������� � ��������� �������� ���� ������ ��������.
+        //		//���� ��� ������� ������� � �������� ������ ������� - ������ ������������� ����������� �������� ��� ������.
+        //		//��� ������ ����������� ���������� � ������ ����������, ���������� ����������� ���������� ������� ��� ������.
+        //		//��. http://rndserver/issues/4339
+
+        //		//���� ������� �������������� ������� ������� ��� ����������� � ������� ������������, �� �� ����� ��������,
+        //		//��������� ������� ���� �� �������� ������������. �� ��������� ������� ������������ ��������.
+
+        //		var uiColumn = new DataGridEditableComboBoxColumn
+        //		{
+        //			Header = column.Header,
+        //			CellEditingTemplate = productsDataGrid.FindResource(&quot;AlternatePositionEditingElementTemplate&quot;) as DataTemplate,
+        //			CellTemplate = productsDataGrid.FindResource(&quot;AlternatePositionElementTemplate&quot;) as DataTemplate,
+        //			SortMemberPath = &quot;AlternatePositionValue&quot;,
+        //			Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+        //			IsReadOnly = !canEdit
+        //		};
+
+        //		var columnVisibilityBinding = new Binding(&quot;DataContext.SpecificationsController.ShowAlternatePositionColumn&quot;)
+        //		{
+        //			Source = productsDataGrid.FindResource(&quot;ProxyElement&quot;) as FrameworkElement,
+        //			Converter = productsDataGrid.FindResource(&quot;BooleanToVisibilityConverter&quot;) as IValueConverter
+        //		};
+
+        //		BindingOperations.SetBinding(uiColumn, DataGridColumn.VisibilityProperty, columnVisibilityBinding);
+
+        //		SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+        //		return uiColumn;
+        //	}
+
+        //	private static DataGridColumn GetPositionColumn(ColumnSettings column, LocalColumnsSettings localColumnsSettings, bool canEdit)
+        //	{
+        //		var uiColumn = new DataGridIntColumn
+        //		{
+        //			Header = column.Header,
+        //			Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+        //			IsReadOnly = !canEdit
+        //		};
+
+        //		var binding = new Binding
+        //		{
+        //			Mode = BindingMode.TwoWay,
+        //			Path = new PropertyPath(string.Format(&quot;ReferenceProperties[{0}].ProperyValue&quot;, column.Variable)),
+        //		};
+
+        //		uiColumn.Binding = binding;
+
+        //		SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+        //		return uiColumn;
+        //	}
+
+        //	private static DataGridColumn GetReadOnlyTextColumn(ColumnSettings column, LocalColumnsSettings localColumnsSettings, string path)
+        //	{
+        //		var uiColumn = new DataGridTextColumn
+        //		{
+        //			Header = column.Header,
+        //			Width = new DataGridLength(0, DataGridLengthUnitType.Auto)
+        //		};
+
+        //		var binding = new Binding
+        //		{
+        //			Mode = BindingMode.OneWay,
+        //			Path = new PropertyPath(path),
+        //		};
+
+        //		uiColumn.Binding = binding;
+        //		uiColumn.IsReadOnly = true;
+
+        //		SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+        //		return uiColumn;
+        //	}
+
+        //	private static DataGridColumn GetQuantityColumn(ColumnSettings column, LocalColumnsSettings localColumnsSettings, SpecificationTabVM viewModel, bool canEdit)
+        //	{
+        //		var uiColumn = new DataGridDoubleColumn
+        //		{
+        //			Header = column.Header,
+        //			Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+        //			IsReadOnly = !canEdit
+        //		};
+
+        //		var binding = new Binding
+        //		{
+        //			Mode = BindingMode.TwoWay,
+        //			Path = new PropertyPath(string.Format(&quot;ReferenceProperties[{0}].ProperyValue&quot;, viewModel.IsInOrder ? viewModel.InclusionIdentifer : column.Variable)),
+        //		};
+
+        //		uiColumn.Binding = binding;
+
+        //		SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+        //		return uiColumn;
+        //	}
+
+
+
+        //	private static DataGridEditableComboBoxColumn GetAliasedListDataGridColumn(DataGrid productsDataGrid, ColumnSettings column,
+        //		LocalColumnsSettings localColumnsSettings, bool canEdit, ListSettings list)
+        //	{
+        //		var pdmList = ConfiguratorMainWindowVM.Instance.PdmVaultInfo.CardLists.SafeGetValue(list.Id);
+
+        //		var textBlockConverter = new TextBlockItemConverter {List = pdmList.Content};
+        //		var comboBoxSelectedItemConverter = new ComboBoxSelectedItemConverter {List = pdmList.Content};
+
+        //		#region bindings
+
+        //		var path = string.Format(&quot;{0}[{1}].ProperyValue&quot;,
+        //			column.Source == VariableSource.Link ? &quot;ReferenceProperties&quot; : &quot;Properties&quot;,
+        //			column.Variable);
+
+        //		var selectedItemBinding = new Binding
+        //		{
+        //			Mode = BindingMode.TwoWay,
+        //			Path = new PropertyPath(path),
+        //			Converter = comboBoxSelectedItemConverter
+        //		};
+
+        //		var textBinding = new Binding(path) {Converter = textBlockConverter};
+
+        //		#endregion
+
+        //		var elementTemplate = new DataTemplate();
+        //		var tb = new FrameworkElementFactory(typeof(TextBlock));
+        //		tb.SetBinding(TextBlock.TextProperty, textBinding);
+        //		elementTemplate.VisualTree = tb;
+
+        //		var editingTemplate = new DataTemplate();
+        //		var cb = new FrameworkElementFactory(typeof(ComboBox));
+        //		cb.SetBinding(Selector.SelectedItemProperty, selectedItemBinding);
+        //		cb.SetValue(ComboBox.IsEditableProperty, true);
+        //		cb.SetValue(ItemsControl.ItemsSourceProperty, pdmList.Content);
+        //		cb.SetValue(ItemsControl.DisplayMemberPathProperty, &quot;Value&quot;);
+        //		cb.SetValue(FrameworkElement.StyleProperty, productsDataGrid.FindResource(&quot;DataGridComboBoxStyle&quot;) as Style);
+
+        //		editingTemplate.VisualTree = cb;
+
+        //		var uiColumn = new DataGridEditableComboBoxColumn
+        //		{
+        //			Header = column.Header,
+        //			CellEditingTemplate = editingTemplate,
+        //			CellTemplate = elementTemplate,
+        //			Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+        //			SortMemberPath = path,
+        //			IsReadOnly = !canEdit
+        //		};
+
+        //		SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+        //		return uiColumn;
+        //	}
+
+        //	private static ListDataGridEditableComboBoxColumn GetSimpleListDataGridColumn(DataGrid productsDataGrid, ColumnSettings column,
+        //		LocalColumnsSettings localColumnsSettings, bool canEdit, ListSettings list, IProduct parentProduct)
+        //	{
+        //		var converter = new PropertyValueListRecordConverter {Settings = list};
+        //		var path = string.Format(&quot;{0}[{1}].ProperyValue&quot;,
+        //			column.Source == VariableSource.Link ? &quot;ReferenceProperties&quot; : &quot;Properties&quot;,
+        //			column.Variable);
+
+        //		var selectedItemBinding = new Binding
+        //		{
+        //			Mode = BindingMode.TwoWay,
+        //			Path = new PropertyPath(path),
+        //			Converter = converter
+        //		};
+
+        //		var elementTemplate = new DataTemplate();
+
+        //		var tb = new FrameworkElementFactory(typeof(TextBlock));
+        //		tb.SetBinding(TextBlock.TextProperty, new Binding(path));
+
+        //		//set the visual tree of the data template
+        //		elementTemplate.VisualTree = tb;
+
+        //		var editingTemplate = new DataTemplate();
+        //		var cb = new FrameworkElementFactory(typeof(ComboBox));
+        //		cb.SetBinding(ComboBox.TextProperty, selectedItemBinding);
+        //		cb.SetValue(ComboBox.IsEditableProperty, true);
+
+        //		object source = null;
+
+        //		switch (list)
+        //		{
+        //			case UserListSettings settings:
+        //				source = settings.Records;
+        //				break;
+
+        //			case DynamicUserListSettings settings:
+        //			{
+        //				var content = GetDynamicListRecordContent(parentProduct, settings);
+        //				source = new ObservableCollection&lt;ListRecordContent&gt;(content);
+        //				break;
+        //			}
+
+        //			case PdmListSettings _:
+        //			{
+        //				var pdmList = ConfiguratorMainWindowVM.Instance.PdmVaultInfo.CardLists.SafeGetValue(list.Id);
+        //				source = pdmList.Content;
+        //				break;
+        //			}
+        //		}
+
+        //		cb.SetValue(ItemsControl.ItemsSourceProperty, source);
+        //		cb.SetValue(ItemsControl.DisplayMemberPathProperty, &quot;Value&quot;);
+        //		cb.SetValue(FrameworkElement.StyleProperty, productsDataGrid.FindResource(&quot;DataGridComboBoxStyle&quot;) as Style);
+
+        //		editingTemplate.VisualTree = cb;
+
+        //		var uiColumn = new ListDataGridEditableComboBoxColumn
+        //		{
+        //			Header = column.Header,
+        //			CellEditingTemplate = editingTemplate,
+        //			CellTemplate = elementTemplate,
+        //			Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+        //			SortMemberPath = path,
+        //			IsReadOnly = !canEdit,
+        //			Source = source,
+        //			Settings = list
+        //		};
+
+        //		SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+        //		return uiColumn;
+        //	}
+
+        //	public static ListRecordContent[] GetDynamicListRecordContent(IProduct parentProduct, DynamicUserListSettings settings)
+        //	{
+        //		var productVariablesForDynamicLists = new List&lt;string&gt;();
+
+        //		foreach (var record in settings.Records)
+        //		{
+        //			NameTemplateParser.Parse(record.Value, out var variables);
+
+        //			productVariablesForDynamicLists.AddRange(variables);
+        //		}
+
+        //		productVariablesForDynamicLists = productVariablesForDynamicLists.Distinct().ToList();
+
+        //		var values = new List&lt;string&gt;();
+        //		values.Add(string.Empty);
+
+        //		foreach (var variable in productVariablesForDynamicLists)
+        //		{
+        //			var value = parentProduct.GetSafePropertyValue(variable);
+        //			values.Add(value);
+        //		}
+
+        //		values = values.Distinct().ToList();
+
+        //		var recordContent = values.Select(v =&gt; new ListRecordContent {Value = v}).ToArray();
+        //		return recordContent;
+        //	}
+
+        private static DataGridColumn GetSpecificationTypeColumn(DataGrid productsDataGrid, ColumnSettings column,
+            SpecificationTabVM tabVM, /*Role role,*/ LocalColumnsSettings localColumnsSettings)
+        {
+            var list = new UserListSettings
+            {
+                Id = Guid.Parse(SpecificationTypeDynamicUserListGuid),
+                Name = ColumnType.SpecificationType.GetStringValue()
+            };
+
+            var sortOrder = 0;
+            var values = from specificationType in tabVM.SpecificationViewModel.Settings.SpecificationTypes
+                //where role.SpecificationTypes.Contains(specificationType.Identifier)
+                select new ListRecordContent {Value = specificationType.Name, SortOrder = sortOrder++};
+            list.Records.AddRange(values);
+
+
+            var converter = new PropertyValueListRecordConverter {Settings = list};
+            var path = string.Format(&quot;{0}[{1}].ProperyValue&quot;,
+                column.Source == VariableSource.Link ? &quot;ReferenceProperties&quot; : &quot;Properties&quot;,
+                column.Variable);
+
+            var selectedItemBinding = new Binding
+            {
+                Mode = BindingMode.TwoWay,
+                Path = new PropertyPath(path),
+                Converter = converter
+            };
+
+            var elementTemplate = new DataTemplate();
+
+            var tb = new FrameworkElementFactory(typeof(TextBlock));
+            tb.SetBinding(TextBlock.TextProperty, new Binding(path));
+
+            //set the visual tree of the data template
+            elementTemplate.VisualTree = tb;
+
+            var editingTemplate = new DataTemplate();
+            var cb = new FrameworkElementFactory(typeof(ComboBox));
+            cb.SetBinding(ComboBox.TextProperty, selectedItemBinding);
+            cb.SetValue(ComboBox.IsEditableProperty, true);
+            cb.SetValue(ItemsControl.ItemsSourceProperty, list.Records);
+            cb.SetValue(ItemsControl.DisplayMemberPathProperty, &quot;Value&quot;);
+            cb.SetValue(FrameworkElement.StyleProperty,
+                productsDataGrid.FindResource(&quot;DataGridComboBoxStyle&quot;) as Style);
+
+            editingTemplate.VisualTree = cb;
+
+            var uiColumn = new DataGridEditableComboBoxColumn
+            {
+                Header = column.Header,
+                CellEditingTemplate = editingTemplate,
+                CellTemplate = elementTemplate,
+                Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+                SortMemberPath = path,
+                IsReadOnly = false
+            };
+
+            //SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+            return uiColumn;
+        }
+
+        private static void SetCommonProperties(AttributeForTypeObject column, LocalColumnsSettings localColumnsSettings,
+            DataGridColumn uiColumn)
+        {
+            //if (column.NumericalSorting)
+            //{
+            //    CustomSortBehaviour.SetCustomSorter(uiColumn, new NumericalSorterForSpecification(column));
+            //}
+
+
+            if (uiColumn.IsReadOnly)
+            {
+                Style cellStyle = uiColumn.CellStyle ?? new Style(typeof(DataGridCell));
+
+                var brush = new SolidColorBrush(Color.FromArgb(255, (byte) 249, (byte) 249, (byte) 249));
+                cellStyle.Setters.Add(new Setter(DataGridCell.BackgroundProperty, brush));
+
+                uiColumn.SetValue(DataGridColumn.CellStyleProperty, cellStyle);
+            }
+
+            #region SetSettings
+
+            AttachedDataGridColumnSettings.SetSettings(uiColumn, column);
+
+            #endregion SetSettings
+
+            #region SetWidth
+
+            //var userColumn = localColumnsSettings.FirstOrDefault(x =&gt; x.Id == column.Identifier);
+            //if (userColumn != null)
+            //    uiColumn.Width = userColumn.Width;
+            //else
+            //{
+            //    userColumn = new LocalColumnSettings {Id = column.Identifier, Width = uiColumn.Width.Value};
+            //    localColumnsSettings.Add(userColumn);
+            //}
+
+            //AttachedDataGridLocalColumnSettings.SetSettings(uiColumn, userColumn);
+
+            //DataGridColumn.ActualWidthProperty.AddValueChanged(uiColumn, delegate
+            //{
+            //    var settings = AttachedDataGridLocalColumnSettings.GetSettings(uiColumn);
+            //    settings.Width = uiColumn.ActualWidth;
+            //});
+
+            #endregion SetWidth
+        }
+    }
+
+    //	#region SearchColumn
+
+        //	private static DataGridColumn GetSearchColumn(DataGrid productsDataGrid, ColumnSettings column, LocalColumnsSettings localColumnsSettings, bool canEdit)
+        //	{
+        //		var path = string.Format(&quot;{0}[{1}].ProperyValue&quot;,
+        //			column.Source == VariableSource.Link ? &quot;ReferenceProperties&quot; : &quot;Properties&quot;,
+        //			column.Variable);
+
+        //		#region elementTemplate
+
+        //		var elementTemplate = new DataTemplate();
+
+        //		var tb = new FrameworkElementFactory(typeof(TextBox));
+        //		tb.SetValue(FrameworkElement.StyleProperty, productsDataGrid.FindResource(&quot;DataTableTextBoxStyle&quot;));
+        //		tb.SetBinding(TextBox.TextProperty, new Binding(path)
+        //		{
+        //			Mode = BindingMode.TwoWay
+        //		});
+
+        //		//set the visual tree of the data template
+        //		elementTemplate.VisualTree = tb;
+
+        //		#endregion elementTemplate
+
+        //		#region cellTemplate
+
+        //		var cellTemplate = new DataTemplate();
+
+        //		var tblock = new FrameworkElementFactory(typeof(TextBlock));
+        //		tblock.SetBinding(TextBlock.TextProperty, new Binding(path)
+        //		{
+        //			Mode = BindingMode.OneWay,
+        //		});
+
+        //		//set the visual tree of the data template
+        //		cellTemplate.VisualTree = tblock;
+
+        //		#endregion cellTemplate
+
+        //		#region SearchColumnCellEditingTemplate
+
+        //		var cellEditingTemplate = new DataTemplate();
+
+        //		var stb = new FrameworkElementFactory(typeof(SearchTextBoxControl));
+
+        //		stb.SetBinding(FrameworkElement.TagProperty, new Binding(&quot;DataContext&quot;) {RelativeSource = new RelativeSource {AncestorType = typeof(DataGrid)}});
+        //		stb.SetValue(SearchTextBoxControl.PropertyNameProperty, column.Variable);
+        //		stb.SetValue(SearchTextBoxControl.VariableSourceProperty, column.Source);
+        //		stb.SetValue(SearchTextBoxControl.ParentDataGridProperty, Tuple.Create(productsDataGrid));
+        //		stb.AddHandler(SearchTextBoxControl.SearchStartedEvent, new RoutedEventHandler(SearchStartedEvent));
+        //		stb.AddHandler(SearchTextBoxControl.ItemSelectedEvent, new RoutedEventHandler(ItemsSelectedEvent));
+        //		stb.AddHandler(SearchTextBoxControl.OnlyTextSavedEvent, new RoutedEventHandler(OnlyTextSavedEvent));
+
+        //		cellEditingTemplate.VisualTree = stb;
+
+        //		#endregion SearchColumnCellEditingTemplate
+
+        //		var uiColumn = new DataGridSearchColumn
+        //		{
+        //			Header = column.Header,
+        //			Width = new DataGridLength(0, DataGridLengthUnitType.Auto),
+        //			CellTemplate = cellTemplate,
+        //			CellEditingTemplateSelector = new SearchColumnCellEditingTemplateSelector
+        //			{
+        //				ElementTemplate = elementTemplate,
+        //				SearchTemplate = cellEditingTemplate
+        //			},
+        //			SortMemberPath = path,
+        //			IsReadOnly = !canEdit,
+        //			Settings = column
+        //		};
+
+        //		SetCommonProperties(column, localColumnsSettings, uiColumn);
+
+        //		return uiColumn;
+        //	}
+
+        //	private static void ItemsSelectedEvent(object sender, RoutedEventArgs eventArgs)
+        //	{
+        //		var e = eventArgs as ItemSelectedEventArgs;
+        //		var stb = sender as SearchTextBoxControl;
+        //		if (e == null || stb == null)
+        //			return;
+        //		var dg = stb.ParentDataGrid.Item1;
+        //		var dummyItem = e.OldItem as ProductForSpecificationTabVM;
+        //		var newItem = e.NewItem as ProductSimpleVM;
+        //		if (dummyItem == null || newItem == null)
+        //			return;
+
+        //		var control = sender as Control;
+        //		var cell = control.FindVisualAncestor&lt;DataGridCell&gt;();
+
+        //		//�������� ������� ����� ��� � ��� ������� � ����� ������� ������ ���������� �������
+        //		dg.CancelEdit(DataGridEditingUnit.Cell);
+        //		dg.CancelEdit(DataGridEditingUnit.Row);
+
+        //		var specification = ConfiguratorMainWindowVM.Instance.SpecificationsController.ActiveSpecification;
+
+        //		specification.OnDrop(new List&lt;IProduct&gt; {newItem.Product}, specification.ActiveTab);
+
+        //		//�� �������� ������� � ������, �� �� � �������. ����� ���������� CurrentCell ������� � ������� �, ��� � �������, � ����������� �� ����������
+
+        //		var vm = specification.ActiveTab.Products.Where(x =&gt; Equals(x.Reference.Child, newItem.Product)).OrderBy(x =&gt; x.TimeOfCreation).LastOrDefault();
+
+        //		if (vm == null)
+        //			vm = specification.ActiveTab.Products.LastOrDefault();
+
+        //		if (vm == null)
+        //			return;
+
+        //		dg.CurrentCell = new DataGridCellInfo(vm, cell == null ? dg.Columns[0] : cell.Column);
+
+        //		try
+        //		{
+        //			dg.SelectedCells.Add(dg.CurrentCell);
+        //		}
+        //		catch (Exception)
+        //		{
+        //		}
+
+        //		dg.ScrollIntoView(dg.CurrentCell);
+        //	}
+
+        //	private static void CompleteEdit(bool isTab, bool isShiftPressed, DataGrid dg, ProductForSpecificationTabVM item)
+        //	{
+        //		if (isTab)
+        //		{
+        //			var currentColumn = dg.CurrentCell.Column;
+        //			var index = dg.Columns.IndexOf(currentColumn);
+
+        //			DataGridColumn nextColumn = null;
+
+        //			if (isShiftPressed)
+        //			{
+        //				if (index &gt; 0)
+        //					nextColumn = dg.Columns[index - 1];
+        //			}
+        //			else if (index &lt; dg.Columns.Count)
+        //				nextColumn = dg.Columns[index + 1];
+
+        //			dg.CommitEdit(DataGridEditingUnit.Cell, true);
+
+        //			if (nextColumn != null)
+        //			{
+        //				var cell = new DataGridCellInfo(item, nextColumn);
+        //				dg.CurrentCell = cell;
+        //				dg.ScrollIntoView(item, nextColumn);
+        //				if (!dg.SelectedCells.Contains(dg.CurrentCell))
+        //					dg.SelectedCells.Add(dg.CurrentCell);
+        //				dg.BeginEdit();
+        //			}
+        //		}
+        //		else
+        //			dg.CommitEdit(DataGridEditingUnit.Row, true);
+        //	}
+
+        //	private static void OnlyTextSavedEvent(object sender, RoutedEventArgs eventArgs)
+        //	{
+        //		var e = eventArgs as OnlyTextSavedEventArgs;
+        //		var stb = sender as SearchTextBoxControl;
+        //		if (e == null || stb == null)
+        //			return;
+        //		var dg = stb.ParentDataGrid.Item1;
+
+        //		var item = ((ProductForSpecificationTabVM) e.Item);
+        //		if (item == null) return;
+
+        //		if (stb.VariableSource == VariableSource.Card)
+        //		{
+        //			item.Properties[stb.PropertyName].ProperyValue = e.Text;
+        //		}
+        //		else
+        //		{
+        //			item.ReferenceProperties[stb.PropertyName].ProperyValue = e.Text;
+        //		}
+
+        //		CompleteEdit(e.IsTab, e.IsShiftPressed, dg, item);
+
+        //		dg.ScrollIntoView(dg.CurrentCell);
+        //	}
+
+        //	private static void SearchStartedEvent(object sender, RoutedEventArgs eventArgs)
+        //	{
+        //		var e = eventArgs as SearchStartedEventArgs;
+        //		var dc = ((FrameworkElement) sender).Tag as SpecificationTabVM;
+        //		if (dc != null) dc.Search(e);
+        //	}
+
+        //	#endregion SearchColumn
+        //}
+
+        //public static class DataGridExtension
+        //{
+        //	public static void AddValueChanged(this DependencyProperty property, object sourceObject, EventHandler handler)
+        //	{
+        //		var dpd = DependencyPropertyDescriptor.FromProperty(property, property.OwnerType);
+        //		dpd.AddValueChanged(sourceObject, handler);
+        //	}
+        //}
+
+        //public class AttachedDataGridLocalColumnSettings
+        //{
+        //	public static readonly DependencyProperty SettingsProperty = DependencyProperty.RegisterAttached(
+        //		&quot;Settings&quot;, typeof(LocalColumnSettings), typeof(AttachedDataGridLocalColumnSettings), new PropertyMetadata(default(LocalColumnSettings)));
+
+        //	public static void SetSettings(DependencyObject element, LocalColumnSettings value)
+        //	{
+        //		element.SetValue(SettingsProperty, value);
+        //	}
+
+        //	public static LocalColumnSettings GetSettings(DependencyObject element)
+        //	{
+        //		return (LocalColumnSettings) element.GetValue(SettingsProperty);
+        //	}
+        //}
+
+        public class AttachedDataGridColumnSettings
+        {
+            public static readonly DependencyProperty SettingsProperty = DependencyProperty.RegisterAttached(
+                &quot;Settings&quot;, typeof(AttributeForTypeObject), typeof(AttachedDataGridColumnSettings),
+                new PropertyMetadata(default(AttributeForTypeObject)));
+
+            public static void SetSettings(DependencyObject element, AttributeForTypeObject value)
+            {
+                element.SetValue(SettingsProperty, value);
+            }
+
+            public static AttributeObject GetSettings(DependencyObject element)
+            {
+                return ((AttributeForTypeObject) element.GetValue(SettingsProperty))?.Attribute;
+            }
+        }
+    }
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[39,9,39,10,0],[40,13,40,115,0],[43,13,43,32,0],[49,13,49,39,0],[52,21,53,40,0],[55,21,55,110,0],[91,13,91,25,0],[92,9,92,10,0],[97,9,97,10,0],[98,13,103,15,0],[105,13,111,15,0],[113,13,113,40,0],[115,13,115,73,0],[117,13,117,29,0],[118,9,118,10,0],[122,9,122,10,0],[123,13,123,90,0],[125,13,125,34,0],[126,13,126,14,0],[129,17,130,33,0],[130,33,130,107,0],[130,107,130,129,0],[129,17,130,129,0],[130,167,130,168,0],[132,17,132,49,0],[135,17,141,19,0],[144,17,144,58,0],[146,17,146,73,0],[148,17,148,95,0],[152,17,152,49,0],[154,17,154,58,0],[155,17,155,72,0],[157,17,157,83,0],[160,17,160,65,0],[161,17,161,79,0],[162,17,162,77,0],[163,17,163,126,0],[165,17,165,49,0],[167,17,178,19,0],[191,17,191,77,0],[193,17,193,33,0],[196,13,196,25,0],[197,9,197,10,0],[709,9,709,10,0],[710,13,714,15,0],[716,13,716,31,0],[717,13,719,24,0],[719,24,719,103,0],[719,103,719,104,0],[717,13,719,104,0],[720,13,720,43,0],[723,13,723,84,0],[724,13,726,34,0],[728,13,733,15,0],[735,13,735,54,0],[737,13,737,69,0],[738,13,738,70,0],[741,13,741,45,0],[743,13,743,54,0],[744,13,744,68,0],[745,13,745,71,0],[746,13,746,60,0],[747,13,747,73,0],[748,13,748,74,0],[749,13,750,82,0],[752,13,752,45,0],[754,13,762,15,0],[766,13,766,29,0],[767,9,767,10,0],[771,9,771,10,0],[778,13,778,37,0],[779,13,779,14,0],[780,17,780,89,0],[782,17,782,106,0],[783,17,783,91,0],[785,17,785,80,0],[786,13,786,14,0],[790,13,790,74,0],[814,9,814,10,0],[1035,13,1037,72,0],[1040,13,1040,14,0],[1041,17,1041,59,0],[1042,13,1042,14,0],[1045,13,1045,14,0],[1046,17,1046,97,0],[1047,13,1047,14,0]]);
+    </script>
+  </body>
+</html>

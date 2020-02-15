@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-1CCapital\Swr.Capital1C.Service\IntegrationTest\DefaultSettingsForTests.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Capital1C.Service.Settings.Model;
+
+namespace IntegrationTest
+{
+    public static class DefaultSettingsForTests
+    {
+        public static CommonSettings Get()
+        {
+            return new CommonSettings
+            {
+                NomenclatureDefinition = new NomenclatureDefinition
+                {
+                    StatusVariableName = &quot;_Статус_передачи_номенклатуры&quot;,
+                    StatusVariableValue = &quot;Готова к передаче в 1С:УПП&quot;
+                },
+                BomDefinition = new BomDefinition
+                {
+                    StatusVariableName = &quot;_Статус_передачи_спецификации&quot;,
+                    StatusVariableValue = &quot;Готова к передаче в 1С:УПП&quot;
+                },
+                ArticleVariableName = &quot;_Артикул_для_1С&quot;,
+                IsServiceVariableName = &quot;спр_Служебная_запись&quot;,
+                PdmDbConnection = new DbConnection
+                {
+                    Server = &quot;pdmwe46&quot;,
+                    DataBase = &quot;PDM&quot;,
+                    UserName = &quot;sa&quot;,
+                    Password = &quot;qwe123PDM&quot;,
+                    Timeout = 40
+                },
+                NomenclatureCatalogServiceConnection = new CatalogServiceConnection
+                {
+                    Address = &quot;http://localhost:5004/api/v2/nomenclatures/&quot;,
+                    IdentityAddress = &quot;http://localhost:5004/api/account&quot;,
+                    Login = &quot;clientuser&quot;,
+                    Password = &quot;12345&quot;
+                },
+                BomCatalogServiceConnection = new CatalogServiceConnection
+                {
+                    Address = &quot;http://localhost:5000/api/v2/engineering-boms/&quot;,
+                    IdentityAddress = &quot;http://localhost:5000/api/account&quot;,
+                    Login = &quot;clientuser&quot;,
+                    Password = &quot;12345&quot;
+                }
+            };
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[13,9,13,10,1],[14,13,50,15,1],[51,9,51,10,1]]);
+    </script>
+  </body>
+</html>

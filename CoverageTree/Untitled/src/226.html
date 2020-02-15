@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Data\SpecificationModel\ReferenceContainer.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using Swr.Configurator.Common.Data;
+using Swr.Configurator.Data.EventArgs;
+using Swr.Configurator.Data.ProductModel;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using Swr.Configurator.Logic;
+
+namespace Swr.Configurator.Data.SpecificationModel
+{
+	/// &lt;summary&gt;
+	/// Контейнер связей
+	/// &lt;/summary&gt;
+	public class ReferenceContainer : IChangable
+	{
+		public ReferenceContainer()
+		{
+			_references = new List&lt;IReference&gt;();
+		}
+
+		private readonly List&lt;IReference&gt; _references;
+
+		/// &lt;summary&gt;
+		/// Список связей
+		/// &lt;/summary&gt;
+		public ReadOnlyCollection&lt;IReference&gt; References
+		{
+			get { return _references.AsReadOnly(); }
+		}
+
+		/// &lt;summary&gt;
+		/// Добавляет новую связь в список
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;parent&quot;&gt;Родительское изделие&lt;/param&gt;
+		/// &lt;param name=&quot;child&quot;&gt;Дочернее изделие&lt;/param&gt;
+		/// &lt;param name=&quot;variables&quot;&gt;&lt;/param&gt;
+		/// &lt;returns&gt;Новая связь&lt;/returns&gt;
+		/// &lt;remarks&gt;В списке могут быть несколько связей на одно и тоже изделие - это множественные связи&lt;/remarks&gt;
+		public IReference AddReference(IProduct parent, IProduct child, IDictionary&lt;string, string&gt; variables = null)
+		{
+			if (parent == null) throw new ArgumentNullException(&quot;parent&quot;);
+			if (child == null) throw new ArgumentNullException(&quot;child&quot;);
+
+			if (parent.Equals(child))
+				throw new InvalidOperationException(&quot;Циклическая ссылка. Родительское и дочернее изделие одинаковы&quot;);
+
+			if (CheckCycle(child, parent))
+				throw new InvalidOperationException(&quot;Циклическая ссылка&quot;);
+
+			var reference = new Reference(parent, child);
+
+			reference.SuspendChanged = SuspendChanged;
+
+			if (variables != null)
+			{
+				foreach (var variable in variables)
+				{
+					reference.SetProperty(variable.Key, variable.Value);
+				}
+			}
+
+			if (!SuspendChanged)
+			{
+				reference.Timestamp = DateTime.Now;
+			}
+
+			reference.Changed += ReferenceChangedHandler;
+			reference.PropertyChanged += ReferencePropertyChanged;
+			reference.DeletedChanged += ReferenceDeletedChanged;
+			reference.TimestampChanged += reference_TimestampChanged;
+			reference.SubcribePropertyContainerEvent();
+
+			child.Changed += ChildChanged;
+
+			_references.Add(reference);
+			OnReferenceAdded(reference);
+
+			UpdateMultipleStatus(reference);
+
+			return reference;
+		}
+
+		private bool CheckCycle(IProduct parent, IProduct child)
+		{
+			foreach (var parentReference in parent.References)
+			{
+				if (parentReference.Child.Equals(child))
+					return true;
+
+				if (CheckCycle(parentReference.Child, child))
+					return true;
+			}
+
+			return false;
+		}
+
+		private void ReferenceChangedHandler(object sender, System.EventArgs e)
+		{
+			OnReferenceChanged();
+		}
+
+		private void ReferencePropertyChanged(object sender, PropertyChangedEventArgs e)
+		{
+			OnPropertyChanged((IReference)sender, e.Variable, e.OldValue, e.NewValue);
+		}
+
+		private void ReferenceDeletedChanged(object sender, System.EventArgs e)
+		{
+			OnReferenceMarkedAsDeleted((IReference)sender);
+		}
+
+		private void ChildChanged(object sender, System.EventArgs e)
+		{
+			if (sender is IProduct product &amp;&amp; product.IsChanged)
+			{
+				OnReferenceChanged();
+			}
+		}
+
+		private void reference_TimestampChanged(object sender, System.EventArgs e)
+		{
+			OnReferenceTimestampChanged((IReference)sender);
+		}
+
+		/// &lt;summary&gt;
+		/// Помечает все вхождения изделия как удаленные, но не удаляет связи из списка
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;product&quot;&gt;Изделие&lt;/param&gt;
+		public void DeleteReference(IProduct product)
+		{
+			if (product == null) throw new ArgumentNullException(&quot;product&quot;);
+
+			var references = _references.Where(r =&gt; r.Child.DbIdentificator == product.DbIdentificator).ToArray();
+			foreach (var reference in references)
+			{
+				reference.IsDeleted = true;
+				UpdateMultipleStatus(reference);
+			}
+		}
+
+		/// &lt;summary&gt;
+		/// Помечает только указанную связь на изделие как удаленную, но не удаляет её из списка
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;reference&quot;&gt;Связь&lt;/param&gt;
+		public void DeleteReference(IReference reference)
+		{
+			if (reference == null) throw new ArgumentNullException(&quot;reference&quot;);
+
+			if (_references.Contains(reference))
+			{
+                reference.Errors.Clear();
+				reference.IsDeleted = true;
+				UpdateMultipleStatus(reference);
+			}
+		}
+
+		/// &lt;summary&gt;
+		/// Восстанавливает все вхождения изделия из удаленных
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;product&quot;&gt;Изделие&lt;/param&gt;
+		public void RestoreReference(IProduct product)
+		{
+			if (product == null) throw new ArgumentNullException(&quot;product&quot;);
+
+			var references = _references.Where(r =&gt; r.Child.DbIdentificator == product.DbIdentificator &amp;&amp; r.IsDeleted).ToArray();
+			foreach (var reference in references)
+			{
+				reference.IsDeleted = false;
+				UpdateMultipleStatus(reference);
+			}
+		}
+
+		/// &lt;summary&gt;
+		/// Восстанавливает только указанную связь из удаленных
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;reference&quot;&gt;Связь&lt;/param&gt;
+		public void RestoreReference(IReference reference)
+		{
+			if (reference == null) throw new ArgumentNullException(&quot;reference&quot;);
+
+			if (_references.Contains(reference))
+			{
+				reference.IsDeleted = false;
+				UpdateMultipleStatus(reference);
+			}
+		}
+
+		/// &lt;summary&gt;
+		/// Удаляет из списка все связи на изделие
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;product&quot;&gt;Изделие&lt;/param&gt;
+		public void RemoveReferences(IProduct product)
+		{
+			if (product == null) throw new ArgumentNullException(&quot;product&quot;);
+
+			var references = _references.Where(r =&gt; r.Child.DbIdentificator == product.DbIdentificator).ToArray();
+			foreach (var reference in references)
+			{
+				RemoveReferenceInternal(reference);
+			}
+		}
+
+		/// &lt;summary&gt;
+		/// Удаляет из списка только указанную связь на изделие
+		/// &lt;/summary&gt;
+		/// &lt;param name=&quot;reference&quot;&gt;Связь&lt;/param&gt;
+		public void RemoveReference(IReference reference)
+		{
+			if (reference == null) throw new ArgumentNullException(&quot;reference&quot;);
+
+			if (References.Contains(reference))
+			{
+				RemoveReferenceInternal(reference);
+            }
+		}
+
+		/// &lt;summary&gt;
+		/// Удаляет из списка все помеченные для удаления
+		/// &lt;/summary&gt;
+		public void RemoveAllDeleted()
+		{
+			foreach (var reference in References.ToArray())
+			{
+				if (reference.IsDeleted)
+				{
+					RemoveReference(reference);
+				}
+			}
+		}
+
+		private void RemoveReferenceInternal(IReference reference)
+		{
+			_references.Remove(reference);
+			OnReferenceRemoved(reference);
+
+			reference.Changed -= ReferenceChangedHandler;
+			reference.PropertyChanged -= ReferencePropertyChanged;
+			reference.DeletedChanged -= ReferenceDeletedChanged;
+			reference.TimestampChanged -= reference_TimestampChanged;
+
+			reference.Dispose();
+
+			UpdateMultipleStatus(reference);
+		}
+
+		/// &lt;summary&gt;
+		/// Удаляет все связи и рассылает события об этом
+		/// &lt;/summary&gt;
+		public void ClearReferences()
+		{
+			var references = References.ToArray();
+
+			_references.Clear();
+
+			foreach (var reference in references)
+			{
+				RemoveReferenceInternal(reference);
+            }
+        }
+
+		private void UpdateMultipleStatus(IReference reference)
+		{
+			var sameChild = References
+				.Where(r =&gt; reference.Child.Equals(r.Child))
+				.ToArray();
+
+			if (sameChild.Count() &gt; 1)
+			{
+				var deletedReferences = sameChild.Where(r =&gt; r.IsDeleted).ToArray();
+				var notDeletedReferences = sameChild.Where(r =&gt; !r.IsDeleted).ToArray();
+
+				foreach (var notDeletedReference in notDeletedReferences)
+				{
+					notDeletedReference.IsMultiple = notDeletedReferences.Count() &gt; 1;
+					notDeletedReference.MultipleCounter = notDeletedReferences.Count();
+				}
+
+				foreach (var deletedReference in deletedReferences)
+				{
+					deletedReference.IsMultiple = false;
+					deletedReference.MultipleCounter = 1;
+				}
+			}
+			else if (sameChild.Count() == 1)
+			{
+				sameChild.First().IsMultiple = false;
+				sameChild.First().MultipleCounter = 1;
+			}
+		}
+
+		/// &lt;summary&gt;
+		/// Данные связи изменились
+		/// &lt;/summary&gt;
+		public event EventHandler ReferenceChanged;
+
+		private void OnReferenceChanged()
+		{
+			EventHandler handler = ReferenceChanged;
+			if (handler != null) handler(this, new System.EventArgs());
+		}
+
+		/// &lt;summary&gt;
+		/// Изменилось свойство связи
+		/// &lt;/summary&gt;
+		public event EventHandler&lt;ReferencePropertyChangedEventArgs&gt; PropertyChanged;
+
+		private void OnPropertyChanged(IReference reference, string variable, string oldValue, string newValue)
+		{
+			EventHandler&lt;ReferencePropertyChangedEventArgs&gt; handler = PropertyChanged;
+			if (handler != null) handler(this, new ReferencePropertyChangedEventArgs(reference, variable, oldValue, newValue));
+		}
+
+		/// &lt;summary&gt;
+		/// Связь добавлена
+		/// &lt;/summary&gt;
+		public event EventHandler&lt;ReferenceEventArgs&gt; NewReferenceAdded;
+
+		private void OnReferenceAdded(Reference reference)
+		{
+			EventHandler&lt;ReferenceEventArgs&gt; handler = NewReferenceAdded;
+			if (handler != null) handler(this, new ReferenceEventArgs(reference));
+		}
+
+		/// &lt;summary&gt;
+		/// Удалена связь
+		/// &lt;/summary&gt;
+		public event EventHandler&lt;ProductReferenceRemovedEventArgs&gt; ReferenceRemoved;
+
+		private void OnReferenceRemoved(IReference reference)
+		{
+			EventHandler&lt;ProductReferenceRemovedEventArgs&gt; handler = ReferenceRemoved;
+			if (handler != null) handler(this, new ProductReferenceRemovedEventArgs(reference));
+		}
+
+		/// &lt;summary&gt;
+		/// Cвязь помечена, как удалённая
+		/// &lt;/summary&gt;
+		public event EventHandler&lt;ProductReferenceRemovedEventArgs&gt; ReferenceMarkedAsDeleted;
+
+		private void OnReferenceMarkedAsDeleted(IReference reference)
+		{
+			EventHandler&lt;ProductReferenceRemovedEventArgs&gt; handler = ReferenceMarkedAsDeleted;
+			if (handler != null) handler(this, new ProductReferenceRemovedEventArgs(reference));
+		}
+
+		/// &lt;summary&gt;
+		/// Изменилась временная метка
+		/// &lt;/summary&gt;
+		public event EventHandler&lt;ProductReferenceTimestampEventArgs&gt; ReferenceTimestampChanged;
+
+		private void OnReferenceTimestampChanged(IReference reference)
+		{
+			EventHandler&lt;ProductReferenceTimestampEventArgs&gt; handler = ReferenceTimestampChanged;
+			if (handler != null) handler(this, new ProductReferenceTimestampEventArgs(reference));
+		}
+
+		#region Implementation of IChangable
+
+		public bool IsChanged { get; set; }
+
+		private bool _suspendChanged;
+
+		public bool SuspendChanged
+		{
+			get { return _suspendChanged; }
+			set
+			{
+				_suspendChanged = value;
+
+				foreach (var reference in References)
+				{
+					reference.SuspendChanged = value;
+				}
+			}
+		}
+
+		public event EventHandler Changed;
+
+		#endregion Implementation of IChangable
+
+		public void ClearDummy()
+		{
+			_references.ForEach(r =&gt;
+			{
+				if (r.Child is DummyProduct)
+				{
+					RemoveReferenceInternal(r);
+				}
+			});
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[17,3,17,30,1],[18,3,18,4,1],[19,4,19,41,1],[20,3,20,4,1],[29,8,29,9,1],[29,10,29,42,1],[29,43,29,44,1],[41,3,41,4,1],[42,4,42,23,1],[42,24,42,66,0],[43,4,43,22,1],[43,23,43,64,0],[45,4,45,29,1],[46,5,46,106,0],[48,4,48,34,1],[49,5,49,63,0],[51,4,51,49,1],[53,4,53,46,1],[55,4,55,26,1],[56,4,56,5,1],[57,5,57,12,1],[57,14,57,26,1],[57,27,57,29,1],[57,30,57,39,1],[58,5,58,6,1],[59,6,59,58,1],[60,5,60,6,1],[61,4,61,5,1],[63,4,63,24,1],[64,4,64,5,1],[65,5,65,40,1],[66,4,66,5,1],[68,4,68,49,1],[69,4,69,58,1],[70,4,70,56,1],[71,4,71,61,1],[72,4,72,47,1],[74,4,74,34,1],[76,4,76,31,1],[77,4,77,32,1],[79,4,79,36,1],[81,4,81,21,1],[82,3,82,4,1],[85,3,85,4,1],[86,4,86,11,1],[86,13,86,32,0],[86,33,86,35,1],[86,36,86,53,1],[87,4,87,5,0],[88,5,88,45,0],[89,6,89,18,0],[91,5,91,50,0],[92,6,92,18,0],[93,4,93,5,0],[95,4,95,17,1],[96,3,96,4,1],[99,3,99,4,0],[100,4,100,25,0],[101,3,101,4,0],[104,3,104,4,0],[105,4,105,78,0],[106,3,106,4,0],[109,3,109,4,0],[110,4,110,51,0],[111,3,111,4,0],[114,3,114,4,0],[115,4,115,56,0],[116,4,116,5,0],[117,5,117,26,0],[118,4,118,5,0],[119,3,119,4,0],[122,3,122,4,0],[123,4,123,52,0],[124,3,124,4,0],[131,3,131,4,0],[132,4,132,24,0],[132,25,132,68,0],[134,4,134,44,0],[134,44,134,94,0],[134,94,134,106,0],[134,4,134,106,0],[135,4,135,11,0],[135,13,135,26,0],[135,27,135,29,0],[135,30,135,40,0],[136,4,136,5,0],[137,5,137,32,0],[138,5,138,37,0],[139,4,139,5,0],[140,3,140,4,0],[147,3,147,4,0],[148,4,148,26,0],[148,27,148,72,0],[150,4,150,40,0],[151,4,151,5,0],[152,17,152,42,0],[153,5,153,32,0],[154,5,154,37,0],[155,4,155,5,0],[156,3,156,4,0],[163,3,163,4,0],[164,4,164,24,0],[164,25,164,68,0],[166,4,166,44,0],[166,44,166,109,0],[166,109,166,121,0],[166,4,166,121,0],[167,4,167,11,0],[167,13,167,26,0],[167,27,167,29,0],[167,30,167,40,0],[168,4,168,5,0],[169,5,169,33,0],[170,5,170,37,0],[171,4,171,5,0],[172,3,172,4,0],[179,3,179,4,0],[180,4,180,26,0],[180,27,180,72,0],[182,4,182,40,0],[183,4,183,5,0],[184,5,184,33,0],[185,5,185,37,0],[186,4,186,5,0],[187,3,187,4,0],[194,3,194,4,0],[195,4,195,24,0],[195,25,195,68,0],[197,4,197,44,0],[197,44,197,94,0],[197,94,197,106,0],[197,4,197,106,0],[198,4,198,11,0],[198,13,198,26,0],[198,27,198,29,0],[198,30,198,40,0],[199,4,199,5,0],[200,5,200,40,0],[201,4,201,5,0],[202,3,202,4,0],[209,3,209,4,0],[210,4,210,26,0],[210,27,210,72,0],[212,4,212,39,0],[213,4,213,5,0],[214,5,214,40,0],[215,13,215,14,0],[216,3,216,4,0],[222,3,222,4,0],[223,4,223,11,0],[223,13,223,26,0],[223,27,223,29,0],[223,30,223,50,0],[224,4,224,5,0],[225,5,225,29,0],[226,5,226,6,0],[227,6,227,33,0],[228,5,228,6,0],[229,4,229,5,0],[230,3,230,4,0],[233,3,233,4,0],[234,4,234,34,0],[235,4,235,34,0],[237,4,237,49,0],[238,4,238,58,0],[239,4,239,56,0],[240,4,240,61,0],[242,4,242,24,0],[244,4,244,36,0],[245,3,245,4,0],[251,3,251,4,0],[252,4,252,42,0],[254,4,254,24,0],[256,4,256,11,0],[256,13,256,26,0],[256,27,256,29,0],[256,30,256,40,0],[257,4,257,5,0],[258,5,258,40,0],[259,13,259,14,0],[260,9,260,10,0],[263,3,263,4,1],[264,4,265,17,1],[265,17,265,48,1],[265,48,266,16,1],[264,4,266,16,1],[268,4,268,30,1],[269,4,269,5,0],[270,5,270,50,0],[270,50,270,61,0],[270,61,270,73,0],[270,5,270,73,0],[271,5,271,53,0],[271,53,271,65,0],[271,65,271,77,0],[271,5,271,77,0],[273,5,273,12,0],[273,14,273,37,0],[273,38,273,40,0],[273,41,273,61,0],[274,5,274,6,0],[275,6,275,72,0],[276,6,276,73,0],[277,5,277,6,0],[279,5,279,12,0],[279,14,279,34,0],[279,35,279,37,0],[279,38,279,55,0],[280,5,280,6,0],[281,6,281,42,0],[282,6,282,43,0],[283,5,283,6,0],[284,4,284,5,0],[285,9,285,36,1],[286,4,286,5,1],[287,5,287,42,1],[288,5,288,43,1],[289,4,289,5,1],[290,3,290,4,1],[298,3,298,4,0],[299,4,299,44,0],[300,4,300,24,0],[300,25,300,63,0],[301,3,301,4,0],[309,3,309,4,0],[310,4,310,78,0],[311,4,311,24,0],[311,25,311,119,0],[312,3,312,4,0],[320,3,320,4,1],[321,4,321,65,1],[322,4,322,24,1],[322,25,322,74,1],[323,3,323,4,1],[331,3,331,4,0],[332,4,332,78,0],[333,4,333,24,0],[333,25,333,88,0],[334,3,334,4,0],[342,3,342,4,0],[343,4,343,86,0],[344,4,344,24,0],[344,25,344,88,0],[345,3,345,4,0],[353,3,353,4,0],[354,4,354,89,0],[355,4,355,24,0],[355,25,355,90,0],[356,3,356,4,0],[360,27,360,31,0],[360,32,360,36,0],[366,8,366,9,1],[366,10,366,33,1],[366,34,366,35,1],[368,4,368,5,0],[369,5,369,29,0],[371,5,371,12,0],[371,14,371,27,0],[371,28,371,30,0],[371,31,371,41,0],[372,5,372,6,0],[373,6,373,39,0],[374,5,374,6,0],[375,4,375,5,0],[383,3,383,4,0],[384,4,385,4,0],[385,4,385,5,0],[385,5,386,5,0],[386,5,386,33,0],[386,33,387,5,0],[387,5,387,6,0],[387,6,388,6,0],[388,6,388,33,0],[388,33,389,5,0],[389,5,389,6,0],[389,6,390,4,0],[390,4,390,5,0],[390,5,390,7,0],[384,4,390,7,0],[391,3,391,4,0]]);
+    </script>
+  </body>
+</html>

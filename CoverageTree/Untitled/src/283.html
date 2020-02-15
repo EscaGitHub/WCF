@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Settings\ViewModels\SettingsViewModelBase.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.ComponentModel;
+using System.Linq;
+using SwrUI;
+using SwrUILogic.Data;
+
+namespace Swr.Configurator.View.Settings.ViewModels
+{
+	public abstract class SettingsViewModelBase : ErrorCollector, IDataErrorInfo, IPageUserControlViewModel
+	{
+		protected SettingsViewModelBase(SettingsWindowViewModel windowViewModel)
+		{
+			WindowViewModel = windowViewModel ?? throw new ArgumentNullException(nameof(windowViewModel));
+		}
+
+		public SettingsWindowViewModel WindowViewModel { get; }
+
+		private string _header;
+
+		public string Header
+		{
+			get =&gt; _header;
+			set
+			{
+				_header = value;
+				OnPropertyChanged(() =&gt; Header);
+			}
+		}
+
+		private bool _isEnabled;
+
+		public bool IsEnabled
+		{
+			get =&gt; _isEnabled;
+			set
+			{
+				_isEnabled = value;
+				OnPropertyChanged(() =&gt; IsEnabled);
+			}
+		}
+
+		public virtual void SaveToSource()
+		{
+		}
+
+		protected virtual void CalculateErrors(string propertyName)
+		{
+		}
+
+		public override void UpdateValidation()
+		{
+			CalculateErrors(null);
+		}
+
+		#region IDataErrorInfo Implementation
+
+		public string Error
+		{
+			get { return this[null]; }
+		}
+
+		public string this[string propertyName]
+		{
+			get
+			{
+				CalculateErrors(propertyName);
+
+				if (string.IsNullOrWhiteSpace(propertyName))
+				{
+					return String.Join(Environment.NewLine, Errors.Select(x =&gt; x.ErrorMessage));
+				}
+				else
+				{
+					return String.Join(Environment.NewLine, Errors.Where(x =&gt; x.PropertyName == propertyName).Select(x =&gt; x.ErrorMessage));
+				}
+			}
+		}
+
+		#endregion
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[11,3,11,75,0],[12,3,12,4,0],[13,4,13,98,0],[14,3,14,4,0],[16,52,16,56,0],[22,11,22,18,0],[24,4,24,5,0],[25,5,25,21,0],[26,5,26,37,0],[27,4,27,5,0],[34,11,34,21,0],[36,4,36,5,0],[37,5,37,24,0],[38,5,38,40,0],[39,4,39,5,0],[43,3,43,4,0],[44,3,44,4,0],[47,3,47,4,0],[48,3,48,4,0],[51,3,51,4,0],[52,4,52,26,0],[53,3,53,4,0],[59,8,59,9,0],[59,10,59,28,0],[59,29,59,30,0],[65,4,65,5,0],[66,5,66,35,0],[68,5,68,49,0],[69,5,69,6,0],[70,6,70,65,0],[70,65,70,79,0],[70,79,70,82,0],[70,6,70,82,0],[73,5,73,6,0],[74,6,74,64,0],[74,64,74,94,0],[74,94,74,108,0],[74,108,74,122,0],[74,122,74,125,0],[74,6,74,125,0],[76,4,76,5,0]]);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Layout\Serialization\LayoutSerializer.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.IO;
+using Xceed.Wpf.AvalonDock.Controls;
+using System.Windows;
+
+namespace Xceed.Wpf.AvalonDock.Layout.Serialization
+{
+    public abstract class LayoutSerializer
+    {
+        DockingManager _manager;
+
+        public LayoutSerializer(DockingManager manager)
+        {
+            if (manager == null)
+                throw new ArgumentNullException(&quot;manager&quot;);
+
+            _manager = manager;
+            _previousAnchorables = _manager.Layout.Descendents().OfType&lt;LayoutAnchorable&gt;().ToArray();
+            _previousDocuments = _manager.Layout.Descendents().OfType&lt;LayoutDocument&gt;().ToArray();
+        }
+
+        LayoutAnchorable[] _previousAnchorables = null;
+        LayoutDocument[] _previousDocuments = null;
+
+        public DockingManager Manager
+        {
+            get { return _manager; }
+        }
+
+        public event EventHandler&lt;LayoutSerializationCallbackEventArgs&gt; LayoutSerializationCallback;
+
+        protected virtual void FixupLayout(LayoutRoot layout)
+        {
+            //fix container panes
+            foreach (var lcToAttach in layout.Descendents().OfType&lt;ILayoutPreviousContainer&gt;().Where(lc =&gt; lc.PreviousContainerId != null))
+            {
+                var paneContainerToAttach = layout.Descendents().OfType&lt;ILayoutPaneSerializable&gt;().FirstOrDefault(lps =&gt; lps.Id == lcToAttach.PreviousContainerId);
+                if (paneContainerToAttach == null)
+                    throw new ArgumentException(string.Format(&quot;Unable to find a pane with id =&#39;{0}&#39;&quot;, lcToAttach.PreviousContainerId));
+
+                lcToAttach.PreviousContainer = paneContainerToAttach as ILayoutContainer;
+            }
+
+
+            //now fix the content of the layoutcontents
+            foreach (var lcToFix in layout.Descendents().OfType&lt;LayoutAnchorable&gt;().Where(lc =&gt; lc.Content == null).ToArray())
+            {
+                LayoutAnchorable previousAchorable = null;
+                if (lcToFix.ContentId != null)
+                { 
+                    //try find the content in replaced layout
+                    previousAchorable = _previousAnchorables.FirstOrDefault(a =&gt; a.ContentId == lcToFix.ContentId);
+                }
+
+                if (LayoutSerializationCallback != null)
+                {
+                    var args = new LayoutSerializationCallbackEventArgs(lcToFix, previousAchorable != null ? previousAchorable.Content : null);
+                    LayoutSerializationCallback(this, args);
+                    if (args.Cancel)
+                        lcToFix.Close();
+                    else if (args.Content != null)
+                        lcToFix.Content = args.Content;
+                    else if (args.Model.Content != null)
+                        lcToFix.Hide(false);
+                }
+                else if (previousAchorable == null)
+                    lcToFix.Hide(false);
+                else
+                {
+                    lcToFix.Content = previousAchorable.Content;
+                    lcToFix.IconSource = previousAchorable.IconSource;
+                }
+            }
+
+
+            foreach (var lcToFix in layout.Descendents().OfType&lt;LayoutDocument&gt;().Where(lc =&gt; lc.Content == null).ToArray())
+            {
+                LayoutDocument previousDocument = null;
+                if (lcToFix.ContentId != null)
+                {
+                    //try find the content in replaced layout
+                    previousDocument = _previousDocuments.FirstOrDefault(a =&gt; a.ContentId == lcToFix.ContentId);
+                }
+
+                if (LayoutSerializationCallback != null)
+                {
+                    var args = new LayoutSerializationCallbackEventArgs(lcToFix, previousDocument != null ? previousDocument.Content : null);
+                    LayoutSerializationCallback(this, args);
+
+                    if (args.Cancel)
+                        lcToFix.Close();
+                    else if (args.Content != null)
+                        lcToFix.Content = args.Content;
+                    else if (args.Model.Content != null)
+                        lcToFix.Close();
+                }
+                else if (previousDocument == null)
+                    lcToFix.Close();
+                else
+                    lcToFix.Content = previousDocument.Content;
+            }
+
+
+            layout.CollectGarbage();
+        }
+
+        protected void StartDeserialization()
+        {
+            Manager.SuspendDocumentsSourceBinding = true;
+            Manager.SuspendAnchorablesSourceBinding = true;
+        }
+
+        protected void EndDeserialization()
+        {
+            Manager.SuspendDocumentsSourceBinding = false;
+            Manager.SuspendAnchorablesSourceBinding = false;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[31,9,31,56,0],[32,9,32,10,0],[33,13,33,33,0],[34,17,34,60,0],[36,13,36,32,0],[37,13,37,103,0],[38,13,38,99,0],[39,9,39,10,0],[41,9,41,56,0],[42,9,42,52,0],[46,17,46,18,0],[46,19,46,35,0],[46,36,46,37,0],[52,9,52,10,0],[54,13,54,20,0],[54,22,54,36,0],[54,37,54,39,0],[54,40,54,108,0],[54,108,54,138,0],[54,138,54,139,0],[54,40,54,139,0],[55,13,55,14,0],[56,17,56,122,0],[56,122,56,162,0],[56,162,56,164,0],[56,17,56,164,0],[57,17,57,51,0],[58,21,58,136,0],[60,17,60,90,0],[61,13,61,14,0],[65,13,65,20,0],[65,22,65,33,0],[65,34,65,36,0],[65,37,65,97,0],[65,97,65,115,0],[65,115,65,126,0],[65,37,65,126,0],[66,13,66,14,0],[67,17,67,59,0],[68,17,68,47,0],[69,17,69,18,0],[71,21,71,82,0],[71,82,71,114,0],[71,114,71,116,0],[71,21,71,116,0],[72,17,72,18,0],[74,17,74,57,0],[75,17,75,18,0],[76,21,76,144,0],[77,21,77,61,0],[78,21,78,37,0],[79,25,79,41,0],[80,26,80,51,0],[81,25,81,56,0],[82,26,82,57,0],[83,25,83,45,0],[84,17,84,18,0],[85,22,85,52,0],[86,21,86,41,0],[88,17,88,18,0],[89,21,89,65,0],[90,21,90,71,0],[91,17,91,18,0],[92,13,92,14,0],[95,13,95,20,0],[95,22,95,33,0],[95,34,95,36,0],[95,37,95,95,0],[95,95,95,113,0],[95,113,95,124,0],[95,37,95,124,0],[96,13,96,14,0],[97,17,97,56,0],[98,17,98,47,0],[99,17,99,18,0],[101,21,101,79,0],[101,79,101,111,0],[101,111,101,113,0],[101,21,101,113,0],[102,17,102,18,0],[104,17,104,57,0],[105,17,105,18,0],[106,21,106,142,0],[107,21,107,61,0],[109,21,109,37,0],[110,25,110,41,0],[111,26,111,51,0],[112,25,112,56,0],[113,26,113,57,0],[114,25,114,41,0],[115,17,115,18,0],[116,22,116,51,0],[117,21,117,37,0],[119,21,119,64,0],[120,13,120,14,0],[123,13,123,37,0],[124,9,124,10,0],[127,9,127,10,0],[128,13,128,58,0],[129,13,129,60,0],[130,9,130,10,0],[133,9,133,10,0],[134,13,134,59,0],[135,13,135,61,0],[136,9,136,10,0]]);
+    </script>
+  </body>
+</html>

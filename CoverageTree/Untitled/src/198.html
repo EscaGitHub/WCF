@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Commands\OpenSharedSettingsViewCommand.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using NLog;
+using Swr.Configurator.Logic.Commands;
+using SwrUI;
+using SettingsWindow = Swr.Configurator.View.Settings.SettingsWindow;
+
+namespace Swr.Configurator.View.Commands
+{
+	class OpenSharedSettingsViewCommand : ViewCommandBase
+	{
+		private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
+
+		public OpenSharedSettingsViewCommand(ICommandManager commandManager)
+			: base(commandManager)
+		{
+		}
+
+		public override bool Execute()
+		{
+			try
+			{
+                var window = new SettingsWindow {Owner = ConfiguratorMainWindow.Instance};
+
+                if (window.ShowDialog() == true)
+				{
+					SafeFinished(true);
+
+					return true;
+				}
+			}
+			catch (Exception e)
+			{
+				_logger.Error(e);
+
+				SwrMessageBox.Show(ConfiguratorMainWindow.Instance, e.Message, ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error);
+			}
+
+			SafeFinished(false);
+			return false;
+		}
+
+		private void SafeFinished(bool result)
+		{
+			try
+			{
+				OnFinished(result);
+			}
+			catch (Exception e)
+			{
+				_logger.Error(e);
+
+				ConfiguratorMainWindow.Instance.Dispatcher?.Invoke(new Action(() =&gt; SwrMessageBox.Show(ConfiguratorMainWindow.Instance, e.Message, ConfiguratorMainWindowVM.Instance.WindowTitle, SwrMessageBoxButton.OK, SwrMessageBoxImage.Error)));
+			}
+		}
+	}
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[11,3,11,72,0],[15,6,15,26,0],[16,3,16,4,0],[17,3,17,4,0],[20,3,20,4,0],[22,4,22,5,0],[23,17,23,91,0],[25,17,25,49,0],[26,5,26,6,0],[27,6,27,25,0],[29,6,29,18,0],[31,4,31,5,0],[32,4,32,23,0],[33,4,33,5,0],[34,5,34,22,0],[36,5,36,165,0],[37,4,37,5,0],[39,4,39,24,0],[40,4,40,17,0],[41,3,41,4,0],[44,3,44,4,0],[46,4,46,5,0],[47,5,47,24,0],[48,4,48,5,0],[49,4,49,23,0],[50,4,50,5,0],[51,5,51,22,0],[53,5,53,73,0],[53,73,53,232,0],[53,232,53,235,0],[53,5,53,235,0],[54,4,54,5,0],[55,3,55,4,0]]);
+    </script>
+  </body>
+</html>

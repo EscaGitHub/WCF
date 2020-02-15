@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Controls\VectorIconUC.xaml.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Windows;
+using System.Windows.Media;
+
+namespace Swr.Configurator.View.Controls
+{
+	public partial class VectorIconUC
+	{
+		public static readonly DependencyProperty IconColorProperty = DependencyProperty.Register(&quot;IconColor&quot;, typeof (SolidColorBrush), typeof (VectorIconUC), new PropertyMetadata(default(SolidColorBrush)));
+		public static readonly DependencyProperty DataProperty = DependencyProperty.Register(&quot;Data&quot;, typeof (string), typeof (VectorIconUC), new PropertyMetadata(string.Empty));
+		public static readonly DependencyProperty DisabledIconColorProperty = DependencyProperty.Register(&quot;DisabledIconColor&quot;, typeof (SolidColorBrush), typeof (VectorIconUC), new PropertyMetadata(default(SolidColorBrush)));
+
+		public static readonly DependencyProperty TopProperty = DependencyProperty.Register(&quot;Top&quot;, typeof (int), typeof (VectorIconUC), new PropertyMetadata(default(int)));
+		public static readonly DependencyProperty LeftProperty = DependencyProperty.Register(&quot;Left&quot;, typeof (int), typeof (VectorIconUC), new PropertyMetadata(default(int)));
+
+		public VectorIconUC()
+		{
+			InitializeComponent();
+		}
+
+		public SolidColorBrush IconColor
+		{
+			get { return (SolidColorBrush) GetValue(IconColorProperty); }
+			set { SetValue(IconColorProperty, value); }
+		}
+
+		public string Data
+		{
+			get { return (string) GetValue(DataProperty); }
+			set { SetValue(DataProperty, value); }
+		}
+
+		public SolidColorBrush DisabledIconColor
+		{
+			get { return (SolidColorBrush) GetValue(DisabledIconColorProperty); }
+			set { SetValue(DisabledIconColorProperty, value); }
+		}
+
+		public int Top
+		{
+			get { return (int) GetValue(TopProperty); }
+			set { SetValue(TopProperty, value); }
+		}
+
+		public int Left
+		{
+			get { return (int) GetValue(LeftProperty); }
+			set { SetValue(LeftProperty, value); }
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[8,3,8,203,0],[9,3,9,172,0],[10,3,10,219,0],[12,3,12,167,0],[13,3,13,169,0],[15,3,15,24,0],[16,3,16,4,0],[17,4,17,26,0],[18,3,18,4,0],[22,8,22,9,0],[22,10,22,63,0],[22,64,22,65,0],[23,8,23,9,0],[23,10,23,45,0],[23,46,23,47,0],[28,8,28,9,0],[28,10,28,49,0],[28,50,28,51,0],[29,8,29,9,0],[29,10,29,40,0],[29,41,29,42,0],[34,8,34,9,0],[34,10,34,71,0],[34,72,34,73,0],[35,8,35,9,0],[35,10,35,53,0],[35,54,35,55,0],[40,8,40,9,0],[40,10,40,45,0],[40,46,40,47,0],[41,8,41,9,0],[41,10,41,39,0],[41,40,41,41,0],[46,8,46,9,0],[46,10,46,46,0],[46,47,46,48,0],[47,8,47,9,0],[47,10,47,40,0],[47,41,47,42,0]]);
+    </script>
+  </body>
+</html>

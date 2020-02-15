@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\AvalonDock.Version2.0\Xceed.Wpf.AvalonDock\Converters\AutoHideCommandLayoutItemFromLayoutModelConverter.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+/************************************************************************
+
+   AvalonDock
+
+   Copyright (C) 2007-2013 Xceed Software Inc.
+
+   This program is provided to you under the terms of the New BSD
+   License (BSD) as published at http://avalondock.codeplex.com/license 
+
+   For more features, controls, and fast professional support,
+   pick up AvalonDock in Extended WPF Toolkit Plus at http://xceed.com/wpf_toolkit
+
+   Stay informed: follow @datagrid on Twitter or Like facebook.com/datagrids
+
+  **********************************************************************/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Data;
+using Xceed.Wpf.AvalonDock.Layout;
+using Xceed.Wpf.AvalonDock.Controls;
+
+namespace Xceed.Wpf.AvalonDock.Converters
+{
+    public class AutoHideCommandLayoutItemFromLayoutModelConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            //when this converter is called layout could be constructing so many properties here are potentially not valid
+            var layoutModel = value as LayoutContent;
+            if (layoutModel == null)
+                return null;
+            if (layoutModel.Root == null)
+                return null;
+            if (layoutModel.Root.Manager == null)
+                return null;
+
+            var layoutItemModel = layoutModel.Root.Manager.GetLayoutItemFromModel(layoutModel) as LayoutAnchorableItem;
+            if (layoutItemModel == null)
+                return Binding.DoNothing;
+
+            return layoutItemModel.AutoHideCommand;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[30,9,30,10,0],[32,13,32,54,0],[33,13,33,37,0],[34,17,34,29,0],[35,13,35,42,0],[36,17,36,29,0],[37,13,37,50,0],[38,17,38,29,0],[40,13,40,120,0],[41,13,41,41,0],[42,17,42,42,0],[44,13,44,52,0],[45,9,45,10,0],[48,9,48,10,0],[49,13,49,49,0]]);
+    </script>
+  </body>
+</html>

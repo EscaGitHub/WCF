@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR.Configurator.Common\Settings\Columns\ColumnSettings.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Diagnostics;
+
+namespace Swr.Configurator.Common.Settings.Columns
+{
+	/// &lt;summary&gt;
+	/// ��������� ����� ������� ������������
+	/// &lt;/summary&gt;
+	[DebuggerDisplay(&quot;{Header}&quot;)]
+	public class ColumnSettings : ICloneable
+	{
+		public ColumnSettings()
+		{
+			Identifier = Guid.NewGuid();
+			Expression = new ColumnExpression();
+			//Permitions= new List&lt;Permition&gt;();
+		}
+
+		/// &lt;summary&gt;
+		/// ��� �������
+		/// &lt;/summary&gt;
+		public ColumnType ColumnType { get; set; }
+
+		/// &lt;summary&gt;
+		/// ���������� �������������
+		/// &lt;/summary&gt;
+		public Guid Identifier { get; set; }
+
+		/// &lt;summary&gt;
+		/// ���������
+		/// &lt;/summary&gt;
+		public string Header { get; set; }
+
+		/// &lt;summary&gt;
+		/// ������� ����������
+		/// &lt;/summary&gt;
+		public VariableSource Source { get; set; }
+
+		/// &lt;summary&gt;
+		/// ���������� SWE-PDM
+		/// &lt;/summary&gt;
+		public string Variable { get; set; }
+
+		/// &lt;summary&gt;
+		/// Id ������, ���� ������� ������� �� ������� 
+		/// &lt;/summary&gt;
+		public Guid ListId { get; set; }
+
+		/// &lt;summary&gt;
+		/// �������, ��� � ���������� ���������� ��������� ��������
+		/// &lt;/summary&gt;
+		public bool IsMultipleReference { get; set; }
+
+		/// &lt;summary&gt;
+		/// �������� �� ��������� ��� ����� �����������(?)
+		/// &lt;/summary&gt;
+		public string DefaultValue { get; set; }
+
+		/// &lt;summary&gt;
+		/// ������� �������, �� �������� ������� ������� ����� ������� � SWE-PDM
+		/// &lt;/summary&gt;
+		public bool IsSearchColumn { get; set; }
+
+		/// &lt;summary&gt;
+		/// �������� ����������
+		/// &lt;/summary&gt;
+		public bool NumericalSorting { get; set; }
+
+		/// &lt;summary&gt;
+		/// ������� �������� ����
+		/// &lt;/summary&gt;
+		//[XmlArrayItem(typeof (CheckListValue))]
+		//[XmlArrayItem(typeof (CheckMaxLength))]
+		//[XmlArrayItem(typeof (CheckMinLength))]
+		//[XmlArrayItem(typeof (CheckDataType))]
+		//public List&lt;CheckBase&gt; Checks { get; set; } = new List&lt;CheckBase&gt;();
+
+		/// &lt;summary&gt;
+		/// ��� ����� ������ (��������� ������ ������) ������ ���� �������� ��� ����� ������ ����� ��������, ������� ����������� � ����������.
+		/// &lt;/summary&gt;
+		public bool CanBeEditedIfNewProduct { get; set; }
+
+		/// &lt;summary&gt;
+		/// ��������� ��� ������������ ����
+		/// &lt;/summary&gt;
+		public ColumnExpression Expression { get; set; }
+
+		/// &lt;summary&gt;
+		/// ���������� �� ��������������
+		/// &lt;/summary&gt;
+		//public List&lt;Permition&gt; Permitions { get; set; }
+
+		/// &lt;summary&gt;
+		/// Creates a new object that is a copy of the current instance.
+		/// &lt;/summary&gt;
+		/// &lt;returns&gt;
+		/// A new object that is a copy of this instance.
+		/// &lt;/returns&gt;
+		/// &lt;filterpriority&gt;2&lt;/filterpriority&gt;
+		public object Clone()
+		{
+			var clone = new ColumnSettings();
+			
+			//clone.Checks = new List&lt;CheckBase&gt;();
+			//foreach (var check in Checks)
+			//{
+			//	clone.Checks.Add((CheckBase) check.Clone());
+			//}
+
+			//clone.ColumnType = ColumnType;
+			//clone.DefaultValue = DefaultValue;
+			//clone.Header = Header;
+			//clone.IsMultipleReference = IsMultipleReference;
+			//clone.IsSearchColumn = IsSearchColumn;
+			//clone.ListId = ListId;
+			//clone.NumericalSorting = NumericalSorting;
+			//clone.Source = Source;
+			//clone.Variable = Variable;
+			//clone.Expression = (ColumnExpression) Expression.Clone();
+
+			return clone;
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[12,3,12,26,0],[13,3,13,4,0],[14,4,14,32,0],[15,4,15,40,0],[17,3,17,4,0],[22,34,22,38,0],[22,39,22,43,0],[27,28,27,32,0],[27,33,27,37,0],[32,26,32,30,0],[32,31,32,35,0],[37,34,37,38,0],[37,39,37,43,0],[42,28,42,32,0],[42,33,42,37,0],[47,24,47,28,0],[47,29,47,33,0],[52,37,52,41,0],[52,42,52,46,0],[57,32,57,36,0],[57,37,57,41,0],[62,32,62,36,0],[62,37,62,41,0],[67,34,67,38,0],[67,39,67,43,0],[81,41,81,45,0],[81,46,81,50,0],[86,40,86,44,0],[86,45,86,49,0],[101,3,101,4,0],[102,4,102,37,0],[121,4,121,17,0],[122,3,122,4,0]]);
+    </script>
+  </body>
+</html>

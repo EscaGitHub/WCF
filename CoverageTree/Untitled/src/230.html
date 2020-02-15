@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\View\Controls\KeysToIgnore.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Collections.Generic;
+using System.Windows.Input;
+
+namespace Swr.Configurator.View.Controls
+{
+	public class KeysToIgnore
+	{
+		private static List&lt;Key&gt; _keys;
+
+		public static List&lt;Key&gt; Keys
+		{
+			get
+			{
+				return _keys ?? (_keys = new List&lt;Key&gt;
+				{
+					Key.Left, Key.Right, Key.Up, Key.Down, Key.LeftShift, Key.RightShift, Key.Delete, Key.Insert,
+					Key.PageDown, Key.PageUp, Key.LeftAlt, Key.RightAlt, Key.LeftCtrl, Key.RightCtrl, Key.Tab,
+					Key.F1, Key.F3, Key.F4, Key.F5, Key.F6, Key.F7, Key.F8, Key.F9, Key.F10, Key.F11, Key.F12,
+					Key.Home, Key.End, Key.Clear, Key.PrintScreen, Key.Sleep, Key.LWin, Key.RWin, Key.CapsLock
+				});
+			}
+		}
+	}
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[13,4,13,5,0],[14,5,20,8,0],[21,4,21,5,0]]);
+    </script>
+  </body>
+</html>

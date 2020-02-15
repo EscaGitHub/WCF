@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>D:\!Work\!GIT\SWR-Conf\Source\SWR-ConfiguratorAPI\SWR-Configurator\Logic\EventArgs\ProductEventArgs.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Swr.Configurator.Data;
+using Swr.Configurator.Data.ProductModel;
+
+namespace Swr.Configurator.Logic.EventArgs
+{
+    public class ProductEventArgs:System.EventArgs
+    {
+
+        public ProductEventArgs(List&lt;IProduct&gt; products, bool fromSearch)
+        {
+            Products = products;
+            FromSearch = fromSearch;
+        }
+        public List&lt;IProduct&gt; Products { get; set; }
+
+        public bool FromSearch { get; set; }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[14,9,14,74,0],[15,9,15,10,0],[16,13,16,33,0],[17,13,17,37,0],[18,9,18,10,0],[19,42,19,46,0],[19,47,19,51,0],[21,34,21,38,0],[21,39,21,43,0]]);
+    </script>
+  </body>
+</html>
